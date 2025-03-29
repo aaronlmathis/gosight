@@ -18,17 +18,25 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with LeetScraper. If not, see https://www.gnu.org/licenses/.
 */
-
 package collector
 
-// Metric Collector interface
-type MetricCollector interface {
-	Name() string
-	Collect() (map[string]float64, error)
-}
+import "time"
 
-type MetricResult struct {
-	Name string
-	Data map[string]float64
-	Err  error
+func StartCollectors(collectors []MetricCollector, interval time.Duration, out chan<- MetricResult) {
+	for _, c := range collectors {
+		go func(c MetricCollector) {
+			ticker := time.NewTicker(interval)
+			defer ticker.Stop()
+
+			for {
+				data, err := c.Collect()
+				out <- MetricResult{
+					Name: c.Name(),
+					Data: data,
+					Err:  err,
+				}
+				<-ticker.C
+			}
+		}(c)
+	}
 }

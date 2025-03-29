@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GoSight Dashboard</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background-color: #f9f9f9;
+      color: #333;
+      padding: 2rem;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    #lastUpdate {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+    }
+    th {
+      background-color: #f1f1f1;
+      font-weight: 600;
+    }
+    tr:nth-child(even) {
+      background-color: #fafafa;
+    }
+    td.value {
+      transition: background-color 0.3s ease;
+    }
+    .high {
+      background-color: #ffe5e5;
+      color: #b30000;
+    }
+    .low {
+      background-color: #e5ffe5;
+      color: #006600;
+    }
+  </style>
+</head>
+<body>
+  <h1>GoSight System Metrics</h1>
+  <div id="lastUpdate">Waiting for data...</div>
+  <table id="metricsTable">
+    <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+    <tbody id="metricsBody"></tbody>
+  </table>
+
+  <script>
+    const ws = new WebSocket("ws://" + location.host + "/ws");
+    const tbody = document.getElementById("metricsBody");
+    const lastUpdate = document.getElementById("lastUpdate");
+  
+    ws.onmessage = (event) => {
+      const { metrics, thresholds } = JSON.parse(event.data);
+  
+      tbody.innerHTML = "";
+  
+      const keys = Object.keys(metrics).sort();
+        keys.forEach((key) => {
+        const value = metrics[key];
+        let cls = "";
+
+        if (thresholds && thresholds[key]) {
+            const t = thresholds[key];
+            console.log(`${key}: ${value}, thresholds[key]=`, thresholds[key]);
+            const high = parseFloat(t.high);
+            const low = parseFloat(t.low);
+            console.log(`→ ${key} value=${value}, low=${low}, high=${high}`);
+            if (!isNaN(high) && value > high) {
+            cls = "high";
+            } else if (!isNaN(low) && value < low) {
+            cls = "low";
+            }
+        }
+
+        console.log(`${key}: ${value} → class=${cls}`); // DEBUG LINE
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${key}</td>
+            <td class="value ${cls}">${value.toFixed(2)}</td>
+        `;
+        tbody.appendChild(row);
+        });
+  
+      lastUpdate.textContent = "Last updated: " + new Date().toLocaleTimeString();
+    };
+  
+    ws.onerror = (e) => console.error("WebSocket error:", e);
+  </script>
+  
+</body>
+</html>

@@ -5,3 +5,11 @@ metrics:
 exporters:
   prometheus: true
   dashboard: true
+
+thresholds:
+  cpu_usage:
+    high: 75
+    low: 30
+  mem_used_percent:
+    high: 80
+    low: 40

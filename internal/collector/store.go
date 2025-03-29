@@ -21,14 +21,39 @@ along with LeetScraper. If not, see https://www.gnu.org/licenses/.
 
 package collector
 
-// Metric Collector interface
-type MetricCollector interface {
-	Name() string
-	Collect() (map[string]float64, error)
+import (
+	"sync"
+)
+
+type MetricStore struct {
+	mu      sync.RWMutex
+	metrics map[string]float64
 }
 
-type MetricResult struct {
-	Name string
-	Data map[string]float64
-	Err  error
+func NewMetricStore() *MetricStore {
+	return &MetricStore{
+		metrics: make(map[string]float64),
+	}
+}
+
+// Update the store with new metrics
+func (s *MetricStore) Update(results map[string]float64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for k, v := range results {
+		s.metrics[k] = v
+	}
+}
+
+// Get snapshot of all current metrics
+func (s *MetricStore) Snapshot() map[string]float64 {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	copy := make(map[string]float64)
+	for k, v := range s.metrics {
+		copy[k] = v
+	}
+	return copy
 }
