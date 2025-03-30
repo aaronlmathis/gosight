@@ -1,0 +1,93 @@
+// ui.js
+import { formatMetricValue, formatUptime, formatTimestamp } from './utils.js';
+
+export function renderHostSection(hostMetrics, ifaceMetrics, totalMetrics, thresholds) {
+  const section = document.createElement("section");
+  section.innerHTML = `
+    <h2 class="text-xl font-semibold mt-6 mb-4">Host Metrics</h2>
+    <div class="space-y-4">
+      ${renderMetricsTable(hostMetrics, thresholds)}
+      ${Object.entries(ifaceMetrics).map(([iface, metrics]) => `
+        <div>
+          <h3 class="text-md font-semibold">${iface}</h3>
+          ${renderMetricsTable(metrics, thresholds)}
+        </div>
+      `).join('')}
+      ${totalMetrics.length > 0 ? `
+        <div>
+          <h3 class="text-md font-semibold">Network Totals</h3>
+          ${renderMetricsTable(totalMetrics, thresholds)}
+        </div>
+      ` : ''}
+    </div>
+  `;
+  return section;
+}
+
+export function renderContainerSections(containerGroups, metaGroups, thresholds) {
+  return Object.entries(containerGroups).sort().map(([name, metrics]) => {
+    const meta = Object.fromEntries((metaGroups[name] || []).map(m => [m.name, m.value]));
+
+    return `
+      <section class="mt-8">
+        <h2 class="text-lg font-semibold">
+          ${name}
+          ${renderBadges(meta)}
+        </h2>
+        ${renderMetricsTable(metrics, thresholds)}
+        ${renderMetaTable(metaGroups[name] || [])}
+      </section>
+    `;
+  }).join('');
+}
+
+function renderMetricsTable(metrics, thresholds) {
+  const rows = metrics.map(({ name, full, value }) => {
+    let cls = "";
+    if (thresholds?.[full]) {
+      const t = thresholds[full];
+      if (!isNaN(t.high) && value > parseFloat(t.high)) cls = "bg-red-100 text-red-800";
+      else if (!isNaN(t.low) && value < parseFloat(t.low)) cls = "bg-green-100 text-green-800";
+    }
+    return `
+      <tr>
+        <td class="p-2 border">${name}</td>
+        <td class="p-2 border font-mono ${cls}">${formatMetricValue(name, value)}</td>
+      </tr>`;
+  }).join('');
+
+  return `
+    <table class="w-full text-sm border border-gray-200">
+      <thead><tr class="bg-gray-100"><th class="p-2 border">Metric</th><th class="p-2 border">Value</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function renderMetaTable(metaItems) {
+  if (!metaItems.length) return "";
+  const rows = metaItems.map(({ name, value }) => {
+    let display = value;
+    if (name.endsWith("_at")) display = formatTimestamp(value);
+    else if (name.startsWith("uptime") || name.endsWith("_seconds")) {
+      const seconds = parseFloat(value);
+      if (!isNaN(seconds)) display = `${seconds.toFixed(2)} sec (${formatUptime(seconds)})`;
+    }
+    return `<tr><td class="p-2 border">${name}</td><td class="p-2 border font-mono">${display}</td></tr>`;
+  }).join('');
+
+  return `
+    <h3 class="text-md font-medium mt-3">Metadata</h3>
+    <table class="w-full text-sm border border-gray-200">
+      <thead><tr class="bg-gray-100"><th class="p-2 border">Key</th><th class="p-2 border">Value</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function renderBadges(meta) {
+  const badges = [];
+  if (meta.state) badges.push(`<span class="ml-2 px-2 py-1 text-xs rounded bg-gray-200 uppercase">${meta.state}</span>`);
+  if (meta.health) badges.push(`<span class="ml-2 px-2 py-1 text-xs rounded ${meta.health === 'healthy' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${meta.health}</span>`);
+  if (meta.image) badges.push(`<span class="ml-2 text-gray-500 text-sm">(${meta.image})</span>`);
+  if (meta.restart_count) badges.push(`<span class="ml-2 text-gray-400 text-sm">↻ ${meta.restart_count} restarts</span>`);
+  return badges.join('');
+}
