@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -57,13 +56,7 @@ func main() {
 	}()
 
 	// Start HTTP server
-	go exporter.StartHTTPServer(
-		fmt.Sprintf(":%d", cfg.Server.Port),
-		store,
-		cfg.Thresholds,
-		cfg.Exporters.Prometheus,
-		cfg.Exporters.Dashboard,
-	)
+	go exporter.StartHTTPServer(cfg, store)
 
 	// Block forever
 	select {}

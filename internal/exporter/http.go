@@ -24,10 +24,8 @@ package exporter
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"log"
 	"net/http"
-	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -46,7 +44,7 @@ type WSMessage struct {
 	Meta       map[string]string           `json:"meta"`
 }
 
-func StartHTTPServer(addr string, store *collector.MetricStore, thresholds map[string]config.Threshold, enablePrometheus bool, enableDashboard bool) {
+func StartHTTPServer(cfg *config.Config, store *collector.MetricStore) {
 	mux := http.NewServeMux()
 
 	// JSON endpoint
@@ -59,7 +57,7 @@ func StartHTTPServer(addr string, store *collector.MetricStore, thresholds map[s
 		})
 	})
 
-	if enablePrometheus {
+	if cfg.Exporters.Prometheus {
 		// Prometheus text endpoint
 		mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 			metrics, _ := store.Snapshot()
@@ -77,7 +75,7 @@ func StartHTTPServer(addr string, store *collector.MetricStore, thresholds map[s
 		})
 	}
 
-	if enableDashboard {
+	if cfg.Exporters.Dashboard {
 		// WebSocket endpoint
 		mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 			conn, err := upgrader.Upgrade(w, r, nil)
@@ -95,7 +93,7 @@ func StartHTTPServer(addr string, store *collector.MetricStore, thresholds map[s
 				metrics, meta := store.Snapshot()
 				msg := WSMessage{
 					Metrics:    metrics,
-					Thresholds: thresholds,
+					Thresholds: cfg.Thresholds,
 					Meta:       meta,
 				}
 				log.Printf("WS sending metrics: %v", metrics)
@@ -106,17 +104,22 @@ func StartHTTPServer(addr string, store *collector.MetricStore, thresholds map[s
 				}
 			}
 		})
-
-		// HTML dashboard endpoint
-		mux.HandleFunc("/dashboard", func(w http.ResponseWriter, r *http.Request) {
-			metrics, _ := store.Snapshot()
-			tmplPath := filepath.Join("web", "templates", "dashboard.html")
-			tmpl := template.Must(template.ParseFiles(tmplPath))
-			err := tmpl.Execute(w, metrics)
-			if err != nil {
-				http.Error(w, "Template error", http.StatusInternalServerError)
-			}
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "web/index.html")
 		})
+
+		mux.Handle("/web/", http.StripPrefix("/web/", http.FileServer(http.Dir("web"))))
+		/*
+			// HTML dashboard endpoint
+			mux.HandleFunc("/dashboard", func(w http.ResponseWriter, r *http.Request) {
+				metrics, _ := store.Snapshot()
+				tmplPath := filepath.Join("web", "templates", "dashboard.html")
+				tmpl := template.Must(template.ParseFiles(tmplPath))
+				err := tmpl.Execute(w, metrics)
+				if err != nil {
+					http.Error(w, "Template error", http.StatusInternalServerError)
+				}
+			})*/
 	}
 
 	// Health check
@@ -125,6 +128,7 @@ func StartHTTPServer(addr string, store *collector.MetricStore, thresholds map[s
 		w.Write([]byte("ok"))
 	})
 
+	addr := fmt.Sprintf(":%d", cfg.Server.Port) // e.g. ":8080"
 	log.Printf("HTTP server listening on %s", addr)
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatalf("HTTP server error: %v", err)

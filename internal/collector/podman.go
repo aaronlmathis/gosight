@@ -38,6 +38,12 @@ type PodmanCollector struct {
 	name   string
 }
 
+func sanitize(s string) string {
+	s = strings.ReplaceAll(s, "/", "_")
+	s = strings.ReplaceAll(s, " ", "_")
+	return s
+}
+
 func NewPodmanCollector(socketPath string) *PodmanCollector {
 
 	transport := &http.Transport{
@@ -79,10 +85,16 @@ func (p *PodmanCollector) Collect() MetricResult {
 	defer resp.Body.Close()
 
 	var containers []struct {
-		ID      string   `json:"Id"`
-		Names   []string `json:"Names"`
-		State   string   `json:"State"`
-		Created string   `json:"Created"`
+		ID           string            `json:"Id"`
+		Names        []string          `json:"Names"`
+		ImageName    string            `json:"Image"`
+		State        string            `json:"State"`
+		Created      string            `json:"Created"`
+		Labels       map[string]string `json:"Labels"`
+		RestartCount int               `json:"RestartCount"`
+		Health       struct {
+			Status string `json:"Status"`
+		} `json:"HealthCheck"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&containers); err != nil {
 		return MetricResult{
@@ -104,6 +116,18 @@ func (p *PodmanCollector) Collect() MetricResult {
 
 		// Store container state as metadata
 		meta[fmt.Sprintf("container_podman_state_%s", name)] = c.State
+		meta[fmt.Sprintf("container_podman_image_%s", name)] = c.ImageName
+		meta[fmt.Sprintf("container_podman_state_%s", name)] = c.State
+
+		if c.ImageName != "" {
+			meta[fmt.Sprintf("container_podman_image_%s", name)] = c.ImageName
+		}
+
+		meta[fmt.Sprintf("container_podman_restart_count_%s", name)] = strconv.Itoa(c.RestartCount)
+
+		for k, v := range c.Labels {
+			meta[fmt.Sprintf("container_podman_label_%s_%s", name, sanitize(k))] = v
+		}
 
 		// Calculate uptime only if running
 		if c.State == "running" && c.Created != "" {
@@ -115,6 +139,8 @@ func (p *PodmanCollector) Collect() MetricResult {
 		}
 
 		// Fetch container stats
+		// These are the main metrics that poulate Metrics in MetricResult
+
 		statsURL := fmt.Sprintf("http://d/v4.0.0/libpod/containers/%s/stats?stream=false", c.ID)
 		statsReq, err := http.NewRequest("GET", statsURL, nil)
 		if err != nil {
@@ -201,6 +227,112 @@ func (p *PodmanCollector) Collect() MetricResult {
 				metrics[fmt.Sprintf("container_podman_blkio_write_bytes_%s", name)] += float64(blk.Value)
 			}
 		}
+
+		/*******************************************************
+			End Metrics
+		***************************************************/
+
+		// Begin Collecting the Meta data on containers.
+		// This fills the Meta field of MetricResult
+		// Fetch container details
+		detailsReq, _ := http.NewRequest("GET", fmt.Sprintf("http://d/v4.0.0/libpod/containers/%s/json", c.ID), nil)
+		detailsResp, err := p.client.Do(detailsReq)
+		if err != nil {
+			continue
+		}
+		defer detailsResp.Body.Close()
+
+		var details struct {
+			State struct {
+				StartedAt string `json:"StartedAt"`
+				Health    struct {
+					Status string `json:"Status"`
+				} `json:"Health"`
+			} `json:"State"`
+			Created string `json:"Created"`
+			Image   string `json:"Image"`
+			Config  struct {
+				User         string                 `json:"User"`
+				ExposedPorts map[string]interface{} `json:"ExposedPorts"`
+			} `json:"Config"`
+			HostConfig struct {
+				RestartPolicy struct {
+					Name              string `json:"Name"`
+					MaximumRetryCount int    `json:"MaximumRetryCount"`
+				} `json:"RestartPolicy"`
+				NetworkMode string   `json:"NetworkMode"`
+				Binds       []string `json:"Binds"`
+			} `json:"HostConfig"`
+		}
+
+		log.Printf("[podman] requesting details for container %s", name)
+
+		if err := json.NewDecoder(detailsResp.Body).Decode(&details); err != nil {
+			log.Printf("[podman] decode error for %s: %v", name, err)
+			continue
+		}
+		log.Printf("[podman] detail status code for %s: %d", name, detailsResp.StatusCode)
+
+		// Health Status
+		if hs := details.State.Health.Status; hs != "" {
+			meta[fmt.Sprintf("container_podman_health_%s", name)] = hs
+		}
+
+		// Started At
+		if details.State.StartedAt != "" {
+			meta[fmt.Sprintf("container_podman_started_at_%s", name)] = details.State.StartedAt
+		}
+
+		// Created At
+		if details.Created != "" {
+			meta[fmt.Sprintf("container_podman_created_at_%s", name)] = details.Created
+		}
+
+		// Image Digest
+		if details.Image != "" {
+			meta[fmt.Sprintf("container_podman_image_digest_%s", name)] = details.Image
+		}
+
+		// Restart Policy
+		if rp := details.HostConfig.RestartPolicy; rp.Name != "" {
+			meta[fmt.Sprintf("container_podman_restart_policy_%s", name)] = rp.Name
+		}
+		if rp := details.HostConfig.RestartPolicy; rp.MaximumRetryCount > 0 {
+			meta[fmt.Sprintf("container_podman_restart_max_%s", name)] = strconv.Itoa(rp.MaximumRetryCount)
+		}
+
+		// Network Mode
+		if details.HostConfig.NetworkMode != "" {
+			meta[fmt.Sprintf("container_podman_network_mode_%s", name)] = details.HostConfig.NetworkMode
+		}
+
+		// User
+		if details.Config.User != "" {
+			meta[fmt.Sprintf("container_podman_user_%s", name)] = details.Config.User
+		}
+
+		if c.State == "running" && details.Created != "" {
+			createdTime, err := time.Parse(time.RFC3339Nano, details.Created)
+			if err == nil {
+				uptime := now.Sub(createdTime).Seconds()
+				meta[fmt.Sprintf("container_podman_uptime_seconds_%s", name)] = fmt.Sprintf("%.2f", uptime)
+			}
+		}
+
+		// Volumes
+		if len(details.HostConfig.Binds) > 0 {
+			meta[fmt.Sprintf("container_podman_volumes_%s", name)] = strings.Join(details.HostConfig.Binds, ",")
+		}
+
+		// Exposed Ports
+		if len(details.Config.ExposedPorts) > 0 {
+			ports := make([]string, 0, len(details.Config.ExposedPorts))
+			for port := range details.Config.ExposedPorts {
+				ports = append(ports, port)
+			}
+			meta[fmt.Sprintf("container_podman_ports_%s", name)] = strings.Join(ports, ",")
+		}
+
 	}
 
 	return MetricResult{

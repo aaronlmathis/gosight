@@ -6,6 +6,11 @@ exporters:
   prometheus: true
   dashboard: true
 
+time:
+  zone: American/Chicago
+  format: "January 2, 2006 at 3:04 PM"
+
+  
 thresholds:
   cpu_usage:
     high: 75

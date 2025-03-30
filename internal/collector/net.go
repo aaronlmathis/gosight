@@ -48,7 +48,9 @@ func (n *NetCollector) Collect() MetricResult {
 
 	log.Printf("[network] collected interfaces")
 	scanner := bufio.NewScanner(f)
-	results := make(map[string]float64)
+	metrics := make(map[string]float64)
+
+	var sumRxBytes, sumTxBytes float64
 
 	for i := 0; scanner.Scan(); i++ {
 		if i < 2 {
@@ -64,12 +66,18 @@ func (n *NetCollector) Collect() MetricResult {
 		rxBytes, _ := strconv.ParseFloat(parts[1], 64)
 		txBytes, _ := strconv.ParseFloat(parts[9], 64)
 
-		results[fmt.Sprintf("net_rx_bytes_%s", iface)] = rxBytes
-		results[fmt.Sprintf("net_tx_bytes_%s", iface)] = txBytes
+		sumRxBytes += rxBytes
+		sumTxBytes += txBytes
+
+		metrics[fmt.Sprintf("net_rx_bytes_%s", iface)] = rxBytes
+		metrics[fmt.Sprintf("net_tx_bytes_%s", iface)] = txBytes
 	}
+
+	metrics["net_rx_bytes_total"] = sumRxBytes
+	metrics["net_tx_bytes_total"] = sumTxBytes
 
 	return MetricResult{
 		Name: n.Name(),
-		Data: results,
+		Data: metrics,
 	}
 }

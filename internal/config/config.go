@@ -38,6 +38,11 @@ type ContainerConfig struct {
 	Socket  string `yaml:"socket"`
 }
 
+type TimeConfig struct {
+	Zone   string `yaml:"zone"`
+	Format string `yaml:"format"`
+}
+
 type Config struct {
 	Server struct {
 		Port int `yaml:"port"`
@@ -55,6 +60,8 @@ type Config struct {
 	Thresholds map[string]Threshold `yaml:"thresholds"`
 
 	Containers ContainerConfig `yaml:"containers"`
+
+	Time TimeConfig `yaml:"time"`
 }
 
 func LoadConfig(path string) (*Config, error) {
