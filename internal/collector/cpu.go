@@ -38,10 +38,13 @@ func (c *CPUCollector) Name() string {
 	return "cpu"
 }
 
-func (c *CPUCollector) Collect() (map[string]float64, error) {
+func (c *CPUCollector) Collect() MetricResult {
 	file, err := os.Open("/proc/stat")
 	if err != nil {
-		return nil, fmt.Errorf("failed to open /proc/stat: %w", err)
+		return MetricResult{
+			Name: c.Name(),
+			Err:  fmt.Errorf("failed to open /proc/stat: %w", err),
+		}
 	}
 	defer file.Close()
 
@@ -51,10 +54,12 @@ func (c *CPUCollector) Collect() (map[string]float64, error) {
 		if strings.HasPrefix(line, "cpu ") {
 			fields := strings.Fields(line)
 			if len(fields) < 5 {
-				return nil, fmt.Errorf("unexpected format in /proc/stat")
+				return MetricResult{
+					Name: c.Name(),
+					Err:  fmt.Errorf("unexpected format in /proc/stat"),
+				}
 			}
 
-			// Parse CPU times
 			user, _ := strconv.ParseUint(fields[1], 10, 64)
 			nice, _ := strconv.ParseUint(fields[2], 10, 64)
 			system, _ := strconv.ParseUint(fields[3], 10, 64)
@@ -67,14 +72,21 @@ func (c *CPUCollector) Collect() (map[string]float64, error) {
 			c.prevTotal = total
 			c.prevIdle = idle
 
-			if deltaTotal == 0 {
-				return map[string]float64{"cpu_usage": 0}, nil
+			usage := 0.0
+			if deltaTotal > 0 {
+				usage = float64(deltaTotal-deltaIdle) / float64(deltaTotal) * 100
 			}
-			usage := float64(deltaTotal-deltaIdle) / float64(deltaTotal) * 100
-			return map[string]float64{"cpu_usage": usage}, nil
+
+			return MetricResult{
+				Name: c.Name(),
+				Data: map[string]float64{"cpu_usage": usage},
+			}
 		}
 	}
 
-	return map[string]float64{"cpu_usage": 42.0}, nil
-
+	// fallback
+	return MetricResult{
+		Name: c.Name(),
+		Data: map[string]float64{"cpu_usage": 42.0},
+	}
 }

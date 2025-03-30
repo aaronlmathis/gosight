@@ -36,12 +36,16 @@ func (n *NetCollector) Name() string {
 	return "network"
 }
 
-func (n *NetCollector) Collect() (map[string]float64, error) {
+func (n *NetCollector) Collect() MetricResult {
 	f, err := os.Open("/proc/net/dev")
 	if err != nil {
-		return nil, fmt.Errorf("failed to open /proc/net/dev: %w", err)
+		return MetricResult{
+			Name: n.Name(),
+			Err:  fmt.Errorf("failed to open /proc/net/dev: %w", err),
+		}
 	}
 	defer f.Close()
+
 	log.Printf("[network] collected interfaces")
 	scanner := bufio.NewScanner(f)
 	results := make(map[string]float64)
@@ -64,5 +68,8 @@ func (n *NetCollector) Collect() (map[string]float64, error) {
 		results[fmt.Sprintf("net_tx_bytes_%s", iface)] = txBytes
 	}
 
-	return results, nil
+	return MetricResult{
+		Name: n.Name(),
+		Data: results,
+	}
 }

@@ -29,12 +29,8 @@ func StartCollectors(collectors []MetricCollector, interval time.Duration, out c
 			defer ticker.Stop()
 
 			for {
-				data, err := c.Collect()
-				out <- MetricResult{
-					Name: c.Name(),
-					Data: data,
-					Err:  err,
-				}
+				result := c.Collect()
+				out <- result
 				<-ticker.C
 			}
 		}(c)

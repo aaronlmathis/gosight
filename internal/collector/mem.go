@@ -35,10 +35,13 @@ func (m *MemoryCollector) Name() string {
 	return "memory"
 }
 
-func (m *MemoryCollector) Collect() (map[string]float64, error) {
+func (m *MemoryCollector) Collect() MetricResult {
 	file, err := os.Open("/proc/meminfo")
 	if err != nil {
-		fmt.Errorf("failed to open /proc/meminfo: %w", err)
+		return MetricResult{
+			Name: m.Name(),
+			Err:  fmt.Errorf("failed to open /proc/meminfo: %w", err),
+		}
 	}
 	defer file.Close()
 
@@ -58,7 +61,7 @@ func (m *MemoryCollector) Collect() (map[string]float64, error) {
 			continue
 		}
 
-		stats[key] = value // kb
+		stats[key] = value // kB
 	}
 
 	total := stats["MemTotal"]
@@ -69,10 +72,13 @@ func (m *MemoryCollector) Collect() (map[string]float64, error) {
 
 	used := total - available
 
-	return map[string]float64{
-		"mem_total_kb":     float64(total),
-		"mem_used_kb":      float64(used),
-		"mem_free_kb":      float64(available),
-		"mem_used_percent": float64(used) / float64(total) * 100,
-	}, nil
+	return MetricResult{
+		Name: m.Name(),
+		Data: map[string]float64{
+			"mem_total_kb":     float64(total),
+			"mem_used_kb":      float64(used),
+			"mem_free_kb":      float64(available),
+			"mem_used_percent": float64(used) / float64(total) * 100,
+		},
+	}
 }

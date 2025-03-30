@@ -1,0 +1,2 @@
+Podman:
+    1. gosight needs to run with privileges that can access /run/podman/podman.socket - whether that is as root or by creating group and granting permissions

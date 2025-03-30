@@ -40,24 +40,33 @@ func (d *DiskCollector) Name() string {
 	return "disk"
 }
 
-func (d *DiskCollector) Collect() (map[string]float64, error) {
+func (d *DiskCollector) Collect() MetricResult {
 	result := make(map[string]float64)
+
 	for _, mount := range d.mountPoints {
 		var stat syscall.Statfs_t
 		err := syscall.Statfs(mount, &stat)
 		if err != nil {
-			return nil, fmt.Errorf("failed to statfs %s: %w", mount, err)
+			return MetricResult{
+				Name: d.Name(),
+				Err:  fmt.Errorf("failed to statfs %s: %w", mount, err),
+			}
 		}
 
 		total := float64(stat.Blocks) * float64(stat.Bsize)
 		free := float64(stat.Bfree) * float64(stat.Bsize)
 		used := total - free
 
-		result[fmt.Sprintf("disk_used_bytes_%s", sanitizeLabel(mount))] = used
-		result[fmt.Sprintf("disk_total_bytes_%s", sanitizeLabel(mount))] = total
-		result[fmt.Sprintf("disk_used_percent_%s", sanitizeLabel(mount))] = used / total * 100
+		label := sanitizeLabel(mount)
+		result[fmt.Sprintf("disk_used_bytes_%s", label)] = used
+		result[fmt.Sprintf("disk_total_bytes_%s", label)] = total
+		result[fmt.Sprintf("disk_used_percent_%s", label)] = used / total * 100
 	}
-	return result, nil
+
+	return MetricResult{
+		Name: d.Name(),
+		Data: result,
+	}
 }
 
 // Replace "/" with "root" etc. for metric names

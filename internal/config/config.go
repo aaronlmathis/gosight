@@ -32,6 +32,12 @@ type Threshold struct {
 	Low  float64 `yaml:"low" json:"low"`
 }
 
+type ContainerConfig struct {
+	Enabled bool   `yaml:"enabled"`
+	Runtime string `yaml:"runtime"`
+	Socket  string `yaml:"socket"`
+}
+
 type Config struct {
 	Server struct {
 		Port int `yaml:"port"`
@@ -47,6 +53,8 @@ type Config struct {
 	} `yaml:"exporters"`
 
 	Thresholds map[string]Threshold `yaml:"thresholds"`
+
+	Containers ContainerConfig `yaml:"containers"`
 }
 
 func LoadConfig(path string) (*Config, error) {

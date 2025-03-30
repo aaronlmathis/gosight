@@ -28,32 +28,43 @@ import (
 type MetricStore struct {
 	mu      sync.RWMutex
 	metrics map[string]float64
+	meta    map[string]string
 }
 
 func NewMetricStore() *MetricStore {
 	return &MetricStore{
 		metrics: make(map[string]float64),
+		meta:    make(map[string]string),
 	}
 }
 
-// Update the store with new metrics
-func (s *MetricStore) Update(results map[string]float64) {
+// Update the store with new metrics and metadata
+func (s *MetricStore) Update(metrics map[string]float64, meta map[string]string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	for k, v := range results {
+	for k, v := range metrics {
 		s.metrics[k] = v
+	}
+	for k, v := range meta {
+		s.meta[k] = v
 	}
 }
 
-// Get snapshot of all current metrics
-func (s *MetricStore) Snapshot() map[string]float64 {
+// Get snapshot of all current metrics and metadata
+func (s *MetricStore) Snapshot() (map[string]float64, map[string]string) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	copy := make(map[string]float64)
+	metricsCopy := make(map[string]float64)
 	for k, v := range s.metrics {
-		copy[k] = v
+		metricsCopy[k] = v
 	}
-	return copy
+
+	metaCopy := make(map[string]string)
+	for k, v := range s.meta {
+		metaCopy[k] = v
+	}
+
+	return metricsCopy, metaCopy
 }

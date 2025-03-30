@@ -20,16 +20,3 @@ along with LeetScraper. If not, see https://www.gnu.org/licenses/.
 */
 
 package collector
-
-// Metric Collector interface
-type MetricCollector interface {
-	Name() string
-	Collect() MetricResult
-}
-
-type MetricResult struct {
-	Name string
-	Data map[string]float64
-	Meta map[string]string
-	Err  error
-}

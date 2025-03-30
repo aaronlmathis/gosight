@@ -43,6 +43,7 @@ var upgrader = websocket.Upgrader{}
 type WSMessage struct {
 	Metrics    map[string]float64          `json:"metrics"`
 	Thresholds map[string]config.Threshold `json:"thresholds"`
+	Meta       map[string]string           `json:"meta"`
 }
 
 func StartHTTPServer(addr string, store *collector.MetricStore, thresholds map[string]config.Threshold, enablePrometheus bool, enableDashboard bool) {
@@ -50,24 +51,28 @@ func StartHTTPServer(addr string, store *collector.MetricStore, thresholds map[s
 
 	// JSON endpoint
 	mux.HandleFunc("/metrics/json", func(w http.ResponseWriter, r *http.Request) {
-		snapshot := store.Snapshot()
+		metrics, meta := store.Snapshot()
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(snapshot)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"metrics": metrics,
+			"meta":    meta,
+		})
 	})
+
 	if enablePrometheus {
 		// Prometheus text endpoint
 		mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-			snapshot := store.Snapshot()
+			metrics, _ := store.Snapshot()
 			w.Header().Set("Content-Type", "text/plain")
-			keys := make([]string, 0, len(snapshot))
-			for k := range snapshot {
+			keys := make([]string, 0, len(metrics))
+			for k := range metrics {
 				keys = append(keys, k)
 			}
-			sort.Strings(keys) // consistent output order
+			sort.Strings(keys)
 
 			for _, k := range keys {
 				name := sanitizePrometheusKey(k)
-				fmt.Fprintf(w, "%s %f\n", name, snapshot[k])
+				fmt.Fprintf(w, "%s %f\n", name, metrics[k])
 			}
 		})
 	}
@@ -87,12 +92,14 @@ func StartHTTPServer(addr string, store *collector.MetricStore, thresholds map[s
 
 			for {
 				<-ticker.C
+				metrics, meta := store.Snapshot()
 				msg := WSMessage{
-					Metrics:    store.Snapshot(),
+					Metrics:    metrics,
 					Thresholds: thresholds,
+					Meta:       meta,
 				}
-				log.Printf("WS sending metrics: %v", store.Snapshot())
-				log.Printf("WS sending thresholds: %v", thresholds)
+				log.Printf("WS sending metrics: %v", metrics)
+				log.Printf("WS sending meta: %v", meta)
 				if err := conn.WriteJSON(msg); err != nil {
 					log.Println("WebSocket write error:", err)
 					break
@@ -102,16 +109,16 @@ func StartHTTPServer(addr string, store *collector.MetricStore, thresholds map[s
 
 		// HTML dashboard endpoint
 		mux.HandleFunc("/dashboard", func(w http.ResponseWriter, r *http.Request) {
-			snapshot := store.Snapshot()
-
+			metrics, _ := store.Snapshot()
 			tmplPath := filepath.Join("web", "templates", "dashboard.html")
 			tmpl := template.Must(template.ParseFiles(tmplPath))
-			err := tmpl.Execute(w, snapshot)
+			err := tmpl.Execute(w, metrics)
 			if err != nil {
 				http.Error(w, "Template error", http.StatusInternalServerError)
 			}
 		})
 	}
+
 	// Health check
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

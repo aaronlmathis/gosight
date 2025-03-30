@@ -1,24 +1,3 @@
-/*
-SPDX-License-Identifier: GPL-3.0-or-later
-
-Copyright (C) 2025 Aaron Mathis aaron.mathis@gmail.com
-
-This file is part of GoSight.
-
-GoSight is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-GoSight is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with LeetScraper. If not, see https://www.gnu.org/licenses/.
-*/
-
 package main
 
 import (
@@ -32,7 +11,6 @@ import (
 )
 
 func main() {
-
 	cfg, err := config.LoadConfig("config.yaml")
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
@@ -52,10 +30,19 @@ func main() {
 		&collector.NetCollector{},
 	}
 
-	// Start collectors in background goroutines
+	// Container Support
+	if cfg.Containers.Enabled {
+		if cfg.Containers.Runtime == "podman" {
+			pc := collector.NewPodmanCollector(cfg.Containers.Socket)
+			collectors = append(collectors, pc)
+			log.Println("[container] using native PodmanCollector")
+		}
+		// TODO: Add Docker support
+	}
+
+	// Start collectors
 	interval := time.Duration(cfg.Metrics.IntervalSeconds) * time.Second
 	collector.StartCollectors(collectors, interval, results)
-	collector.StartCollectors(collectors, 2*time.Second, results)
 
 	// Handle results and update store
 	go func() {
@@ -64,10 +51,12 @@ func main() {
 				log.Printf("[%s] error: %v", result.Name, result.Err)
 				continue
 			}
-			store.Update(result.Data)
+			store.Update(result.Data, result.Meta)
 			log.Printf("[%s] updated: %v", result.Name, result.Data)
 		}
 	}()
+
+	// Start HTTP server
 	go exporter.StartHTTPServer(
 		fmt.Sprintf(":%d", cfg.Server.Port),
 		store,
@@ -76,6 +65,6 @@ func main() {
 		cfg.Exporters.Dashboard,
 	)
 
-	// Block main forever (until we implement graceful shutdown)
+	// Block forever
 	select {}
 }
