@@ -1,3 +1,0 @@
-listen: ":8080"
-storage: "sqliteddd"
-database_path: "./data/gobright.db"

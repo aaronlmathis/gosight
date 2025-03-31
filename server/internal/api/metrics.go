@@ -19,17 +19,33 @@ You should have received a copy of the GNU General Public License
 along with LeetScraper. If not, see https://www.gnu.org/licenses/.
 */
 
-package main
+package api
 
 import (
+	"context"
 	"log"
-	"net/http"
 
-	"gosight/internal/server"
+	"github.com/aaronlmathis/gosight/shared/proto"
 )
 
-func main() {
-	http.HandleFunc("/api/metrics", server.MetricsHandler)
-	log.Println("GoBright server running on :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+// MetricsHandler implements pb.MetricsServiceServer
+// MetricsHandler implements MetricsServiceServer
+type MetricsHandler struct {
+	proto.UnimplementedMetricsServiceServer
+}
+
+func (h *MetricsHandler) SubmitMetrics(ctx context.Context, req *proto.MetricPayload) (*proto.MetricResponse, error) {
+	converted := ConvertToModelPayload(req)
+
+	log.Printf("Received metrics from host: %s at %s", converted.Host, converted.Timestamp)
+	for _, m := range converted.Metrics {
+		log.Printf(" - %s: %.2f %s", m.Name, m.Value, m.Unit)
+	}
+
+	// TODO: Store the converted metrics in DB or processing pipeline
+
+	return &proto.MetricResponse{
+		Status:     "ok",
+		StatusCode: 0,
+	}, nil
 }

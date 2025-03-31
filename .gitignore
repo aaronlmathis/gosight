@@ -25,3 +25,5 @@ go.work.sum
 .env
 
 *.code-workspace
+PROJECT_STATUS.md
+print_structure.go

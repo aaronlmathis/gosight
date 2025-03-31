@@ -19,7 +19,7 @@ You should have received a copy of the GNU General Public License
 along with LeetScraper. If not, see https://www.gnu.org/licenses/.
 */
 
-package shared
+package model
 
 import "time"
 

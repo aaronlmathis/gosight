@@ -19,22 +19,28 @@ You should have received a copy of the GNU General Public License
 along with LeetScraper. If not, see https://www.gnu.org/licenses/.
 */
 
+// File: server/cmd/main.go
 package main
 
 import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
+
+	"github.com/aaronlmathis/gosight/server/internal/api"
 	"github.com/aaronlmathis/gosight/server/internal/config"
+	"github.com/aaronlmathis/gosight/shared/proto"
 )
 
 func main() {
-
 	// CLI Flag declarations
-	configFlag := flag.String("config", "config.yaml", "Path to agent config file")
+	configFlag := flag.String("config", "config.yaml", "Path to server config file")
 	listen := flag.String("listen", "", "Override listen address")
 	storage := flag.String("storage", "", "Override storage engine")
 	dbPath := flag.String("db-path", "", "Override database path")
@@ -70,15 +76,22 @@ func main() {
 		cfg.DatabasePath = *dbPath
 	}
 
-	// Start the server
 	fmt.Printf("GoBright Server listening on %s (storage: %s, DB: %s)\n",
 		cfg.ListenAddr, cfg.StorageEngine, cfg.DatabasePath)
 
-	//http.HandleFunc("/api/metrics", func(w http.ResponseWriter, r *http.Request) {
-	//	fmt.Fprintln(w, "OK: metrics received (TODO)")
-	//})
+	listener, err := net.Listen("tcp", cfg.ListenAddr)
+	if err != nil {
+		log.Fatalf("Failed to listen: %v", err)
+	}
 
-	//log.Fatal(http.ListenAndServe(cfg.ListenAddr, nil))
+	grpcServer := grpc.NewServer()
+	proto.RegisterMetricsServiceServer(grpcServer, &api.MetricsHandler{})
+	reflection.Register(grpcServer)
+
+	log.Printf("gRPC server is up and running on %s\n", cfg.ListenAddr)
+	if err := grpcServer.Serve(listener); err != nil {
+		log.Fatalf("Failed to serve: %v", err)
+	}
 }
 
 func getEnv(key, fallback string) string {

@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package proto;
+option go_package = "github.com/aaronlmathis/gosight/shared/proto";
+
+import "google/protobuf/timestamp.proto";
+
+message StatisticValues {
+  double minimum = 1;
+  double maximum = 2;
+  int32 sample_count = 3;
+  double sum = 4;
+}
+
+message Metric {
+  string namespace = 1; // e.g. "host", "container", "nginx"
+  string name = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  double value = 4;
+  StatisticValues statistic_values = 5;
+  string unit = 6;
+  map<string, string> dimensions = 7;
+  int32 storage_resolution = 8;
+  string type = 9;      // e.g. "gauge", "counter"
+
+}
+
+message MetricPayload {
+  string host = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  repeated Metric metrics = 3;
+  map<string, string> meta = 4; // e.g. { "env": "prod", "region": "us-west-2" }
+}
+
+message MetricResponse {
+  string status = 1;
+  int32 status_code = 2; // 0=OK, 1=validation error, etc.
+}
+
+service MetricsService {
+  rpc SubmitMetrics (MetricPayload) returns (MetricResponse);
+}
