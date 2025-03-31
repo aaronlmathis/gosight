@@ -28,3 +28,4 @@ go.work.sum
 PROJECT_STATUS.md
 print_structure.go
 *.log
+launch_containers*
