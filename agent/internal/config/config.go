@@ -34,6 +34,8 @@ type AgentConfig struct {
 	Interval       time.Duration `yaml:"interval"`
 	HostOverride   string        `yaml:"host"`
 	MetricsEnabled []string      `yaml:"metrics_enabled"`
+	LogFile        string        `yaml:"log_file"`
+	LogLevel       string        `yaml:"log_level"`
 }
 
 func LoadConfig(path string) (*AgentConfig, error) {
@@ -64,6 +66,12 @@ func ApplyEnvOverrides(cfg *AgentConfig) {
 	if val := os.Getenv("AGENT_METRICS"); val != "" {
 		// Comma-separated list
 		cfg.MetricsEnabled = SplitCSV(val)
+	}
+	if val := os.Getenv("ANT_LOG_FILE"); val != "" {
+		cfg.LogFile = val
+	}
+	if val := os.Getenv("ANT_LOG_LEVEL"); val != "" {
+		cfg.LogLevel = val
 	}
 }
 

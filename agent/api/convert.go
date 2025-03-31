@@ -19,19 +19,21 @@ You should have received a copy of the GNU General Public License
 along with LeetScraper. If not, see https://www.gnu.org/licenses/.
 */
 
+// gosight/agent/api/convert.go
+// convert.go - converts internal metric payloads to protobuf format for gRPC.
+
 package api
 
 import (
-	"github.com/aaronlmathis/gosight/shared"
-
-	pb "github.com/aaronlmathis/gosight/server/api/proto"
+	"github.com/aaronlmathis/gosight/shared/model"
+	"github.com/aaronlmathis/gosight/shared/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func ConvertToProtoPayload(payload shared.MetricPayload) *pb.MetricPayload {
-	metrics := make([]*pb.Metric, 0, len(payload.Metrics))
+func ConvertToProtoPayload(payload model.MetricPayload) *proto.MetricPayload {
+	metrics := make([]*proto.Metric, 0, len(payload.Metrics))
 	for _, m := range payload.Metrics {
-		pm := &pb.Metric{
+		pm := &proto.Metric{
 			Namespace:         m.Namespace,
 			Name:              m.Name,
 			Timestamp:         timestamppb.New(m.Timestamp),
@@ -42,7 +44,7 @@ func ConvertToProtoPayload(payload shared.MetricPayload) *pb.MetricPayload {
 			Type:              m.Type,
 		}
 		if m.StatisticValues != nil {
-			pm.StatisticValues = &pb.StatisticValues{
+			pm.StatisticValues = &proto.StatisticValues{
 				Minimum:     m.StatisticValues.Minimum,
 				Maximum:     m.StatisticValues.Maximum,
 				SampleCount: int32(m.StatisticValues.SampleCount),
@@ -51,7 +53,7 @@ func ConvertToProtoPayload(payload shared.MetricPayload) *pb.MetricPayload {
 		}
 		metrics = append(metrics, pm)
 	}
-	return &pb.MetricPayload{
+	return &proto.MetricPayload{
 		Host:      payload.Host,
 		Timestamp: timestamppb.New(payload.Timestamp),
 		Metrics:   metrics,

@@ -24,12 +24,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/aaronlmathis/gosight/agent/internal/config"
+	"github.com/aaronlmathis/gosight/agent/internal/runner"
+	"github.com/aaronlmathis/gosight/agent/internal/utils"
 )
 
 func main() {
@@ -40,6 +41,8 @@ func main() {
 	interval := flag.Duration("interval", 0, "Override interval (e.g. 5s)")
 	host := flag.String("host", "", "Override hostname")
 	metrics := flag.String("metrics", "", "Comma-separated list of enabled metrics")
+	logLevel := flag.String("log-level", "info", "Log level (debug, info, warn, error)")
+	logFile := flag.String("log-file", "agent.log", "Path to log file")
 
 	// Parse all flags first
 	flag.Parse()
@@ -49,13 +52,15 @@ func main() {
 
 	// Create default if missing
 	if err := config.EnsureDefaultConfig(resolvedPath); err != nil {
-		log.Fatalf("Could not create default config: %v", err)
+		fmt.Printf("Could not create default config: %v", err)
+		os.Exit(1)
 	}
 
 	// Load config
 	cfg, err := config.LoadConfig(resolvedPath)
 	if err != nil {
-		log.Fatalf("Failed to load agent config: %v", err)
+		fmt.Printf("Failed to load agent config: %v", err)
+		os.Exit(1)
 	}
 
 	// Apply ENV var overrides
@@ -74,12 +79,25 @@ func main() {
 	if *metrics != "" {
 		cfg.MetricsEnabled = config.SplitCSV(*metrics)
 	}
+	if *logLevel != "" {
+		cfg.LogLevel = *logLevel
+	}
+	if *logFile != "" {
+		cfg.LogFile = *logFile
+	}
 
+	if err := utils.InitLogger(cfg.LogFile, cfg.LogLevel); err != nil {
+		fmt.Printf("Failed to initialize logger: %v\n", err)
+		os.Exit(1)
+	}
+	runner.RunOnce(cfg)
 	fmt.Println("Effective Agent Config:")
 	fmt.Printf("  Server URL: %s\n", cfg.ServerURL)
 	fmt.Printf("  Interval: %v\n", cfg.Interval)
 	fmt.Printf("  Host: %s\n", cfg.HostOverride)
 	fmt.Printf("  Metrics Enabled: %v\n", cfg.MetricsEnabled)
+	fmt.Printf("  Log Level: %s\n", cfg.LogLevel)
+	fmt.Printf("  Log File: %s\n", cfg.LogFile)
 
 	time.Sleep(1 * time.Second)
 }
@@ -104,7 +122,8 @@ func resolveConfigPath(flagVal, envVar, fallback string) string {
 func mustAbs(path string) string {
 	abs, err := filepath.Abs(path)
 	if err != nil {
-		log.Fatalf("Failed to resolve path: %v", err)
+		fmt.Printf("Failed to resolve path: %v", err)
+		os.Exit(1)
 	}
 	return abs
 }

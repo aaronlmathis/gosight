@@ -1,5 +1,8 @@
 package main
 
+/*
+package main
+
 import (
 	"context"
 	"log"
@@ -44,3 +47,4 @@ func main() {
 
 	log.Printf("Response from server: %s (code %d)", resp.Status, resp.StatusCode)
 }
+*/
