@@ -1,0 +1,25 @@
+server:
+  port: 8080
+metrics:
+  interval_seconds: 5
+exporters:
+  prometheus: true
+  dashboard: true
+
+time:
+  zone: American/Chicago
+  format: "January 2, 2006 at 3:04 PM"
+
+  
+thresholds:
+  cpu_usage:
+    high: 75
+    low: 30
+  mem_used_percent:
+    high: 80
+    low: 40
+
+containers:
+  enabled: true
+  runtime: podman  # "docker", "podman", or "auto"
+  socket: /run/user/1000/podman/podman.sock

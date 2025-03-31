@@ -1,0 +1,9 @@
+server_url: "http://config2:8080/api/metrics"
+interval: 10s
+host: "dev-machine-01-from config2"
+metrics_enabled:
+  - cpu
+  - mem
+  - disk
+  - net
+  - podman
