@@ -27,3 +27,4 @@ go.work.sum
 *.code-workspace
 PROJECT_STATUS.md
 print_structure.go
+*.log
