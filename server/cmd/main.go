@@ -36,6 +36,7 @@ import (
 	"github.com/aaronlmathis/gosight/server/internal/api"
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/shared/proto"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 func main() {
@@ -44,6 +45,8 @@ func main() {
 	listen := flag.String("listen", "", "Override listen address")
 	storage := flag.String("storage", "", "Override storage engine")
 	dbPath := flag.String("db-path", "", "Override database path")
+	logLevel := flag.String("log-level", "info", "Log level (debug, info, warn, error)")
+	logFile := flag.String("log-file", "server.log", "Path to log file")
 
 	// Parse all flags first
 	flag.Parse()
@@ -74,6 +77,17 @@ func main() {
 	}
 	if *dbPath != "" {
 		cfg.DatabasePath = *dbPath
+	}
+	if *logLevel != "" {
+		cfg.LogLevel = *logLevel
+	}
+	if *logFile != "" {
+		cfg.LogFile = *logFile
+	}
+
+	if err := utils.InitLogger(cfg.LogFile, cfg.LogLevel); err != nil {
+		fmt.Printf("Failed to initialize logger: %v\n", err)
+		os.Exit(1)
 	}
 
 	fmt.Printf("GoBright Server listening on %s (storage: %s, DB: %s)\n",

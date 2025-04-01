@@ -29,8 +29,8 @@ import (
 
 	"github.com/aaronlmathis/gosight/agent/internal/collector/system"
 	"github.com/aaronlmathis/gosight/agent/internal/config"
-	"github.com/aaronlmathis/gosight/agent/internal/utils"
 	"github.com/aaronlmathis/gosight/shared/model"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 // Registry holds active collectors keyed by name

@@ -16,16 +16,17 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with LeetScraper. If not, see https://www.gnu.org/licenses/.
+along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
+
+// gosight/server/internal/api
+// metrics.go - gRPC handler for metrics submission
 
 package api
 
 import (
-	"context"
-	"log"
-
 	"github.com/aaronlmathis/gosight/shared/proto"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 // MetricsHandler implements pb.MetricsServiceServer
@@ -34,18 +35,24 @@ type MetricsHandler struct {
 	proto.UnimplementedMetricsServiceServer
 }
 
-func (h *MetricsHandler) SubmitMetrics(ctx context.Context, req *proto.MetricPayload) (*proto.MetricResponse, error) {
-	converted := ConvertToModelPayload(req)
+func (h *MetricsHandler) SubmitStream(stream proto.MetricsService_SubmitStreamServer) error {
+	for {
+		req, err := stream.Recv()
+		if err != nil {
+			if err.Error() == "EOF" {
+				return stream.SendAndClose(&proto.MetricResponse{
+					Status:     "ok",
+					StatusCode: 0,
+				})
+			}
+			utils.Error("❌ Stream receive error: %v", err)
+			return err
+		}
 
-	log.Printf("Received metrics from host: %s at %s", converted.Host, converted.Timestamp)
-	for _, m := range converted.Metrics {
-		log.Printf(" - %s: %.2f %s", m.Name, m.Value, m.Unit)
+		converted := ConvertToModelPayload(req)
+		utils.Info("📥 Streamed metrics from host: %s at %s", converted.Host, converted.Timestamp)
+		for _, m := range converted.Metrics {
+			utils.Info(" - %s: %.2f %s", m.Name, m.Value, m.Unit)
+		}
 	}
-
-	// TODO: Store the converted metrics in DB or processing pipeline
-
-	return &proto.MetricResponse{
-		Status:     "ok",
-		StatusCode: 0,
-	}, nil
 }

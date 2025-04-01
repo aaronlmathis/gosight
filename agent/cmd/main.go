@@ -19,18 +19,22 @@ You should have received a copy of the GNU General Public License
 along with LeetScraper. If not, see https://www.gnu.org/licenses/.
 */
 
+// cmd/main.go - main entry point for agent.
+
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
-	"time"
+	"syscall"
 
 	"github.com/aaronlmathis/gosight/agent/internal/config"
 	"github.com/aaronlmathis/gosight/agent/internal/runner"
-	"github.com/aaronlmathis/gosight/agent/internal/utils"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 func main() {
@@ -90,7 +94,19 @@ func main() {
 		fmt.Printf("Failed to initialize logger: %v\n", err)
 		os.Exit(1)
 	}
-	runner.RunOnce(cfg)
+
+	// Graceful shutdown context
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigs
+		utils.Warn("🔌 Signal received, shutting down agent...")
+		cancel()
+	}()
+
 	fmt.Println("Effective Agent Config:")
 	fmt.Printf("  Server URL: %s\n", cfg.ServerURL)
 	fmt.Printf("  Interval: %v\n", cfg.Interval)
@@ -99,7 +115,8 @@ func main() {
 	fmt.Printf("  Log Level: %s\n", cfg.LogLevel)
 	fmt.Printf("  Log File: %s\n", cfg.LogFile)
 
-	time.Sleep(1 * time.Second)
+	// start streaming agent
+	runner.RunAgent(ctx, cfg)
 }
 
 func getEnv(key, fallback string) string {

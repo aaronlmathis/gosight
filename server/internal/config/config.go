@@ -31,6 +31,8 @@ type ServerConfig struct {
 	ListenAddr    string `yaml:"listen"`
 	StorageEngine string `yaml:"storage"`
 	DatabasePath  string `yaml:"database_path"`
+	LogFile       string `yaml:"log_file"`
+	LogLevel      string `yaml:"log_level"`
 }
 
 func LoadConfig(path string) (*ServerConfig, error) {
@@ -54,5 +56,8 @@ func ApplyEnvOverrides(cfg *ServerConfig) {
 	}
 	if val := os.Getenv("SERVER_DATABASE_PATH"); val != "" {
 		cfg.DatabasePath = val
+	}
+	if val := os.Getenv("SERVER_LOG_FILE"); val != "" {
+		cfg.LogFile = val
 	}
 }

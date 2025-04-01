@@ -39,4 +39,5 @@ message MetricResponse {
 
 service MetricsService {
   rpc SubmitMetrics (MetricPayload) returns (MetricResponse);
+  rpc SubmitStream (stream MetricPayload) returns (MetricResponse);
 }

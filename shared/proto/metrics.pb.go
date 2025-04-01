@@ -354,9 +354,10 @@ const file_metrics_proto_rawDesc = "" +
 	"\x0eMetricResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\x1f\n" +
 	"\vstatus_code\x18\x02 \x01(\x05R\n" +
-	"statusCode2N\n" +
+	"statusCode2\x8d\x01\n" +
 	"\x0eMetricsService\x12<\n" +
-	"\rSubmitMetrics\x12\x14.proto.MetricPayload\x1a\x15.proto.MetricResponseB.Z,github.com/aaronlmathis/gosight/shared/protob\x06proto3"
+	"\rSubmitMetrics\x12\x14.proto.MetricPayload\x1a\x15.proto.MetricResponse\x12=\n" +
+	"\fSubmitStream\x12\x14.proto.MetricPayload\x1a\x15.proto.MetricResponse(\x01B.Z,github.com/aaronlmathis/gosight/shared/protob\x06proto3"
 
 var (
 	file_metrics_proto_rawDescOnce sync.Once
@@ -388,9 +389,11 @@ var file_metrics_proto_depIdxs = []int32{
 	1, // 4: proto.MetricPayload.metrics:type_name -> proto.Metric
 	5, // 5: proto.MetricPayload.meta:type_name -> proto.MetricPayload.MetaEntry
 	2, // 6: proto.MetricsService.SubmitMetrics:input_type -> proto.MetricPayload
-	3, // 7: proto.MetricsService.SubmitMetrics:output_type -> proto.MetricResponse
-	7, // [7:8] is the sub-list for method output_type
-	6, // [6:7] is the sub-list for method input_type
+	2, // 7: proto.MetricsService.SubmitStream:input_type -> proto.MetricPayload
+	3, // 8: proto.MetricsService.SubmitMetrics:output_type -> proto.MetricResponse
+	3, // 9: proto.MetricsService.SubmitStream:output_type -> proto.MetricResponse
+	8, // [8:10] is the sub-list for method output_type
+	6, // [6:8] is the sub-list for method input_type
 	6, // [6:6] is the sub-list for extension type_name
 	6, // [6:6] is the sub-list for extension extendee
 	0, // [0:6] is the sub-list for field type_name

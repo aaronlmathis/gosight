@@ -19,7 +19,7 @@ You should have received a copy of the GNU General Public License
 along with LeetScraper. If not, see https://www.gnu.org/licenses/.
 */
 
-// gosight/agent/internal/utils
+// gosight/shared/utils
 // log.go - Simple logging utility for the agent
 
 /*

@@ -30,8 +30,8 @@ import (
 	"github.com/aaronlmathis/gosight/agent/internal/collector"
 	"github.com/aaronlmathis/gosight/agent/internal/config"
 	"github.com/aaronlmathis/gosight/agent/internal/sender"
-	"github.com/aaronlmathis/gosight/agent/internal/utils"
 	"github.com/aaronlmathis/gosight/shared/model"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 // RunAgent starts the agent's collection loop and sends tasks to the pool

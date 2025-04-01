@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	MetricsService_SubmitMetrics_FullMethodName = "/proto.MetricsService/SubmitMetrics"
+	MetricsService_SubmitStream_FullMethodName  = "/proto.MetricsService/SubmitStream"
 )
 
 // MetricsServiceClient is the client API for MetricsService service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MetricsServiceClient interface {
 	SubmitMetrics(ctx context.Context, in *MetricPayload, opts ...grpc.CallOption) (*MetricResponse, error)
+	SubmitStream(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[MetricPayload, MetricResponse], error)
 }
 
 type metricsServiceClient struct {
@@ -47,11 +49,25 @@ func (c *metricsServiceClient) SubmitMetrics(ctx context.Context, in *MetricPayl
 	return out, nil
 }
 
+func (c *metricsServiceClient) SubmitStream(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[MetricPayload, MetricResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &MetricsService_ServiceDesc.Streams[0], MetricsService_SubmitStream_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[MetricPayload, MetricResponse]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MetricsService_SubmitStreamClient = grpc.ClientStreamingClient[MetricPayload, MetricResponse]
+
 // MetricsServiceServer is the server API for MetricsService service.
 // All implementations must embed UnimplementedMetricsServiceServer
 // for forward compatibility.
 type MetricsServiceServer interface {
 	SubmitMetrics(context.Context, *MetricPayload) (*MetricResponse, error)
+	SubmitStream(grpc.ClientStreamingServer[MetricPayload, MetricResponse]) error
 	mustEmbedUnimplementedMetricsServiceServer()
 }
 
@@ -64,6 +80,9 @@ type UnimplementedMetricsServiceServer struct{}
 
 func (UnimplementedMetricsServiceServer) SubmitMetrics(context.Context, *MetricPayload) (*MetricResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SubmitMetrics not implemented")
+}
+func (UnimplementedMetricsServiceServer) SubmitStream(grpc.ClientStreamingServer[MetricPayload, MetricResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method SubmitStream not implemented")
 }
 func (UnimplementedMetricsServiceServer) mustEmbedUnimplementedMetricsServiceServer() {}
 func (UnimplementedMetricsServiceServer) testEmbeddedByValue()                        {}
@@ -104,6 +123,13 @@ func _MetricsService_SubmitMetrics_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MetricsService_SubmitStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(MetricsServiceServer).SubmitStream(&grpc.GenericServerStream[MetricPayload, MetricResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MetricsService_SubmitStreamServer = grpc.ClientStreamingServer[MetricPayload, MetricResponse]
+
 // MetricsService_ServiceDesc is the grpc.ServiceDesc for MetricsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -116,6 +142,12 @@ var MetricsService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _MetricsService_SubmitMetrics_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "SubmitStream",
+			Handler:       _MetricsService_SubmitStream_Handler,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "metrics.proto",
 }

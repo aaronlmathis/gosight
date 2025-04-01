@@ -1,5 +1,5 @@
-server_url: "http://localhost:8080/api/metrics"
-interval: 10s
+server_url: "localhost:50051"
+interval: 2s
 host: "dev-machine-01-from config"
 metrics_enabled:
   - cpu
