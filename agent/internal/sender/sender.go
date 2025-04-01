@@ -32,7 +32,7 @@ import (
 	"github.com/aaronlmathis/gosight/shared/proto"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -45,15 +45,34 @@ type Sender struct {
 
 // NewSender establishes a gRPC connection
 func NewSender(ctx context.Context, cfg *config.AgentConfig) (*Sender, error) {
+
+	// Load TLS config for agent
+	tlsCfg, err := loadTLSConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	// add mTLS to degug log.
+	if len(tlsCfg.Certificates) > 0 {
+		utils.Info("🔐 Using mTLS for agent authentication")
+	} else {
+		utils.Info("🔒 Using TLS only (no client certificate)")
+	}
+
+	// Establish gRPC connection
 	clientConn, err := grpc.NewClient(cfg.ServerURL,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)),
 	)
 	if err != nil {
 		return nil, err
 	}
+
+	// Create gRPC client
+	// and establish a stream for sending metrics
 	client := proto.NewMetricsServiceClient(clientConn)
 	utils.Info("📤 established gRPC Connection with %v", cfg.ServerURL)
 
+	//
 	stream, err := client.SubmitStream(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open stream: %w", err)

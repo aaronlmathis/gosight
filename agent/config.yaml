@@ -10,3 +10,7 @@ metrics_enabled:
 log_file: "./agent.log"     # Optional — empty means stdout/stderr
 log_level: "info"           # Or "debug", etc.
 
+tls:
+  ca_file: "../certs/ca.crt"
+  cert_file: "../certs/client.crt"         # (only needed if doing mTLS)
+  key_file: "../certs/client.key"          # (only needed if doing mTLS)

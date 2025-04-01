@@ -7,7 +7,7 @@ log_level: "info"           # Or "debug", etc.
 tls:
   cert_file: "../certs/server.crt"
   key_file: "../certs/server.key"
-  client_ca_file: ""  # Leave empty if mTLS not used
+  client_ca_file: "../certs/ca.crt"  # Leave empty if mTLS not used
 
 debug:
   enable_reflection: true

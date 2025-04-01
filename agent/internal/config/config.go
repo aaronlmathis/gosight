@@ -30,9 +30,9 @@ import (
 )
 
 type TLSConfig struct {
-	CertFile     string `yaml:"cert_file"`
-	KeyFile      string `yaml:"key_file"`
-	ClientCAFile string `yaml:"client_ca_file"` // Optional (for mTLS)
+	CAFile   string `yaml:"ca_file"`   // used by agent to trust the server
+	CertFile string `yaml:"cert_file"` // optional (for mTLS)
+	KeyFile  string `yaml:"key_file"`  // optional (for mTLS)
 }
 
 type AgentConfig struct {
@@ -74,12 +74,22 @@ func ApplyEnvOverrides(cfg *AgentConfig) {
 		// Comma-separated list
 		cfg.MetricsEnabled = SplitCSV(val)
 	}
-	if val := os.Getenv("ANT_LOG_FILE"); val != "" {
+	if val := os.Getenv("AGENT_LOG_FILE"); val != "" {
 		cfg.LogFile = val
 	}
-	if val := os.Getenv("ANT_LOG_LEVEL"); val != "" {
+	if val := os.Getenv("AGENT_LOG_LEVEL"); val != "" {
 		cfg.LogLevel = val
 	}
+	if val := os.Getenv("AGENT_TLS_CERT_FILE"); val != "" {
+		cfg.TLS.CertFile = val
+	}
+	if val := os.Getenv("AGENT_TLS_KEY_FILE"); val != "" {
+		cfg.TLS.KeyFile = val
+	}
+	if val := os.Getenv("AGENT_TLS_CA_FILE"); val != "" {
+		cfg.TLS.CAFile = val
+	}
+
 }
 
 func SplitCSV(input string) []string {
