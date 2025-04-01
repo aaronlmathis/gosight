@@ -15,23 +15,23 @@ GoSight is a high-performance, modular, and vendor-agnostic observability platfo
 ### Agent
 - Collects system metrics
 - Sends them over gRPC (TLS/mTLS) to the server
-- Configurable via \`agent/config.yaml\`
+- Configurable via `agent/config.yaml`
 
 ### Server
 - Accepts incoming metrics
 - Verifies client identity (mTLS)
 - Exposes metrics and dashboards
-- Configurable via \`server/config.yaml\`
+- Configurable via `server/config.yaml`
 
 ---
 
 ## 🚀 Quick Start (Dev)
 
-\`\`\`bash
+```bash
 # From project root
 go run ./server/cmd &
 go run ./agent/cmd
-\`\`\`
+```
 
 Ensure you’ve generated valid certificates before starting.
 
@@ -39,38 +39,38 @@ Ensure you’ve generated valid certificates before starting.
 
 ## 🔐 TLS / mTLS Setup
 
-Certs live in the \`/certs\` directory. You can regenerate everything using:
+Certs live in the `/certs` directory. You can regenerate everything using:
 
-\`\`\`bash
+```bash
 # Linux/macOS
 ./install/generate_certs_with_san.sh
 
 # Windows PowerShell
 ./install/generate_certs_with_san.ps1
-\`\`\`
+```
 
-Update paths in \`config.yaml\` files accordingly.
+Update paths in `config.yaml` files accordingly.
 
 ---
 
 ## 📂 Folder Structure (Core)
 
-\`\`\`
+```
 /agent/         - Agent source code and CLI
 /server/        - Server source code and CLI
 /shared/        - Shared models and proto definitions
 /certs/         - TLS and mTLS certificates
 /install/       - Cert generation scripts
-\`\`\`
+```
 
 ---
 
 ## 🛠 Build
 
-\`\`\`bash
+```bash
 go build -o gosight-agent ./agent/cmd
 go build -o gosight-server ./server/cmd
-\`\`\`
+```
 
 ---
 
