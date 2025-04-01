@@ -1,6 +1,6 @@
 module github.com/aaronlmathis/gosight/shared
 
-go 1.22.0
+go 1.23.7
 
 toolchain go1.24.1
 
@@ -10,6 +10,7 @@ require (
 )
 
 require (
+	github.com/google/go-cmp v0.7.0 // indirect
 	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
