@@ -26,9 +26,10 @@ go.work.sum
 
 *.code-workspace
 PROJECT_STATUS.md
-print_structure.go
+
 *.log
-launch_containers*/certs
+launch_containers*
 certs/
 */launch_containers.sh
 launch_containers.sh
+tools/
