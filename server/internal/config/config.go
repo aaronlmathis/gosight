@@ -27,12 +27,24 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type TLSConfig struct {
+	CertFile     string `yaml:"cert_file"`
+	KeyFile      string `yaml:"key_file"`
+	ClientCAFile string `yaml:"client_ca_file"` // Optional (for mTLS)
+}
+
+type DebugConfig struct {
+	EnableReflection bool `yaml:"enable_reflection"`
+}
+
 type ServerConfig struct {
-	ListenAddr    string `yaml:"listen"`
-	StorageEngine string `yaml:"storage"`
-	DatabasePath  string `yaml:"database_path"`
-	LogFile       string `yaml:"log_file"`
-	LogLevel      string `yaml:"log_level"`
+	ListenAddr    string      `yaml:"listen"`
+	StorageEngine string      `yaml:"storage"`
+	DatabasePath  string      `yaml:"database_path"`
+	LogFile       string      `yaml:"log_file"`
+	LogLevel      string      `yaml:"log_level"`
+	TLS           TLSConfig   `yaml:"tls"`
+	Debug         DebugConfig `yaml:"debug"`
 }
 
 func LoadConfig(path string) (*ServerConfig, error) {
@@ -59,5 +71,20 @@ func ApplyEnvOverrides(cfg *ServerConfig) {
 	}
 	if val := os.Getenv("SERVER_LOG_FILE"); val != "" {
 		cfg.LogFile = val
+	}
+	if val := os.Getenv("SERVER_LOG_LEVEL"); val != "" {
+		cfg.LogLevel = val
+	}
+	if val := os.Getenv("SERVER_TLS_CERT_FILE"); val != "" {
+		cfg.TLS.CertFile = val
+	}
+	if val := os.Getenv("SERVER_TLS_KEY_FILE"); val != "" {
+		cfg.TLS.KeyFile = val
+	}
+	if val := os.Getenv("SERVER_TLS_CLIENT_CA_FILE"); val != "" {
+		cfg.TLS.ClientCAFile = val
+	}
+	if val := os.Getenv("SERVER_DEBUG_ENABLE_REFLECTION"); val != "" {
+		cfg.Debug.EnableReflection = val == "true"
 	}
 }

@@ -29,6 +29,12 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type TLSConfig struct {
+	CertFile     string `yaml:"cert_file"`
+	KeyFile      string `yaml:"key_file"`
+	ClientCAFile string `yaml:"client_ca_file"` // Optional (for mTLS)
+}
+
 type AgentConfig struct {
 	ServerURL      string        `yaml:"server_url"`
 	Interval       time.Duration `yaml:"interval"`
@@ -36,6 +42,7 @@ type AgentConfig struct {
 	MetricsEnabled []string      `yaml:"metrics_enabled"`
 	LogFile        string        `yaml:"log_file"`
 	LogLevel       string        `yaml:"log_level"`
+	TLS            TLSConfig     `yaml:"tls"`
 }
 
 func LoadConfig(path string) (*AgentConfig, error) {

@@ -9,3 +9,4 @@ metrics_enabled:
   - podman
 log_file: "./agent.log"     # Optional — empty means stdout/stderr
 log_level: "info"           # Or "debug", etc.
+

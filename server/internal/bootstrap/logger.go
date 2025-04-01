@@ -19,30 +19,21 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// File: server/cmd/main.go
-package main
+// server/internal/bootstrap/logger.go
+// Initializes logger.
+package bootstrap
 
 import (
-	"github.com/aaronlmathis/gosight/server/internal/bootstrap"
-	"github.com/aaronlmathis/gosight/server/internal/server"
+	"fmt"
+	"os"
+
+	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func main() {
-
-	// Bootstrap config loading (flags -> env -> file)
-	cfg := bootstrap.LoadServerConfig()
-
-	// Initialize logging
-	bootstrap.SetupLogging(cfg)
-
-	grpcServer, listener, err := server.NewGRPCServer(cfg)
-	if err != nil {
-		utils.Fatal("Failed to start gRPC server: %v", err)
+func SetupLogging(cfg *config.ServerConfig) {
+	if err := utils.InitLogger(cfg.LogFile, cfg.LogLevel); err != nil {
+		fmt.Printf("Failed to initialize logger: %v\n", err)
+		os.Exit(1)
 	}
-	utils.Info("🚀 GoSight server listening on %s", cfg.ListenAddr)
-	if err := grpcServer.Serve(listener); err != nil {
-		utils.Fatal("Failed to serve: %v", err)
-	}
-
 }
