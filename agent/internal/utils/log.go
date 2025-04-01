@@ -86,6 +86,11 @@ func Error(format string, args ...any) {
 	errorLog.Printf(format, args...)
 }
 
+func Fatal(format string, args ...any) {
+	errorLog.Fatalf(format, args...)
+	os.Exit(1)
+}
+
 func Debug(format string, args ...any) {
 	if debugEnabled {
 		debugLog.Printf(format, args...)

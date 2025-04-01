@@ -25,25 +25,55 @@ package runner
 
 import (
 	"context"
-	"fmt"
+	"time"
 
 	"github.com/aaronlmathis/gosight/agent/internal/collector"
 	"github.com/aaronlmathis/gosight/agent/internal/config"
+	"github.com/aaronlmathis/gosight/agent/internal/sender"
 	"github.com/aaronlmathis/gosight/agent/internal/utils"
+	"github.com/aaronlmathis/gosight/shared/model"
 )
 
-// RunOnce collects and prints metrics based on the current config
-func RunOnce(cfg *config.AgentConfig) {
-	ctx := context.Background()
+// RunAgent starts the agent's collection loop and sends tasks to the pool
+func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 	reg := collector.NewRegistry(cfg)
-
-	metrics, err := reg.Collect(ctx)
+	sndr, err := sender.NewSender(ctx, cfg)
 	if err != nil {
-		utils.Error("Failed to collect metrics: %v", err)
-		return
+		utils.Fatal("❌ Failed to connect to server: %v", err)
 	}
+	defer sndr.Close()
 
-	for _, m := range metrics {
-		fmt.Printf("[%s] %s = %.2f %s\n", m.Namespace, m.Name, m.Value, m.Unit)
+	taskQueue := make(chan model.MetricPayload, 100)
+	go sender.StartWorkerPool(ctx, sndr, taskQueue, 5) // 5 workers
+
+	ticker := time.NewTicker(cfg.Interval)
+	defer ticker.Stop()
+
+	utils.Info("🚀 Agent started. Sending metrics every %v", cfg.Interval)
+
+	for {
+		select {
+		case <-ctx.Done():
+			utils.Warn("🔌 Agent shutting down...")
+			return
+		case <-ticker.C:
+			metrics, err := reg.Collect(ctx)
+			if err != nil {
+				utils.Error("❌ Metric collection failed: %v", err)
+				continue
+			}
+			payload := model.MetricPayload{
+				Host:      cfg.HostOverride,
+				Timestamp: time.Now(),
+				Metrics:   metrics,
+				Meta:      map[string]string{"version": "0.1"},
+			}
+
+			select {
+			case taskQueue <- payload:
+			default:
+				utils.Warn("⚠️ Task queue full! Dropping metrics batch")
+			}
+		}
 	}
 }
