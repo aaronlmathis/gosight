@@ -1,95 +1,79 @@
-# GoSight - Lightweight Self-Hosted Monitoring Agent
+# GoSight
 
-GoSight is a minimalist system metrics exporter and dashboard built in Go. Designed for Linux/cloud administrators and DevOps engineers, it monitors system health and exposes metrics over HTTP or Prometheus format.
+GoSight is a high-performance, modular, and vendor-agnostic observability platform written in Go. It includes an agent that collects system metrics and a server that aggregates, stores, and exposes those metrics securely over gRPC.
 
-## 🔍 Features
+## 🌐 Project Overview
 
-- Concurrent metric collection (CPU, memory, disk, network)
-- HTTP API and embedded dashboard
-- Optional Prometheus or gRPC exporter
-- Configurable via YAML or ENV
-- Graceful shutdowns with context
-- Docker-ready and systemd-compatible
+- 🔧 Written in pure Go for speed and portability
+- 📦 Modular collector architecture (CPU, memory, disk, network, container)
+- 🔐 Secure with full TLS and mutual TLS (mTLS) support
+- 📊 Built-in web dashboard (HTML/JS)
+- 🧰 Cross-platform: runs on Linux, Windows, and containers
 
-## 🚀 Getting Started
+## 🧪 Components
 
-### Prerequisites
+### Agent
+- Collects system metrics
+- Sends them over gRPC (TLS/mTLS) to the server
+- Configurable via \`agent/config.yaml\`
 
-- Go 1.21+
-- Linux system (for metrics)
-- \[Optional\] Docker & Prometheus
+### Server
+- Accepts incoming metrics
+- Verifies client identity (mTLS)
+- Exposes metrics and dashboards
+- Configurable via \`server/config.yaml\`
 
-### Installation
+---
 
-```bash
-git clone https://github.com/yourname/gosight.git
-cd gosight
-go build -o gosight
-```
+## 🚀 Quick Start (Dev)
 
-### Run
+\`\`\`bash
+# From project root
+go run ./server/cmd &
+go run ./agent/cmd
+\`\`\`
 
-```bash
-./gosight --config config.yaml
-```
+Ensure you’ve generated valid certificates before starting.
 
-### Docker
+---
 
-```bash
-docker build -t gosight .
-docker run -p 8080:8080 --rm gosight
-```
+## 🔐 TLS / mTLS Setup
 
-## 📊 Metrics
+Certs live in the \`/certs\` directory. You can regenerate everything using:
 
-| Metric         | Description              |
-|----------------|--------------------------|
-| cpu_usage      | Percent used (avg)       |
-| memory_usage   | RAM used / total         |
-| disk_usage     | % used per mount         |
-| net_traffic    | Bytes sent/received      |
+\`\`\`bash
+# Linux/macOS
+./install/generate_certs_with_san.sh
 
-## ⚙️ Configuration
+# Windows PowerShell
+./install/generate_certs_with_san.ps1
+\`\`\`
 
-```yaml
-server:
-  port: 8080
-metrics:
-  interval_seconds: 5
-exporters:
-  prometheus: true
-  dashboard: true
-```
+Update paths in \`config.yaml\` files accordingly.
 
-## 📂 Project Structure
+---
 
-```
-gosight/
-├── cmd/
-│   └── main.go
-├── internal/
-│   ├── collector/
-│   ├── exporter/
-│   ├── config/
-│   └── utils/
-├── web/
-│   └── static/
-│   └── templates/
-├── config.yaml
-├── Dockerfile
-├── go.mod
-└── README.md
-```
+## 📂 Folder Structure (Core)
 
-## 🧠 Concepts Demonstrated
+\`\`\`
+/agent/         - Agent source code and CLI
+/server/        - Server source code and CLI
+/shared/        - Shared models and proto definitions
+/certs/         - TLS and mTLS certificates
+/install/       - Cert generation scripts
+\`\`\`
 
-- Goroutines, channels, worker pools
-- HTTP server & REST endpoints
-- File parsing (/proc, /sys)
-- Signal handling and graceful shutdown
-- Modular design with interfaces
-- Optional gRPC, WebSocket streaming
+---
 
-## 📜 License
+## 🛠 Build
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+\`\`\`bash
+go build -o gosight-agent ./agent/cmd
+go build -o gosight-server ./server/cmd
+\`\`\`
+
+---
+
+## 📋 License
+
+GoSight is licensed under the [GPL-3.0-or-later](https://www.gnu.org/licenses/gpl-3.0.html).
