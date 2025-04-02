@@ -170,7 +170,6 @@ func (v *VictoriaStore) worker() {
 		select {
 
 		case batch := <-v.queue:
-			utils.Debug("Worker flushing batch of %d metrics", len(batch))
 			utils.Debug("👷 Worker received batch with %d payloads / %d metrics", len(batch), totalMetricCount(batch))
 			v.flush(batch)
 		case <-v.stopChan:
@@ -188,7 +187,6 @@ func (v *VictoriaStore) flush(batch []model.MetricPayload) {
 	_ = gz.Close()
 
 	utils.Debug("🚀 Flushing batch of %d metrics", len(batch))
-	utils.Debug("🧾 Full payload:\n%s", payload[:min(2000, len(payload))])
 
 	req, err := http.NewRequest("POST", v.url+"/api/v1/import/prometheus", &buf)
 	if err != nil {

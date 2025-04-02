@@ -1,9 +1,0 @@
-server_url: "http://localhost:8080/api/metrics"
-interval: 10s
-host: "dev-machine-01"
-metrics_enabled:
-  - cpu
-  - mem
-  - disk
-  - net
-  - podman

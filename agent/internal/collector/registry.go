@@ -67,9 +67,8 @@ func NewRegistry(cfg *config.AgentConfig) *Registry {
 		switch name {
 		case "cpu":
 			reg.Collectors["cpu"] = system.NewCPUCollector()
-
-		// case "mem":
-		//     reg.Collectors["mem"] = system.NewMemCollector()
+		case "mem":
+			reg.Collectors["mem"] = system.NewMemCollector()
 		default:
 			utils.Warn("⚠️ Unknown collector: %s (skipping) \n", name)
 		}

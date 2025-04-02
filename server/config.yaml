@@ -16,6 +16,6 @@ storage:
   workers: 4
   queue_size: 100
   batch_size: 100
-  batch_timeout: 500   # flush every 500ms if not full
+  batch_timeout: 5000   # flush every 500ms if not full
   batch_retry: 3
   batch_interval: 1000 # 1s between retry attempts
