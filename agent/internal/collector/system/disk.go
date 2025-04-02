@@ -29,6 +29,7 @@ package system
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
@@ -77,7 +78,7 @@ func (c *DiskCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 		// Add dimensions to identify the specific partition
 		usageDimensions := map[string]string{
 			"mountpoint": p.Mountpoint,
-			"device":     p.Device, // e.g., /dev/sda1
+			"device":     strings.TrimPrefix(p.Device, "/dev/"), // e.g., /dev/sda1
 			"fstype":     p.Fstype,
 		}
 
