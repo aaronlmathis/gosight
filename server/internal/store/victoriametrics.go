@@ -220,7 +220,6 @@ func buildPrometheusFormat(batch []model.MetricPayload) string {
 	for _, payload := range batch {
 		ts := payload.Timestamp.UnixNano() / 1e6
 		for _, m := range payload.Metrics {
-			utils.Debug("🔎 Labels: %s", formatLabels(payload.Meta))
 			sb.WriteString(fmt.Sprintf("%s{%s} %f %d\n",
 				m.Name,
 				formatLabels(payload.Meta),
