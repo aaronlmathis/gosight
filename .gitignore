@@ -25,7 +25,7 @@ go.work.sum
 .env
 
 *.code-workspace
-PROJECT_STATUS.md
+
 
 *.log
 launch_containers*
