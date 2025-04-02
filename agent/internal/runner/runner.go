@@ -47,11 +47,11 @@ package runner
 import (
 	"context"
 	"os"
-	"runtime"
 	"time"
 
 	"github.com/aaronlmathis/gosight/agent/internal/collector"
 	"github.com/aaronlmathis/gosight/agent/internal/config"
+	"github.com/aaronlmathis/gosight/agent/internal/meta"
 	"github.com/aaronlmathis/gosight/agent/internal/sender"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
@@ -85,25 +85,19 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 				utils.Error("❌ Metric collection failed: %v", err)
 				continue
 			}
+
 			hostname, err := os.Hostname()
 			if err != nil {
 				hostname = "unknown"
 				utils.Warn("⚠️ Failed to get hostname: %v", err)
 			}
 
-			ip := utils.GetLocalIP()
-			if ip == "" {
-				utils.Warn("⚠️ Failed to get local IP address")
-				ip = "unknown"
-			}
-			meta := map[string]string{
-				"job":        "gosight-agent",
-				"instance":   hostname,
-				"ip_address": ip,
-				"os":         runtime.GOOS,
-				"arch":       runtime.GOARCH,
-				"version":    "0.1",
-			}
+			// Build Meta
+			meta := meta.BuildMeta(cfg, map[string]string{
+				"job":      "gosight-agent",
+				"instance": hostname,
+			})
+			// Build Payload
 			payload := model.MetricPayload{
 				Host:      cfg.HostOverride,
 				Timestamp: time.Now(),
