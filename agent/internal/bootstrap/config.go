@@ -31,6 +31,7 @@ import (
 	"path/filepath"
 
 	"github.com/aaronlmathis/gosight/agent/internal/config"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 func LoadServerConfig() *config.AgentConfig {
@@ -42,6 +43,7 @@ func LoadServerConfig() *config.AgentConfig {
 	metrics := flag.String("metrics", "", "Comma-separated list of enabled metrics")
 	logLevel := flag.String("log-level", "", "Log level (debug, info, warn, error)")
 	logFile := flag.String("log-file", "", "Path to log file")
+	customTags := flag.String("tags", "", "Comma-separated list of custom tags")
 
 	flag.Parse()
 
@@ -77,6 +79,9 @@ func LoadServerConfig() *config.AgentConfig {
 	}
 	if *logFile != "" {
 		cfg.LogFile = *logFile
+	}
+	if *customTags != "" {
+		cfg.CustomTags = utils.ParseTagString(*customTags)
 	}
 
 	return cfg

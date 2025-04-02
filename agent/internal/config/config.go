@@ -57,13 +57,14 @@ type TLSConfig struct {
 }
 
 type AgentConfig struct {
-	ServerURL      string        `yaml:"server_url"`
-	Interval       time.Duration `yaml:"interval"`
-	HostOverride   string        `yaml:"host"`
-	MetricsEnabled []string      `yaml:"metrics_enabled"`
-	LogFile        string        `yaml:"log_file"`
-	LogLevel       string        `yaml:"log_level"`
-	TLS            TLSConfig     `yaml:"tls"`
+	ServerURL      string            `yaml:"server_url"`
+	Interval       time.Duration     `yaml:"interval"`
+	HostOverride   string            `yaml:"host"`
+	MetricsEnabled []string          `yaml:"metrics_enabled"`
+	LogFile        string            `yaml:"log_file"`
+	LogLevel       string            `yaml:"log_level"`
+	TLS            TLSConfig         `yaml:"tls"`
+	CustomTags     map[string]string `yaml:"custom_tags"` // static tags to be sent with every metric
 }
 
 func LoadConfig(path string) (*AgentConfig, error) {
@@ -109,6 +110,16 @@ func ApplyEnvOverrides(cfg *AgentConfig) {
 	}
 	if val := os.Getenv("AGENT_TLS_CA_FILE"); val != "" {
 		cfg.TLS.CAFile = val
+	}
+	if val := os.Getenv("AGENT_CUSTOM_TAGS"); val != "" {
+		// Comma-separated list of key=value pairs
+		tags := SplitCSV(val)
+		for _, tag := range tags {
+			parts := strings.SplitN(tag, "=", 2)
+			if len(parts) == 2 {
+				cfg.CustomTags[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+			}
+		}
 	}
 
 }
