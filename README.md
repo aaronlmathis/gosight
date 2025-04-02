@@ -2,7 +2,7 @@
 
 GoSight is a high-performance, modular, and vendor-agnostic observability platform written in Go. It includes an agent that collects system metrics and meta data and a server that aggregates, stores, and exposes those metrics securely over gRPC.
 
-**This (ambitious) project is still in early development. Not available for production yet, and many features yet to be included. Some scripts might not work.**
+**This (ambitious) project is still in early development. Not available for production yet, and many features yet to be included. Some scripts might not work. Please see the [Project Status](https://github.com/aaronlmathis/gosight/blob/main/PROJECT_STATUS.md) for updates.**
 
 ## 🌐 Project Overview
 
