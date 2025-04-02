@@ -46,11 +46,15 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package server
 
 import (
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/aaronlmathis/gosight/server/internal/api"
 	"github.com/aaronlmathis/gosight/server/internal/config"
@@ -78,6 +82,19 @@ func NewGRPCServer(cfg *config.ServerConfig, store store.MetricStore) (*grpc.Ser
 	handler := api.NewMetricsHandler(store)
 	proto.RegisterMetricsServiceServer(server, handler)
 
+	go func() {
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+		sig := <-sigCh
+		utils.Info("🛑 Received signal: %s, shutting down gRPC server...", sig)
+
+		server.GracefulStop()
+		listener.Close()
+		utils.Info("✅ gRPC server stopped gracefully and listener closed")
+
+	}()
+
 	utils.Debug("📨 NewGRPCServer received store at: %p", store)
 
 	if cfg.Debug.EnableReflection {
@@ -97,6 +114,25 @@ func loadTLSConfig(cfg *config.ServerConfig) (*tls.Config, error) {
 	tlsCfg := &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		MinVersion:   tls.VersionTLS12,
+		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+			if len(rawCerts) == 0 {
+				return fmt.Errorf("no client cert provided")
+			}
+
+			cert, err := x509.ParseCertificate(rawCerts[0])
+			if err != nil {
+				return fmt.Errorf("failed to parse client cert: %w", err)
+			}
+
+			// Log CN and fingerprint
+			cn := cert.Subject.CommonName
+			fingerprint := sha256.Sum256(cert.Raw)
+			utils.Info("🔐 Agent connected: CN=%s, SHA256 Fingerprint=%s", cn, hex.EncodeToString(fingerprint[:]))
+
+			// Optional: Reject based on CN or SAN here
+
+			return nil
+		},
 	}
 
 	// Enable mTLS if client CA is provided
