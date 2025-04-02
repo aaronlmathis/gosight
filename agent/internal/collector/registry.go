@@ -69,6 +69,10 @@ func NewRegistry(cfg *config.AgentConfig) *Registry {
 			reg.Collectors["cpu"] = system.NewCPUCollector()
 		case "mem":
 			reg.Collectors["mem"] = system.NewMemCollector()
+		case "disk":
+			reg.Collectors["disk"] = system.NewDiskCollector()
+		case "host":
+			reg.Collectors["host"] = system.NewHostCollector()
 		default:
 			utils.Warn("⚠️ Unknown collector: %s (skipping) \n", name)
 		}

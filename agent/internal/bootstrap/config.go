@@ -19,34 +19,34 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// File: server/internal/bootstrap/config.go
+// File: agent/internal/bootstrap/config.go
 // Loads ENV, FLAG, Configs
 
 package bootstrap
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 
-	"github.com/aaronlmathis/gosight/server/internal/config"
-	"github.com/aaronlmathis/gosight/server/internal/store"
-	"github.com/aaronlmathis/gosight/shared/utils"
+	"github.com/aaronlmathis/gosight/agent/internal/config"
 )
 
-func LoadServerConfig() *config.ServerConfig {
-	// CLI flags
-	configFlag := flag.String("config", "", "Path to server config file")
-	listen := flag.String("listen", "", "Override listen address")
+func LoadServerConfig() *config.AgentConfig {
+	// Flag declarations
+	configFlag := flag.String("config", "", "Path to agent config file")
+	serverURL := flag.String("server-url", "", "Override server URL")
+	interval := flag.Duration("interval", 0, "Override interval (e.g. 5s)")
+	host := flag.String("host", "", "Override hostname")
+	metrics := flag.String("metrics", "", "Comma-separated list of enabled metrics")
 	logLevel := flag.String("log-level", "", "Log level (debug, info, warn, error)")
 	logFile := flag.String("log-file", "", "Path to log file")
 
 	flag.Parse()
 
 	// Resolve config path
-	configPath := resolvePath(*configFlag, "SERVER_CONFIG", "config.yaml")
+	configPath := resolvePath(*configFlag, "AGENT_CONFIG", "config.yaml")
 
 	if err := config.EnsureDefaultConfig(configPath); err != nil {
 		log.Fatalf("Could not create default config: %v", err)
@@ -60,8 +60,17 @@ func LoadServerConfig() *config.ServerConfig {
 	config.ApplyEnvOverrides(cfg)
 
 	// Apply CLI flag overrides (highest priority)
-	if *listen != "" {
-		cfg.ListenAddr = *listen
+	if *serverURL != "" {
+		cfg.ServerURL = *serverURL
+	}
+	if *interval != 0 {
+		cfg.Interval = *interval
+	}
+	if *host != "" {
+		cfg.HostOverride = *host
+	}
+	if *metrics != "" {
+		cfg.MetricsEnabled = config.SplitCSV(*metrics)
 	}
 	if *logLevel != "" {
 		cfg.LogLevel = *logLevel
@@ -69,6 +78,7 @@ func LoadServerConfig() *config.ServerConfig {
 	if *logFile != "" {
 		cfg.LogFile = *logFile
 	}
+
 	return cfg
 }
 
@@ -88,17 +98,4 @@ func absPath(path string) string {
 		log.Fatalf("Failed to resolve path: %v", err)
 	}
 	return abs
-}
-
-func InitMetricStore(cfg *config.ServerConfig) (store.MetricStore, error) {
-	engine := cfg.Storage.Engine
-	utils.Info("📦 Initializing metric store engine: %s", engine)
-
-	s, err := store.InitStore(cfg.Storage)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init metric store: %w", err)
-	}
-
-	utils.Info("✅ Metric store [%s] initialized successfully", engine)
-	return s, nil
 }
