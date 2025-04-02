@@ -16,6 +16,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
+<<<<<<< HEAD
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
@@ -38,6 +39,9 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
+=======
+along with GoBright. If not, see https://www.gnu.org/licenses/.
+>>>>>>> facb25ceb874225dcafc3b5cc88d65d7d10d4ae9
 */
 
 // gosight/agent/internal/sender/task.go

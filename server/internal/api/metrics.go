@@ -46,6 +46,8 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package api
 
 import (
+	"github.com/aaronlmathis/gosight/server/internal/store"
+	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/proto"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
@@ -53,7 +55,13 @@ import (
 // MetricsHandler implements pb.MetricsServiceServer
 // MetricsHandler implements MetricsServiceServer
 type MetricsHandler struct {
+	store store.MetricStore
 	proto.UnimplementedMetricsServiceServer
+}
+
+func NewMetricsHandler(s store.MetricStore) *MetricsHandler {
+	utils.Debug("🚀 MetricsHandler initialized with store: %T", s)
+	return &MetricsHandler{store: s}
 }
 
 func (h *MetricsHandler) SubmitStream(stream proto.MetricsService_SubmitStreamServer) error {
@@ -71,9 +79,11 @@ func (h *MetricsHandler) SubmitStream(stream proto.MetricsService_SubmitStreamSe
 		}
 
 		converted := ConvertToModelPayload(req)
-		utils.Info("📥 Streamed metrics from host: %s at %s", converted.Host, converted.Timestamp)
-		for _, m := range converted.Metrics {
-			utils.Info(" - %s: %.2f %s", m.Name, m.Value, m.Unit)
+
+		if err := h.store.Write([]model.MetricPayload{converted}); err != nil {
+			utils.Warn("❌ Failed to enqueue metrics from %s: %v", converted.Host, err)
+		} else {
+			utils.Info("📥 Enqueued %d metrics from host: %s at %s", len(converted.Metrics), converted.Host, converted.Timestamp)
 		}
 	}
 }

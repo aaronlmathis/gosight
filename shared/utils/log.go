@@ -91,7 +91,7 @@ func InitLogger(logFile string, level string) error {
 	if strings.ToLower(level) == "debug" {
 		debugEnabled = true
 	}
-
+	Info("🧪 Log system initialized. Debug enabled: %v", debugEnabled)
 	return nil
 }
 

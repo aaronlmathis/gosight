@@ -54,6 +54,7 @@ import (
 
 	"github.com/aaronlmathis/gosight/server/internal/api"
 	"github.com/aaronlmathis/gosight/server/internal/config"
+	"github.com/aaronlmathis/gosight/server/internal/store"
 	"github.com/aaronlmathis/gosight/shared/proto"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"google.golang.org/grpc"
@@ -61,7 +62,7 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-func NewGRPCServer(cfg *config.ServerConfig) (*grpc.Server, net.Listener, error) {
+func NewGRPCServer(cfg *config.ServerConfig, store store.MetricStore) (*grpc.Server, net.Listener, error) {
 	tlsCfg, err := loadTLSConfig(cfg)
 	if err != nil {
 		return nil, nil, fmt.Errorf("TLS config failed: %w", err)
@@ -74,7 +75,11 @@ func NewGRPCServer(cfg *config.ServerConfig) (*grpc.Server, net.Listener, error)
 	creds := credentials.NewTLS(tlsCfg)
 	server := grpc.NewServer(grpc.Creds(creds))
 
-	proto.RegisterMetricsServiceServer(server, &api.MetricsHandler{})
+	handler := api.NewMetricsHandler(store)
+	proto.RegisterMetricsServiceServer(server, handler)
+
+	utils.Debug("📨 NewGRPCServer received store at: %p", store)
+
 	if cfg.Debug.EnableReflection {
 		utils.Info("Enabling gRPC reflection")
 		reflection.Register(server)
