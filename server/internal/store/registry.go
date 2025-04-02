@@ -16,25 +16,38 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GoSight. If not, see https://www.gnu.org/licenses/.
+along with GoBright. If not, see https://www.gnu.org/licenses/.
 */
 
-// server/internal/bootstrap/logger.go
-// Initializes logger.
-package bootstrap
+// server/internal/store/registry.go
+// Package registry provides a registry for different storage engines.
+
+package store
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func SetupLogging(cfg *config.ServerConfig) {
-	if err := utils.InitLogger(cfg.LogFile, cfg.LogLevel); err != nil {
-		fmt.Printf("Failed to initialize logger: %v\n", err)
-		os.Exit(1)
+func InitStore(cfg config.StorageConfig) (MetricStore, error) {
+	utils.Debug("🧠 InitMetricStore selected engine: %s", cfg.Engine)
+	switch cfg.Engine {
+	case "victoriametrics":
+		utils.Debug("📦 Bootstrapping VictoriaStore with %d workers", cfg.Workers)
+		s := NewVictoriaStore(
+			cfg.URL,
+			cfg.Workers,
+			cfg.QueueSize,
+			cfg.BatchSize,
+			cfg.BatchTimeout,
+			cfg.BatchRetry,
+			cfg.BatchInterval,
+		)
+		utils.Debug("✅ Returning VictoriaStore at: %p", s)
+		return s, nil
+	default:
+		return nil, fmt.Errorf("unsupported storage engine: %s", cfg.Engine)
 	}
-
 }

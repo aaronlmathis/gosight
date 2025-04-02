@@ -19,22 +19,25 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// server/internal/bootstrap/logger.go
-// Initializes logger.
-package bootstrap
+// gosight/shared/utils/net.go
+// Package utils provides utility functions for the GoSight application.
 
-import (
-	"fmt"
-	"os"
+package utils
 
-	"github.com/aaronlmathis/gosight/server/internal/config"
-	"github.com/aaronlmathis/gosight/shared/utils"
-)
+import "net"
 
-func SetupLogging(cfg *config.ServerConfig) {
-	if err := utils.InitLogger(cfg.LogFile, cfg.LogLevel); err != nil {
-		fmt.Printf("Failed to initialize logger: %v\n", err)
-		os.Exit(1)
+func GetLocalIP() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "unknown"
 	}
 
+	for _, addr := range addrs {
+		if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
+			if ip4 := ipNet.IP.To4(); ip4 != nil {
+				return ip4.String()
+			}
+		}
+	}
+	return "unknown"
 }

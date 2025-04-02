@@ -1,8 +1,6 @@
 listen: ":50051"
-storage: "sqlite"
-database_path: "./data/gobright.db"
 log_file: "./server.log"
-log_level: "info"           # Or "debug", etc.
+log_level: "debug"           # Or "debug", etc.
 
 tls:
   cert_file: "../certs/server.crt"
@@ -11,3 +9,13 @@ tls:
 
 debug:
   enable_reflection: true
+
+storage:
+  engine: "victoriametrics"
+  url: "http://localhost:8428"
+  workers: 4
+  queue_size: 100
+  batch_size: 100
+  batch_timeout: 500   # flush every 500ms if not full
+  batch_retry: 3
+  batch_interval: 1000 # 1s between retry attempts

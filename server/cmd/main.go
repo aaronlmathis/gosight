@@ -23,6 +23,8 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package main
 
 import (
+	"fmt"
+
 	"github.com/aaronlmathis/gosight/server/internal/bootstrap"
 	"github.com/aaronlmathis/gosight/server/internal/server"
 	"github.com/aaronlmathis/gosight/shared/utils"
@@ -32,11 +34,18 @@ func main() {
 
 	// Bootstrap config loading (flags -> env -> file)
 	cfg := bootstrap.LoadServerConfig()
-
+	fmt.Printf("🔧 About to init logger with level = %s\n", cfg.LogLevel)
 	// Initialize logging
 	bootstrap.SetupLogging(cfg)
 
-	grpcServer, listener, err := server.NewGRPCServer(cfg)
+	// Init metric store
+
+	metricStore, err := bootstrap.InitMetricStore(cfg)
+	if err != nil {
+		utils.Fatal("Metric store init failed: %v", err)
+	}
+
+	grpcServer, listener, err := server.NewGRPCServer(cfg, metricStore)
 	if err != nil {
 		utils.Fatal("Failed to start gRPC server: %v", err)
 	}

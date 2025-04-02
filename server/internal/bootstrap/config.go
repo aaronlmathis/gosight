@@ -26,21 +26,22 @@ package bootstrap
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/aaronlmathis/gosight/server/internal/config"
+	"github.com/aaronlmathis/gosight/server/internal/store"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 func LoadServerConfig() *config.ServerConfig {
 	// CLI flags
-	configFlag := flag.String("config", "config.yaml", "Path to server config file")
+	configFlag := flag.String("config", "", "Path to server config file")
 	listen := flag.String("listen", "", "Override listen address")
-	storage := flag.String("storage", "", "Override storage engine")
-	dbPath := flag.String("db-path", "", "Override database path")
-	logLevel := flag.String("log-level", "info", "Log level (debug, info, warn, error)")
-	logFile := flag.String("log-file", "server.log", "Path to log file")
+	logLevel := flag.String("log-level", "", "Log level (debug, info, warn, error)")
+	logFile := flag.String("log-file", "", "Path to log file")
 
 	flag.Parse()
 
@@ -61,12 +62,6 @@ func LoadServerConfig() *config.ServerConfig {
 	// Apply CLI flag overrides (highest priority)
 	if *listen != "" {
 		cfg.ListenAddr = *listen
-	}
-	if *storage != "" {
-		cfg.StorageEngine = *storage
-	}
-	if *dbPath != "" {
-		cfg.DatabasePath = *dbPath
 	}
 	if *logLevel != "" {
 		cfg.LogLevel = *logLevel
@@ -93,4 +88,17 @@ func absPath(path string) string {
 		log.Fatalf("Failed to resolve path: %v", err)
 	}
 	return abs
+}
+
+func InitMetricStore(cfg *config.ServerConfig) (store.MetricStore, error) {
+	engine := cfg.Storage.Engine
+	utils.Info("📦 Initializing metric store engine: %s", engine)
+
+	s, err := store.InitStore(cfg.Storage)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init metric store: %w", err)
+	}
+
+	utils.Info("✅ Metric store [%s] initialized successfully", engine)
+	return s, nil
 }

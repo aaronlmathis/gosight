@@ -16,9 +16,15 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with LeetScraper. If not, see https://www.gnu.org/licenses/.
+along with GoBright. If not, see https://www.gnu.org/licenses/.
 */
 
+// server/internal/config/config.go
+
+// Package config provides configuration loading and management for the GoSight server.
+// It supports loading configuration from a YAML file and allows for environment variable overrides.
+// The configuration includes settings for server address, storage engine, database path,
+// logging, TLS settings, and debug options.
 package config
 
 import (
@@ -37,14 +43,24 @@ type DebugConfig struct {
 	EnableReflection bool `yaml:"enable_reflection"`
 }
 
+type StorageConfig struct {
+	Engine        string `yaml:"engine"`
+	URL           string `yaml:"url"`
+	Workers       int    `yaml:"workers"`
+	QueueSize     int    `yaml:"queue_size"`
+	BatchSize     int    `yaml:"batch_size"`
+	BatchTimeout  int    `yaml:"batch_timeout"`
+	BatchRetry    int    `yaml:"batch_retry"`
+	BatchInterval int    `yaml:"batch_interval"`
+}
+
 type ServerConfig struct {
-	ListenAddr    string      `yaml:"listen"`
-	StorageEngine string      `yaml:"storage"`
-	DatabasePath  string      `yaml:"database_path"`
-	LogFile       string      `yaml:"log_file"`
-	LogLevel      string      `yaml:"log_level"`
-	TLS           TLSConfig   `yaml:"tls"`
-	Debug         DebugConfig `yaml:"debug"`
+	ListenAddr string        `yaml:"listen"`
+	LogFile    string        `yaml:"log_file"`
+	LogLevel   string        `yaml:"log_level"`
+	TLS        TLSConfig     `yaml:"tls"`
+	Debug      DebugConfig   `yaml:"debug"`
+	Storage    StorageConfig `yaml:"storage"`
 }
 
 func LoadConfig(path string) (*ServerConfig, error) {
@@ -62,12 +78,6 @@ func LoadConfig(path string) (*ServerConfig, error) {
 func ApplyEnvOverrides(cfg *ServerConfig) {
 	if val := os.Getenv("SERVER_LISTEN"); val != "" {
 		cfg.ListenAddr = val
-	}
-	if val := os.Getenv("SERVER_STORAGE"); val != "" {
-		cfg.StorageEngine = val
-	}
-	if val := os.Getenv("SERVER_DATABASE_PATH"); val != "" {
-		cfg.DatabasePath = val
 	}
 	if val := os.Getenv("SERVER_LOG_FILE"); val != "" {
 		cfg.LogFile = val

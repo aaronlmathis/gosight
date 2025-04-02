@@ -19,22 +19,17 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// server/internal/bootstrap/logger.go
-// Initializes logger.
-package bootstrap
+// gosight/server/internal/store/store.go
+// Package store provides an interface for writing metrics to different storage engines.
+// It defines the MetricStore interface, which includes methods for writing metrics
+// and closing the store connection. This allows for flexibility in choosing the
+// underlying storage engine, such as VictoriaMetrics or others in the future.
 
-import (
-	"fmt"
-	"os"
+package store
 
-	"github.com/aaronlmathis/gosight/server/internal/config"
-	"github.com/aaronlmathis/gosight/shared/utils"
-)
+import "github.com/aaronlmathis/gosight/shared/model"
 
-func SetupLogging(cfg *config.ServerConfig) {
-	if err := utils.InitLogger(cfg.LogFile, cfg.LogLevel); err != nil {
-		fmt.Printf("Failed to initialize logger: %v\n", err)
-		os.Exit(1)
-	}
-
+type MetricStore interface {
+	Write(metrics []model.MetricPayload) error
+	Close() error
 }

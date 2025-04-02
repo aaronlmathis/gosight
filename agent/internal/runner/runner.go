@@ -25,6 +25,8 @@ package runner
 
 import (
 	"context"
+	"os"
+	"runtime"
 	"time"
 
 	"github.com/aaronlmathis/gosight/agent/internal/collector"
@@ -62,11 +64,30 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 				utils.Error("❌ Metric collection failed: %v", err)
 				continue
 			}
+			hostname, err := os.Hostname()
+			if err != nil {
+				hostname = "unknown"
+				utils.Warn("⚠️ Failed to get hostname: %v", err)
+			}
+
+			ip := utils.GetLocalIP()
+			if ip == "" {
+				utils.Warn("⚠️ Failed to get local IP address")
+				ip = "unknown"
+			}
+			meta := map[string]string{
+				"job":        "gosight-agent",
+				"instance":   hostname,
+				"ip_address": ip,
+				"os":         runtime.GOOS,
+				"arch":       runtime.GOARCH,
+				"version":    "0.1",
+			}
 			payload := model.MetricPayload{
 				Host:      cfg.HostOverride,
 				Timestamp: time.Now(),
 				Metrics:   metrics,
-				Meta:      map[string]string{"version": "0.1"},
+				Meta:      meta,
 			}
 
 			select {
