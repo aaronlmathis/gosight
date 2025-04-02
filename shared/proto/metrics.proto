@@ -25,11 +25,59 @@ message Metric {
 
 }
 
+message Meta {
+  // General Host Information
+  string hostname = 1;
+  string ip_address = 2;
+  string os = 3;
+  string os_version = 4;
+  string kernel_version = 5;
+  string architecture = 6;
+
+  // Cloud Provider Specific
+  string cloud_provider = 7;
+  string region = 8;
+  string availability_zone = 9;
+  string instance_id = 10;
+  string instance_type = 11;
+  string account_id = 12;
+  string project_id = 13;
+  string resource_group = 14;
+  string vpc_id = 15;
+  string subnet_id = 16;
+  string image_id = 17;
+  string service_id = 18;
+
+  // Containerization/Orchestration
+  string container_id = 19;
+  string container_name = 20;
+  string pod_name = 21;
+  string namespace = 22; // K8s namespace
+  string cluster_name = 23;
+  string node_name = 24;
+
+  // Application Specific
+  string application = 25;
+  string environment = 26;
+  string service = 27;
+  string version = 28;
+  string deployment_id = 29;
+
+  // Network Information
+  string public_ip = 30;
+  string private_ip = 31;
+  string mac_address = 32;
+  string network_interface = 33;
+
+  // Custom Metadata
+  map<string, string> tags = 34;
+}
+
 message MetricPayload {
   string host = 1;
   google.protobuf.Timestamp timestamp = 2;
   repeated Metric metrics = 3;
-  map<string, string> meta = 4; // e.g. { "env": "prod", "region": "us-west-2" }
+  Meta meta = 4; 
 }
 
 message MetricResponse {
