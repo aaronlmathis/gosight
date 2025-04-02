@@ -220,6 +220,7 @@ func buildPrometheusFormat(batch []model.MetricPayload) string {
 	for _, payload := range batch {
 		ts := payload.Timestamp.UnixNano() / 1e6
 		for _, m := range payload.Metrics {
+			utils.Debug("🔎 Labels: %s", formatLabels(payload.Meta))
 			sb.WriteString(fmt.Sprintf("%s{%s} %f %d\n",
 				m.Name,
 				formatLabels(payload.Meta),
@@ -231,11 +232,119 @@ func buildPrometheusFormat(batch []model.MetricPayload) string {
 	return sb.String()
 }
 
-func formatLabels(meta map[string]string) string {
+func formatLabels(meta *model.Meta) string {
+	if meta == nil {
+		return "" // Return empty string if meta is nil
+	}
+
 	var out []string
-	for k, v := range meta {
+
+	// Add all meta fields as labels, skipping empty strings
+	if meta.Hostname != "" {
+		out = append(out, fmt.Sprintf(`hostname="%s"`, meta.Hostname))
+	}
+	if meta.IPAddress != "" {
+		out = append(out, fmt.Sprintf(`ip_address="%s"`, meta.IPAddress))
+	}
+	if meta.OS != "" {
+		out = append(out, fmt.Sprintf(`os="%s"`, meta.OS))
+	}
+	if meta.OSVersion != "" {
+		out = append(out, fmt.Sprintf(`os_version="%s"`, meta.OSVersion))
+	}
+	if meta.KernelVersion != "" {
+		out = append(out, fmt.Sprintf(`kernel_version="%s"`, meta.KernelVersion))
+	}
+	if meta.Architecture != "" {
+		out = append(out, fmt.Sprintf(`architecture="%s"`, meta.Architecture))
+	}
+	if meta.CloudProvider != "" {
+		out = append(out, fmt.Sprintf(`cloud_provider="%s"`, meta.CloudProvider))
+	}
+	if meta.Region != "" {
+		out = append(out, fmt.Sprintf(`region="%s"`, meta.Region))
+	}
+	if meta.AvailabilityZone != "" {
+		out = append(out, fmt.Sprintf(`availability_zone="%s"`, meta.AvailabilityZone))
+	}
+	if meta.InstanceID != "" {
+		out = append(out, fmt.Sprintf(`instance_id="%s"`, meta.InstanceID))
+	}
+	if meta.InstanceType != "" {
+		out = append(out, fmt.Sprintf(`instance_type="%s"`, meta.InstanceType))
+	}
+	if meta.AccountID != "" {
+		out = append(out, fmt.Sprintf(`account_id="%s"`, meta.AccountID))
+	}
+	if meta.ProjectID != "" {
+		out = append(out, fmt.Sprintf(`project_id="%s"`, meta.ProjectID))
+	}
+	if meta.ResourceGroup != "" {
+		out = append(out, fmt.Sprintf(`resource_group="%s"`, meta.ResourceGroup))
+	}
+	if meta.VPCID != "" {
+		out = append(out, fmt.Sprintf(`vpc_id="%s"`, meta.VPCID))
+	}
+	if meta.SubnetID != "" {
+		out = append(out, fmt.Sprintf(`subnet_id="%s"`, meta.SubnetID))
+	}
+	if meta.ImageID != "" {
+		out = append(out, fmt.Sprintf(`image_id="%s"`, meta.ImageID))
+	}
+	if meta.ServiceID != "" {
+		out = append(out, fmt.Sprintf(`service_id="%s"`, meta.ServiceID))
+	}
+	if meta.ContainerID != "" {
+		out = append(out, fmt.Sprintf(`container_id="%s"`, meta.ContainerID))
+	}
+	if meta.ContainerName != "" {
+		out = append(out, fmt.Sprintf(`container_name="%s"`, meta.ContainerName))
+	}
+	if meta.PodName != "" {
+		out = append(out, fmt.Sprintf(`pod_name="%s"`, meta.PodName))
+	}
+	if meta.Namespace != "" {
+		out = append(out, fmt.Sprintf(`namespace="%s"`, meta.Namespace))
+	}
+	if meta.ClusterName != "" {
+		out = append(out, fmt.Sprintf(`cluster_name="%s"`, meta.ClusterName))
+	}
+	if meta.NodeName != "" {
+		out = append(out, fmt.Sprintf(`node_name="%s"`, meta.NodeName))
+	}
+	if meta.Application != "" {
+		out = append(out, fmt.Sprintf(`application="%s"`, meta.Application))
+	}
+	if meta.Environment != "" {
+		out = append(out, fmt.Sprintf(`environment="%s"`, meta.Environment))
+	}
+	if meta.Service != "" {
+		out = append(out, fmt.Sprintf(`service="%s"`, meta.Service))
+	}
+	if meta.Version != "" {
+		out = append(out, fmt.Sprintf(`version="%s"`, meta.Version))
+	}
+	if meta.DeploymentID != "" {
+		out = append(out, fmt.Sprintf(`deployment_id="%s"`, meta.DeploymentID))
+	}
+	if meta.PublicIP != "" {
+		out = append(out, fmt.Sprintf(`public_ip="%s"`, meta.PublicIP))
+	}
+	if meta.PrivateIP != "" {
+		out = append(out, fmt.Sprintf(`private_ip="%s"`, meta.PrivateIP))
+	}
+	if meta.MACAddress != "" {
+		out = append(out, fmt.Sprintf(`mac_address="%s"`, meta.MACAddress))
+	}
+	if meta.NetworkInterface != "" {
+		out = append(out, fmt.Sprintf(`network_interface="%s"`, meta.NetworkInterface))
+	}
+
+	// Handle tags map specifically
+	for k, v := range meta.Tags {
 		out = append(out, fmt.Sprintf(`%s="%s"`, k, v))
 	}
+
 	sort.Strings(out)
 	return strings.Join(out, ",")
 }
