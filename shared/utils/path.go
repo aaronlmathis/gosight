@@ -16,20 +16,23 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with LeetScraper. If not, see https://www.gnu.org/licenses/.
+along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-package collector
+// shared/utils/path.go
 
-// Metric Collector interface
-type MetricCollector interface {
-	Name() string
-	Collect() MetricResult
-}
+package utils
 
-type MetricResult struct {
-	Name string
-	Data map[string]float64
-	Meta map[string]string
-	Err  error
+import (
+	"os"
+)
+
+// GetWorkingDir returns the current working directory
+func GetWorkingDir() string {
+	dir, err := os.Getwd()
+	if err != nil {
+		Error("Failed to get working directory: %v", err)
+		return ""
+	}
+	return dir
 }
