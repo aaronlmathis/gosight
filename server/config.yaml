@@ -1,7 +1,15 @@
-listen: ":50051"
-log_file: "./server.log"
-log_level: "debug"           # Or "debug", etc.
+server:
+  grpc_addr: ":50051"
+  http_addr: ":8080"
+  environment: dev
+  log_file: "./server.log"
+  log_level: "debug"           # Or "debug", etc.
 
+web:
+  static_dir: "web"
+  template_dir: "web/templates"
+  default_title: "GoSight"
+  
 tls:
   cert_file: "../certs/server.crt"
   key_file: "../certs/server.key"

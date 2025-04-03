@@ -35,7 +35,7 @@ func main() {
 
 	// Bootstrap config loading (flags -> env -> file)
 	cfg := bootstrap.LoadServerConfig()
-	fmt.Printf("🔧 About to init logger with level = %s\n", cfg.LogLevel)
+	fmt.Printf("🔧 About to init logger with level = %s\n", cfg.Server.LogLevel)
 	// Initialize logging
 	bootstrap.SetupLogging(cfg)
 
@@ -46,15 +46,19 @@ func main() {
 		utils.Fatal("Metric store init failed: %v", err)
 	}
 
+	agentTracker, err := bootstrap.InitAgentTracker(cfg.Server.Environment)
+	if err != nil {
+		utils.Fatal("Agent tracker init failed: %v", err)
+	}
 	// Start HTTP server for admin console/api
 
-	go httpserver.StartHTTPServer(":8080")
+	go httpserver.StartHTTPServer(cfg, agentTracker)
 
 	grpcServer, listener, err := server.NewGRPCServer(cfg, metricStore)
 	if err != nil {
 		utils.Fatal("Failed to start gRPC server: %v", err)
 	}
-	utils.Info("🚀 GoSight server listening on %s", cfg.ListenAddr)
+	utils.Info("🚀 GoSight server listening on %s", cfg.Server.GRPCAddr)
 	if err := grpcServer.Serve(listener); err != nil {
 		utils.Fatal("Failed to serve: %v", err)
 	}
