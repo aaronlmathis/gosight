@@ -21,7 +21,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 
 // gosight/server/internal/store/store.go
 
-
+console.log("🚀 init.js loaded");
 // server/web/js/init.js
 import { toggleMenu } from './ui.js';
 import { fetchAgents } from './api.js';
@@ -30,14 +30,23 @@ import { renderCPUGraph } from './charts.js';
 
 window.toggleMenu = toggleMenu; // Global exposure for inline onclick
 
-document.addEventListener('DOMContentLoaded', async () => {
+async function updateAgents() {
   try {
     const agents = await fetchAgents();
     renderAgentTable(agents);
+    renderCPUGraph(document.getElementById('cpuChart'), agents);
 
-    const ctx = document.getElementById('cpuChart');
-    renderCPUGraph(ctx, agents); // or fetch time-series from another API
+    const lastUpdateEl = document.getElementById('lastUpdate');
+    if (lastUpdateEl) {
+      lastUpdateEl.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+    }
+    console.log("⏱ Refreshing at", new Date().toLocaleTimeString());
   } catch (err) {
-    console.error("Frontend init failed:", err);
+    console.error("❌ Agent update failed:", err);
   }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  updateAgents(); // initial load
+  setInterval(updateAgents, 5000); // 🔁 refresh every 5s
 });

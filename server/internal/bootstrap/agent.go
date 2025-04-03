@@ -46,7 +46,7 @@ func InitAgentTracker(env string) (*store.AgentTracker, error) {
 					Name: "agent-02", IP: "192.168.1.102", Zone: "DC-2", CPU: float64(rand.Intn(50)),
 				})
 				tracker.UpdateAgent("agent-03", model.AgentStatus{
-					Name: "agent-03", IP: "192.168.1.103", Zone: "Edge", CPU: float64(rand.Intn(40)),
+					Name: "agent-03", IP: "192.168.1.103", Zone: "Narnia", CPU: float64(rand.Intn(40)),
 				})
 				time.Sleep(5 * time.Second)
 			}

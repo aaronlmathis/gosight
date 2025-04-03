@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GoSight Dashboard</title>
   <link href="/css/output.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/js/init.js" type="module" defer></script>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans antialiased">
 
@@ -35,6 +37,7 @@
         <div>
           <h2 class="text-2xl font-semibold">Welcome to GoSight</h2>
           <p class="text-sm text-gray-500">Your system admin dashboard</p>
+          <div id="lastUpdate" class="text-xs text-green-400 mt-2">Waiting for data...</div>
         </div>
         <div class="w-10 h-10 bg-gray-200 rounded-full"></div>
       </header>
@@ -73,8 +76,8 @@
               <option>24h</option>
             </select>
           </div>
-          <div class="h-48 bg-white rounded border border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-sm">
-            [ Insert Chart.js / ApexCharts / SVG here ]
+          <div class="h-48 bg-white rounded border border-gray-300 p-2">
+            <canvas id="cpuChart" class="w-full h-full"></canvas>
           </div>
         </div>
         <!-- Table: Agents or Metrics -->
@@ -89,28 +92,7 @@
                 <th scope="col" class="px-6 py-3">Location</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
-              <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4 font-medium text-gray-900">agent-01</td>
-                <td class="px-6 py-4 text-green-600 font-semibold">Online</td>
-                <td class="px-6 py-4">3s ago</td>
-                <td class="px-6 py-4">192.168.1.101</td>
-                <td class="px-6 py-4">DC-1</td>
-              </tr>
-              <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4 font-medium text-gray-900">agent-02</td>
-                <td class="px-6 py-4 text-yellow-500 font-semibold">Idle</td>
-                <td class="px-6 py-4">45s ago</td>
-                <td class="px-6 py-4">192.168.1.102</td>
-                <td class="px-6 py-4">DC-2</td>
-              </tr>
-              <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4 font-medium text-gray-900">agent-03</td>
-                <td class="px-6 py-4 text-red-600 font-semibold">Offline</td>
-                <td class="px-6 py-4">10m ago</td>
-                <td class="px-6 py-4">192.168.1.103</td>
-                <td class="px-6 py-4">Edge</td>
-              </tr>
+            <tbody id="agentTableBody" class="divide-y divide-gray-200">
             </tbody>
           </table>
         </div>
