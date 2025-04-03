@@ -39,9 +39,12 @@ type MetricsHandler struct {
 	pb.UnimplementedMetricsServiceServer
 }
 
-func NewMetricsHandler(s store.MetricStore) *MetricsHandler {
+func NewMetricsHandler(s store.MetricStore, tracker *store.AgentTracker) *MetricsHandler {
 	utils.Debug("🚀 MetricsHandler initialized with store: %T", s)
-	return &MetricsHandler{store: s}
+	return &MetricsHandler{
+		store:   s,
+		Tracker: tracker,
+	}
 }
 
 func (h *MetricsHandler) SubmitStream(stream pb.MetricsService_SubmitStreamServer) error {

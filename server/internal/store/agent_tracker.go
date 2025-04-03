@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 type AgentTracker struct {
@@ -42,20 +43,26 @@ func NewAgentTracker() *AgentTracker {
 	}
 }
 func (t *AgentTracker) UpdateAgent(meta model.Meta) {
+	if meta.Hostname == "" {
+		// Don't track nameless agents
+		utils.Warn("Skipping UpdateAgent: meta.Hostname is empty")
+		return
+	}
+
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	a, ok := t.agents[meta.Hostname]
-	if !ok {
-		a = &model.AgentStatus{
+	agent, exists := t.agents[meta.Hostname]
+	if !exists {
+		agent = &model.AgentStatus{
 			Hostname: meta.Hostname,
 			IP:       meta.PrivateIP,
 			Labels:   meta.Tags,
 		}
-		t.agents[meta.Hostname] = a
+		t.agents[meta.Hostname] = agent
 	}
 
-	a.LastSeen = time.Now()
+	agent.LastSeen = time.Now()
 }
 
 func (t *AgentTracker) GetAgents() []model.AgentStatus {

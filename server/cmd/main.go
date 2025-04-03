@@ -54,7 +54,7 @@ func main() {
 
 	go httpserver.StartHTTPServer(cfg, agentTracker)
 
-	grpcServer, listener, err := server.NewGRPCServer(cfg, metricStore)
+	grpcServer, listener, err := server.NewGRPCServer(cfg, metricStore, agentTracker)
 	if err != nil {
 		utils.Fatal("Failed to start gRPC server: %v", err)
 	}

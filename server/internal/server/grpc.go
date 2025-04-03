@@ -66,7 +66,7 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-func NewGRPCServer(cfg *config.Config, store store.MetricStore) (*grpc.Server, net.Listener, error) {
+func NewGRPCServer(cfg *config.Config, store store.MetricStore, tracker *store.AgentTracker) (*grpc.Server, net.Listener, error) {
 	tlsCfg, err := loadTLSConfig(cfg)
 	if err != nil {
 		return nil, nil, fmt.Errorf("TLS config failed: %w", err)
@@ -79,7 +79,7 @@ func NewGRPCServer(cfg *config.Config, store store.MetricStore) (*grpc.Server, n
 	creds := credentials.NewTLS(tlsCfg)
 	server := grpc.NewServer(grpc.Creds(creds))
 
-	handler := api.NewMetricsHandler(store)
+	handler := api.NewMetricsHandler(store, tracker)
 	proto.RegisterMetricsServiceServer(server, handler)
 
 	go func() {
