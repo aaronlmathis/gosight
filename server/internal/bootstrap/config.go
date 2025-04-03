@@ -36,12 +36,14 @@ import (
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func LoadServerConfig() *config.ServerConfig {
+func LoadServerConfig() *config.Config {
 	// CLI flags
 	configFlag := flag.String("config", "", "Path to server config file")
-	listen := flag.String("listen", "", "Override listen address")
-	logLevel := flag.String("log-level", "", "Log level (debug, info, warn, error)")
-	logFile := flag.String("log-file", "", "Path to log file")
+	grpcFlag := flag.String("grpc", "", "Overrid gRPC servere listen address")
+	httpFlag := flag.String("http", "", "Overrid http servere listen address")
+	envFlag := flag.String("env", "", "Environment (dev / test / prod)")
+	logLevelFlag := flag.String("log-level", "", "Log level (debug, info, warn, error)")
+	logFileFlag := flag.String("log-file", "", "Path to log file")
 
 	flag.Parse()
 
@@ -60,14 +62,20 @@ func LoadServerConfig() *config.ServerConfig {
 	config.ApplyEnvOverrides(cfg)
 
 	// Apply CLI flag overrides (highest priority)
-	if *listen != "" {
-		cfg.ListenAddr = *listen
+	if *grpcFlag != "" {
+		cfg.Server.GRPCAddr = *grpcFlag
 	}
-	if *logLevel != "" {
-		cfg.LogLevel = *logLevel
+	if *httpFlag != "" {
+		cfg.Server.HTTPAddr = *httpFlag
 	}
-	if *logFile != "" {
-		cfg.LogFile = *logFile
+	if *envFlag != "" {
+		cfg.Server.Environment = *envFlag
+	}
+	if *logLevelFlag != "" {
+		cfg.Server.LogLevel = *logLevelFlag
+	}
+	if *logFileFlag != "" {
+		cfg.Server.LogFile = *logFileFlag
 	}
 	return cfg
 }
@@ -90,11 +98,11 @@ func absPath(path string) string {
 	return abs
 }
 
-func InitMetricStore(cfg *config.ServerConfig) (store.MetricStore, error) {
+func InitMetricStore(cfg *config.Config) (store.MetricStore, error) {
 	engine := cfg.Storage.Engine
 	utils.Info("📦 Initializing metric store engine: %s", engine)
 
-	s, err := store.InitStore(cfg.Storage)
+	s, err := store.InitStore(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init metric store: %w", err)
 	}

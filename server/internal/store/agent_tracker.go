@@ -19,25 +19,41 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// server/internal/http/server.go
-// Basic http server for admin/dash
-
-package httpserver
+// Store agent details/heartbeats
+// server/internal/store/agent_tracker.go
+package store
 
 import (
-	"net/http"
+	"sync"
+	"time"
 
-	"github.com/aaronlmathis/gosight/server/internal/config"
-	"github.com/aaronlmathis/gosight/server/internal/store"
-	"github.com/aaronlmathis/gosight/shared/utils"
+	"github.com/aaronlmathis/gosight/shared/model"
 )
 
-func StartHTTPServer(cfg *config.Config, tracker *store.AgentTracker) {
-	InitHandlers(tracker)
-	mux := NewRouter(cfg.Web.StaticDir, cfg.Web.TemplateDir, cfg.Server.Environment)
+type AgentTracker struct {
+	mu     sync.RWMutex
+	agents map[string]*agentState
+}
 
-	utils.Info("🌐 HTTP server running at %s", cfg.Server.HTTPAddr)
-	if err := http.ListenAndServe(cfg.Server.HTTPAddr, mux); err != nil {
-		utils.Error("HTTP server failed: %v", err)
+type agentState struct {
+	status   model.AgentStatus
+	lastSeen time.Time
+}
+
+// Create a new tracker
+func NewAgentTracker() *AgentTracker {
+	return &AgentTracker{
+		agents: make(map[string]*agentState),
+	}
+}
+
+func (t *AgentTracker) UpdateAgent(id string, status model.AgentStatus) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	status.LastSeen = time.Now().Format("15:04:05") // optional
+	t.agents[id] = &agentState{
+		status:   status,
+		lastSeen: time.Now(),
 	}
 }

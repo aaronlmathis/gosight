@@ -19,25 +19,28 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// server/internal/http/server.go
-// Basic http server for admin/dash
-
+// server/internal/http/router.go
+// Router for HTTPServer
 package httpserver
 
 import (
 	"net/http"
-
-	"github.com/aaronlmathis/gosight/server/internal/config"
-	"github.com/aaronlmathis/gosight/server/internal/store"
-	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func StartHTTPServer(cfg *config.Config, tracker *store.AgentTracker) {
-	InitHandlers(tracker)
-	mux := NewRouter(cfg.Web.StaticDir, cfg.Web.TemplateDir, cfg.Server.Environment)
+func NewRouter(staticDir, templateDir, env string) *http.ServeMux {
+	mux := http.NewServeMux()
 
-	utils.Info("🌐 HTTP server running at %s", cfg.Server.HTTPAddr)
-	if err := http.ListenAndServe(cfg.Server.HTTPAddr, mux); err != nil {
-		utils.Error("HTTP server failed: %v", err)
-	}
+	// Serve static assets
+	fs := http.FileServer(http.Dir(staticDir))
+	mux.Handle("/css/", fs)
+	mux.Handle("/js/", fs)
+	mux.Handle("/images/", fs)
+
+	// Route handlers
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		handleIndex(w, r, templateDir, env)
+	})
+	mux.HandleFunc("/api/agents", handleAgentsAPI)
+
+	return mux
 }

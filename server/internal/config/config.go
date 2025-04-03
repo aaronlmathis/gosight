@@ -54,57 +54,67 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type TLSConfig struct {
-	CertFile     string `yaml:"cert_file"`
-	KeyFile      string `yaml:"key_file"`
-	ClientCAFile string `yaml:"client_ca_file"` // Optional (for mTLS)
+type Config struct {
+	Server struct {
+		GRPCAddr    string `yaml:"grpc_addr"`
+		HTTPAddr    string `yaml:"http_addr"`
+		Environment string `yaml:"environment"`
+		LogFile     string `yaml:"log_file"`
+		LogLevel    string `yaml:"log_level"`
+	} `yaml:"server"`
+
+	Web struct {
+		StaticDir    string `yaml:"static_dir"`
+		TemplateDir  string `yaml:"template_dir"`
+		DefaultTitle string `yaml:"default_title"`
+	} `yaml:"web"`
+
+	TLS struct {
+		CertFile     string `yaml:"cert_file"`
+		KeyFile      string `yaml:"key_file"`
+		ClientCAFile string `yaml:"client_ca_file"`
+	} `yaml:"tls"`
+
+	Debug struct {
+		EnableReflection bool `yaml:"enable_reflection"`
+	} `yaml:"debug"`
+
+	Storage struct {
+		Engine        string `yaml:"engine"`
+		URL           string `yaml:"url"`
+		Workers       int    `yaml:"workers"`
+		QueueSize     int    `yaml:"queue_size"`
+		BatchSize     int    `yaml:"batch_size"`
+		BatchTimeout  int    `yaml:"batch_timeout"`
+		BatchRetry    int    `yaml:"batch_retry"`
+		BatchInterval int    `yaml:"batch_interval"`
+	} `yaml:"storage"`
 }
 
-type DebugConfig struct {
-	EnableReflection bool `yaml:"enable_reflection"`
-}
-
-type StorageConfig struct {
-	Engine        string `yaml:"engine"`
-	URL           string `yaml:"url"`
-	Workers       int    `yaml:"workers"`
-	QueueSize     int    `yaml:"queue_size"`
-	BatchSize     int    `yaml:"batch_size"`
-	BatchTimeout  int    `yaml:"batch_timeout"`
-	BatchRetry    int    `yaml:"batch_retry"`
-	BatchInterval int    `yaml:"batch_interval"`
-}
-
-type ServerConfig struct {
-	ListenAddr string        `yaml:"listen"`
-	LogFile    string        `yaml:"log_file"`
-	LogLevel   string        `yaml:"log_level"`
-	TLS        TLSConfig     `yaml:"tls"`
-	Debug      DebugConfig   `yaml:"debug"`
-	Storage    StorageConfig `yaml:"storage"`
-}
-
-func LoadConfig(path string) (*ServerConfig, error) {
+func LoadConfig(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	var cfg ServerConfig
+	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
 	return &cfg, nil
 }
 
-func ApplyEnvOverrides(cfg *ServerConfig) {
-	if val := os.Getenv("SERVER_LISTEN"); val != "" {
-		cfg.ListenAddr = val
+func ApplyEnvOverrides(cfg *Config) {
+	if val := os.Getenv("SERVER_GRPC_LISTEN"); val != "" {
+		cfg.Server.GRPCAddr = val
+	}
+	if val := os.Getenv("SERVER_HTTP_LISTEN"); val != "" {
+		cfg.Server.HTTPAddr = val
 	}
 	if val := os.Getenv("SERVER_LOG_FILE"); val != "" {
-		cfg.LogFile = val
+		cfg.Server.LogFile = val
 	}
 	if val := os.Getenv("SERVER_LOG_LEVEL"); val != "" {
-		cfg.LogLevel = val
+		cfg.Server.LogLevel = val
 	}
 	if val := os.Getenv("SERVER_TLS_CERT_FILE"); val != "" {
 		cfg.TLS.CertFile = val

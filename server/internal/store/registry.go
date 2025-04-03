@@ -31,23 +31,23 @@ import (
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func InitStore(cfg config.StorageConfig) (MetricStore, error) {
-	utils.Debug("🧠 InitMetricStore selected engine: %s", cfg.Engine)
-	switch cfg.Engine {
+func InitStore(cfg *config.Config) (MetricStore, error) {
+	utils.Debug("🧠 InitMetricStore selected engine: %s", cfg.Storage.Engine)
+	switch cfg.Storage.Engine {
 	case "victoriametrics":
-		utils.Debug("📦 Bootstrapping VictoriaStore with %d workers", cfg.Workers)
+		utils.Debug("📦 Bootstrapping VictoriaStore with %d workers", cfg.Storage.Workers)
 		s := NewVictoriaStore(
-			cfg.URL,
-			cfg.Workers,
-			cfg.QueueSize,
-			cfg.BatchSize,
-			cfg.BatchTimeout,
-			cfg.BatchRetry,
-			cfg.BatchInterval,
+			cfg.Storage.URL,
+			cfg.Storage.Workers,
+			cfg.Storage.QueueSize,
+			cfg.Storage.BatchSize,
+			cfg.Storage.BatchTimeout,
+			cfg.Storage.BatchRetry,
+			cfg.Storage.BatchInterval,
 		)
 		utils.Debug("✅ Returning VictoriaStore at: %p", s)
 		return s, nil
 	default:
-		return nil, fmt.Errorf("unsupported storage engine: %s", cfg.Engine)
+		return nil, fmt.Errorf("unsupported storage engine: %s", cfg.Storage.Engine)
 	}
 }

@@ -66,14 +66,14 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-func NewGRPCServer(cfg *config.ServerConfig, store store.MetricStore) (*grpc.Server, net.Listener, error) {
+func NewGRPCServer(cfg *config.Config, store store.MetricStore) (*grpc.Server, net.Listener, error) {
 	tlsCfg, err := loadTLSConfig(cfg)
 	if err != nil {
 		return nil, nil, fmt.Errorf("TLS config failed: %w", err)
 	}
-	listener, err := net.Listen("tcp", cfg.ListenAddr)
+	listener, err := net.Listen("tcp", cfg.Server.GRPCAddr)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to listen on %s: %w", cfg.ListenAddr, err)
+		return nil, nil, fmt.Errorf("failed to listen on %s: %w", cfg.Server.GRPCAddr, err)
 	}
 
 	creds := credentials.NewTLS(tlsCfg)
@@ -105,7 +105,7 @@ func NewGRPCServer(cfg *config.ServerConfig, store store.MetricStore) (*grpc.Ser
 	return server, listener, nil
 }
 
-func loadTLSConfig(cfg *config.ServerConfig) (*tls.Config, error) {
+func loadTLSConfig(cfg *config.Config) (*tls.Config, error) {
 	cert, err := tls.LoadX509KeyPair(cfg.TLS.CertFile, cfg.TLS.KeyFile)
 	if err != nil {
 		return nil, err

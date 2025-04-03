@@ -31,8 +31,8 @@ import (
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func SetupLogging(cfg *config.ServerConfig) {
-	if err := utils.InitLogger(cfg.LogFile, cfg.LogLevel); err != nil {
+func SetupLogging(cfg *config.Config) {
+	if err := utils.InitLogger(cfg.Server.LogFile, cfg.Server.LogLevel); err != nil {
 		fmt.Printf("Failed to initialize logger: %v\n", err)
 		os.Exit(1)
 	}
