@@ -25,7 +25,6 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package bootstrap
 
 import (
-	"math/rand"
 	"time"
 
 	"github.com/aaronlmathis/gosight/server/internal/store"
@@ -39,14 +38,20 @@ func InitAgentTracker(env string) (*store.AgentTracker, error) {
 		// Simulate agent data in dev mode
 		go func() {
 			for {
-				tracker.UpdateAgent("agent-01", model.AgentStatus{
-					Name: "agent-01", IP: "192.168.1.101", Zone: "DC-1", CPU: float64(rand.Intn(60)),
+				tracker.UpdateAgent(model.Meta{
+					Hostname:  "agent-01",
+					PrivateIP: "192.168.1.101",
+					Tags:      map[string]string{"zone": "DC-1"},
 				})
-				tracker.UpdateAgent("agent-02", model.AgentStatus{
-					Name: "agent-02", IP: "192.168.1.102", Zone: "DC-2", CPU: float64(rand.Intn(50)),
+				tracker.UpdateAgent(model.Meta{
+					Hostname:  "agent-02",
+					PrivateIP: "192.168.1.102",
+					Tags:      map[string]string{"zone": "DC-2"},
 				})
-				tracker.UpdateAgent("agent-03", model.AgentStatus{
-					Name: "agent-03", IP: "192.168.1.103", Zone: "Narnia", CPU: float64(rand.Intn(40)),
+				tracker.UpdateAgent(model.Meta{
+					Hostname:  "agent-03",
+					PrivateIP: "192.168.1.103",
+					Tags:      map[string]string{"zone": "Narnia"},
 				})
 				time.Sleep(5 * time.Second)
 			}

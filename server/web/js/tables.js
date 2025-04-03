@@ -27,7 +27,14 @@ export function renderAgentTable(agents) {
       tbody.insertAdjacentHTML('beforeend', `
         <tr>
           <td class="px-6 py-4">${a.name}</td>
-          <td class="px-6 py-4">${a.status}</td>
+          <td class="px-6 py-4">
+            <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full 
+              ${a.status === 'Online' ? 'bg-green-100 text-green-800' : 
+                a.status === 'Idle' ? 'bg-yellow-100 text-yellow-800' : 
+                'bg-red-100 text-red-800'}">
+              ${a.status}
+            </span>
+          </td>
           <td class="px-6 py-4">${a.lastSeen}</td>
           <td class="px-6 py-4">${a.ip}</td>
           <td class="px-6 py-4">${a.zone}</td>

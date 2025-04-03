@@ -32,28 +32,68 @@ import (
 
 type AgentTracker struct {
 	mu     sync.RWMutex
-	agents map[string]*agentState
-}
-
-type agentState struct {
-	status   model.AgentStatus
-	lastSeen time.Time
+	agents map[string]*model.AgentStatus
 }
 
 // Create a new tracker
 func NewAgentTracker() *AgentTracker {
 	return &AgentTracker{
-		agents: make(map[string]*agentState),
+		agents: make(map[string]*model.AgentStatus),
 	}
 }
-
-func (t *AgentTracker) UpdateAgent(id string, status model.AgentStatus) {
+func (t *AgentTracker) UpdateAgent(meta model.Meta) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	status.LastSeen = time.Now().Format("15:04:05") // optional
-	t.agents[id] = &agentState{
-		status:   status,
-		lastSeen: time.Now(),
+	a, ok := t.agents[meta.Hostname]
+	if !ok {
+		a = &model.AgentStatus{
+			Hostname: meta.Hostname,
+			IP:       meta.PrivateIP,
+			Labels:   meta.Tags,
+		}
+		t.agents[meta.Hostname] = a
+	}
+
+	a.LastSeen = time.Now()
+}
+
+func (t *AgentTracker) GetAgents() []model.AgentStatus {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	var list []model.AgentStatus
+	for _, a := range t.agents {
+		elapsed := time.Since(a.LastSeen)
+
+		// Derive status
+		status := "Offline"
+		if elapsed < 10*time.Second {
+			status = "Online"
+		} else if elapsed < 60*time.Second {
+			status = "Idle"
+		}
+
+		list = append(list, model.AgentStatus{
+			Hostname: a.Hostname,
+			IP:       a.IP,
+			Labels:   a.Labels,
+			Status:   status,
+			Since:    elapsed.Truncate(time.Second).String(),
+		})
+	}
+	return list
+}
+
+func deriveStatus(lastSeen time.Time) string {
+	elapsed := time.Since(lastSeen)
+
+	switch {
+	case elapsed < 10*time.Second:
+		return "Online"
+	case elapsed < 60*time.Second:
+		return "Idle"
+	default:
+		return "Offline"
 	}
 }

@@ -30,15 +30,8 @@ import (
 	"text/template"
 
 	"github.com/aaronlmathis/gosight/server/internal/store"
-	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
-
-var demoAgents = []model.AgentStatus{
-	{Name: "agent-01", Status: "online", LastSeen: "3s ago", IP: "192.168.1.101", Zone: "DC-1", CPU: 22.5},
-	{Name: "agent-02", Status: "idle", LastSeen: "45s ago", IP: "192.168.1.102", Zone: "DC-2", CPU: 9.1},
-	{Name: "agent-03", Status: "offline", LastSeen: "10m ago", IP: "192.168.1.103", Zone: "Edge", CPU: 0.0},
-}
 
 var tracker *store.AgentTracker
 
@@ -65,7 +58,10 @@ func handleIndex(w http.ResponseWriter, r *http.Request, templateDir, env string
 
 func handleAgentsAPI(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(demoAgents); err != nil {
+
+	agents := tracker.GetAgents()
+
+	if err := json.NewEncoder(w).Encode(agents); err != nil {
 		utils.Error("Failed to encode agent list: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}

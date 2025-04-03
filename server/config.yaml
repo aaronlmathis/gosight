@@ -1,7 +1,7 @@
 server:
   grpc_addr: ":50051"
   http_addr: ":8080"
-  environment: dev
+  environment: prod
   log_file: "./server.log"
   log_level: "debug"           # Or "debug", etc.
 

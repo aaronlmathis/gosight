@@ -23,11 +23,14 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 
 package model
 
+import "time"
+
 type AgentStatus struct {
-	Name     string  `json:"name"`
-	Status   string  `json:"status"`   // online, offline, idle
-	LastSeen string  `json:"lastSeen"` // "3s ago"
-	IP       string  `json:"ip"`
-	Zone     string  `json:"zone"`
-	CPU      float64 `json:"cpu"` // optional for quick charts
+	Hostname string            `json:"hostname"`
+	IP       string            `json:"ip"`
+	Labels   map[string]string `json:"labels,omitempty"`
+
+	LastSeen time.Time `json:"-"`      // internal only
+	Status   string    `json:"status"` // Online / Idle / Offline
+	Since    string    `json:"since"`  // "3s ago" for display
 }
