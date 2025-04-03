@@ -26,6 +26,7 @@ import (
 	"fmt"
 
 	"github.com/aaronlmathis/gosight/server/internal/bootstrap"
+	httpserver "github.com/aaronlmathis/gosight/server/internal/http"
 	"github.com/aaronlmathis/gosight/server/internal/server"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
@@ -44,6 +45,10 @@ func main() {
 	if err != nil {
 		utils.Fatal("Metric store init failed: %v", err)
 	}
+
+	// Start HTTP server for admin console/api
+
+	go httpserver.StartHTTPServer(":8080")
 
 	grpcServer, listener, err := server.NewGRPCServer(cfg, metricStore)
 	if err != nil {

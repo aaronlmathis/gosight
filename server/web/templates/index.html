@@ -4,18 +4,120 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GoSight Dashboard</title>
-  <link href="/web/css/output.css" rel="stylesheet">
-  <script src="/web/js/dashboard.js" type="module" defer></script>
+  <link href="/css/output.css" rel="stylesheet" />
 </head>
-<body class="bg-gray-950 text-gray-100 min-h-screen p-6">
-  <div class="max-w-6xl mx-auto space-y-6">
-    <header class="border-b border-gray-800 pb-4 mb-6">
-      <h1 class="text-3xl font-bold text-white">goSight v1.0.0 - Dashboard</h1>
-      <p class="text-sm text-gray-400">By Aaron Mathis - A man with the most wonderful wife in the world....</p>
-      <div id="lastUpdate" class="text-xs text-green-400 mt-2">Waiting for data...</div>
-    </header>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased">
 
-    <div id="metricsTables" class="space-y-8"></div>
+  <div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-gray-900 text-gray-100 p-6 flex flex-col justify-between border-r border-gray-800">
+      <div>
+        <div class="flex items-center justify-between mb-10">
+          <h1 class="text-xl font-bold text-blue-400">GoSight</h1>
+          <span class="text-xs bg-gray-800 text-gray-300 font-semibold px-2 py-1 rounded">DEV</span>
+        </div>
+        <nav class="space-y-1">
+          <a href="#" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Dashboard</a>
+          <a href="#" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Metrics</a>
+          
+          <a href="#" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Agents</a>
+          <a href="#" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Containers</a>
+          <a href="#" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Logs</a>
+          <a href="#" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Config</a>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="flex-1 p-8">
+      <!-- Header -->
+      <header class="flex items-center justify-between mb-8">
+        <div>
+          <h2 class="text-2xl font-semibold">Welcome to GoSight</h2>
+          <p class="text-sm text-gray-500">Your system admin dashboard</p>
+        </div>
+        <div class="w-10 h-10 bg-gray-200 rounded-full"></div>
+      </header>
+
+      <!-- Content card -->
+      <section class="bg-white rounded-2xl shadow p-6 space-y-8">
+        <h3 class="text-lg font-semibold">System Overview</h3>
+      
+        <!-- Metrics Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 shadow-sm">
+            <p class="text-sm text-gray-500">CPU Usage</p>
+            <p class="text-2xl font-bold text-blue-600">23%</p>
+          </div>
+          <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 shadow-sm">
+            <p class="text-sm text-gray-500">Memory</p>
+            <p class="text-2xl font-bold text-blue-600">12.4 GB</p>
+          </div>
+          <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 shadow-sm">
+            <p class="text-sm text-gray-500">Containers</p>
+            <p class="text-2xl font-bold text-blue-600">8</p>
+          </div>
+          <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 shadow-sm">
+            <p class="text-sm text-gray-500">Disk IO</p>
+            <p class="text-2xl font-bold text-blue-600">120 MB/s</p>
+          </div>
+        </div>
+      
+        <!-- Graph Panel -->
+        <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 shadow-sm">
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-md font-semibold text-gray-700">CPU Usage - Last 10 min</h4>
+            <select class="text-sm bg-white border border-gray-300 rounded px-2 py-1">
+              <option>10m</option>
+              <option>1h</option>
+              <option>24h</option>
+            </select>
+          </div>
+          <div class="h-48 bg-white rounded border border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-sm">
+            [ Insert Chart.js / ApexCharts / SVG here ]
+          </div>
+        </div>
+        <!-- Table: Agents or Metrics -->
+        <div class="mt-8 bg-white rounded-2xl shadow overflow-x-auto">
+          <table class="min-w-full text-sm text-left text-gray-700">
+            <thead class="bg-gray-100 text-gray-600 sticky top-0 z-10">
+              <tr>
+                <th scope="col" class="px-6 py-3">Agent</th>
+                <th scope="col" class="px-6 py-3">Status</th>
+                <th scope="col" class="px-6 py-3">Last Check-In</th>
+                <th scope="col" class="px-6 py-3">IP Address</th>
+                <th scope="col" class="px-6 py-3">Location</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 font-medium text-gray-900">agent-01</td>
+                <td class="px-6 py-4 text-green-600 font-semibold">Online</td>
+                <td class="px-6 py-4">3s ago</td>
+                <td class="px-6 py-4">192.168.1.101</td>
+                <td class="px-6 py-4">DC-1</td>
+              </tr>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 font-medium text-gray-900">agent-02</td>
+                <td class="px-6 py-4 text-yellow-500 font-semibold">Idle</td>
+                <td class="px-6 py-4">45s ago</td>
+                <td class="px-6 py-4">192.168.1.102</td>
+                <td class="px-6 py-4">DC-2</td>
+              </tr>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 font-medium text-gray-900">agent-03</td>
+                <td class="px-6 py-4 text-red-600 font-semibold">Offline</td>
+                <td class="px-6 py-4">10m ago</td>
+                <td class="px-6 py-4">192.168.1.103</td>
+                <td class="px-6 py-4">Edge</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </section>
+    </main>
   </div>
+
 </body>
 </html>
