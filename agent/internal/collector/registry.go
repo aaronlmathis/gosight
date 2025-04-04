@@ -48,6 +48,7 @@ package collector
 import (
 	"context"
 
+	"github.com/aaronlmathis/gosight/agent/internal/collector/container"
 	"github.com/aaronlmathis/gosight/agent/internal/collector/system"
 	"github.com/aaronlmathis/gosight/agent/internal/config"
 	"github.com/aaronlmathis/gosight/shared/model"
@@ -73,6 +74,8 @@ func NewRegistry(cfg *config.AgentConfig) *Registry {
 			reg.Collectors["disk"] = system.NewDiskCollector()
 		case "host":
 			reg.Collectors["host"] = system.NewHostCollector()
+		case "podman":
+			reg.Collectors["podman"] = container.NewPodmanCollector()
 		default:
 			utils.Warn("⚠️ Unknown collector: %s (skipping) \n", name)
 		}
