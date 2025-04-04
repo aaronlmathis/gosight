@@ -26,6 +26,7 @@ package runner
 import (
 	"context"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aaronlmathis/gosight/agent/internal/collector"
@@ -78,29 +79,38 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 			})
 
 			for _, m := range metrics {
-				for k, v := range m.Dimensions {
-					switch k {
-					case "container_id":
-						meta.ContainerID = v
-						meta.Tags["container_id"] = v
-					case "name":
-						meta.ContainerName = v
-						meta.Tags["name"] = v
-					case "image":
-						meta.ImageID = v
-						meta.Tags["image"] = v
-					case "status":
-						meta.Tags["status"] = v
-					case "ports":
-						meta.Tags["ports"] = v
-					default:
-						if meta.Tags == nil {
-							meta.Tags = make(map[string]string)
+				if strings.HasPrefix(m.Name, "container.") {
+					for k, v := range m.Dimensions {
+						switch k {
+						case "container_id":
+							meta.ContainerID = v
+							meta.Tags["container_id"] = v
+						case "name":
+							meta.ContainerName = v
+							meta.Tags["container_name"] = v
+						case "image":
+							meta.ImageID = v
+							meta.Tags["image"] = v
+						case "status":
+							meta.Tags["status"] = v
+						case "ports":
+							meta.Tags["ports"] = v
+						default:
+							if meta.Tags == nil {
+								meta.Tags = make(map[string]string)
+							}
+							meta.Tags[k] = v
 						}
+					}
+				} else {
+					// For non-container metrics, just preserve dimensions as-is
+					if meta.Tags == nil {
+						meta.Tags = make(map[string]string)
+					}
+					for k, v := range m.Dimensions {
 						meta.Tags[k] = v
 					}
 				}
-
 			}
 			utils.Debug("🚀 Final Meta Tags: %+v", meta.Tags)
 			// Build Payload
