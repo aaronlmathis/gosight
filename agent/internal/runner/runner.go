@@ -47,7 +47,7 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 	defer sndr.Close()
 
 	taskQueue := make(chan model.MetricPayload, 100)
-	go sender.StartWorkerPool(ctx, sndr, taskQueue, 5) // 5 workers
+	go sender.StartWorkerPool(ctx, sndr, taskQueue, 5)
 
 	ticker := time.NewTicker(cfg.Interval)
 	defer ticker.Stop()
@@ -72,14 +72,21 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 				utils.Warn("⚠️ Failed to get hostname: %v", err)
 			}
 
-			// Build Meta
-			meta := meta.BuildMeta(cfg, map[string]string{
-				"job":      "gosight-agent",
-				"instance": hostname,
-			})
+			var hostMetrics []model.Metric
+			containerBatches := make(map[string][]model.Metric)
+			containerMetas := make(map[string]*model.Meta)
 
 			for _, m := range metrics {
 				if strings.HasPrefix(m.Name, "container.") {
+					id := m.Dimensions["container_id"]
+					if id == "" {
+						continue
+					}
+					containerBatches[id] = append(containerBatches[id], m)
+
+					meta := &model.Meta{
+						Tags: make(map[string]string),
+					}
 					for k, v := range m.Dimensions {
 						switch k {
 						case "container_id":
@@ -91,40 +98,51 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 						case "image":
 							meta.ImageID = v
 							meta.Tags["image"] = v
-						case "status":
-							meta.Tags["status"] = v
-						case "ports":
-							meta.Tags["ports"] = v
 						default:
-							if meta.Tags == nil {
-								meta.Tags = make(map[string]string)
-							}
 							meta.Tags[k] = v
 						}
 					}
+					meta.Hostname = hostname
+					meta.IPAddress = utils.GetLocalIP()
+					meta.OS = "linux"
+					containerMetas[id] = meta
 				} else {
-					// For non-container metrics, just preserve dimensions as-is
-					if meta.Tags == nil {
-						meta.Tags = make(map[string]string)
-					}
-					for k, v := range m.Dimensions {
-						meta.Tags[k] = v
-					}
+					hostMetrics = append(hostMetrics, m)
 				}
 			}
-			utils.Debug("🚀 Final Meta Tags: %+v", meta.Tags)
-			// Build Payload
-			payload := model.MetricPayload{
-				Host:      cfg.HostOverride,
-				Timestamp: time.Now(),
-				Metrics:   metrics,
-				Meta:      meta,
+
+			// send host metrics as one payload
+			if len(hostMetrics) > 0 {
+				meta := meta.BuildMeta(cfg, map[string]string{
+					"job":      "gosight-agent",
+					"instance": hostname,
+				})
+				payload := model.MetricPayload{
+					Host:      cfg.HostOverride,
+					Timestamp: time.Now(),
+					Metrics:   hostMetrics,
+					Meta:      meta,
+				}
+				select {
+				case taskQueue <- payload:
+				default:
+					utils.Warn("⚠️ Host task queue full! Dropping host metrics")
+				}
 			}
 
-			select {
-			case taskQueue <- payload:
-			default:
-				utils.Warn("⚠️ Task queue full! Dropping metrics batch")
+			// send each container as separate payload
+			for id, metrics := range containerBatches {
+				payload := model.MetricPayload{
+					Host:      cfg.HostOverride,
+					Timestamp: time.Now(),
+					Metrics:   metrics,
+					Meta:      containerMetas[id],
+				}
+				select {
+				case taskQueue <- payload:
+				default:
+					utils.Warn("⚠️ Task queue full! Dropping container metrics for %s", id)
+				}
 			}
 		}
 	}
