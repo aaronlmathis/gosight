@@ -76,6 +76,30 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 				"job":      "gosight-agent",
 				"instance": hostname,
 			})
+
+			for _, m := range metrics {
+				for k, v := range m.Dimensions {
+					// Promote common container fields to meta
+					switch k {
+					case "container_id":
+						meta.ContainerID = v
+					case "name":
+						meta.ContainerName = v
+					case "image":
+						meta.ImageID = v
+					case "status":
+						meta.Tags["status"] = v
+					case "ports":
+						meta.Tags["ports"] = v
+					default:
+						// Preserve all dimensions in meta.Tags
+						if meta.Tags == nil {
+							meta.Tags = make(map[string]string)
+						}
+						meta.Tags[k] = v
+					}
+				}
+			}
 			// Build Payload
 			payload := model.MetricPayload{
 				Host:      cfg.HostOverride,
