@@ -1,0 +1,18 @@
+server_url: "192.168.0.184:50051"
+interval: 2s
+host: "dev-machine-01-from config"
+metrics_enabled:
+  - cpu
+  - mem
+  - host
+  - disk
+  - net
+  - podman
+log_file: ""    # Optional — empty means stdout/stderr
+log_level: "debug"     # Or "debug", etc.
+environment: "dev" # Optional — used for logging and debugging
+
+tls:
+  ca_file: "/certs/ca.crt"
+  cert_file: "/certs/client.crt"         # (only needed if doing mTLS)
+  key_file: "/certs/client.key"          # (only needed if doing mTLS)

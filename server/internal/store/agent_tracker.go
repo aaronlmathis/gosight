@@ -43,6 +43,7 @@ func NewAgentTracker() *AgentTracker {
 	}
 }
 func (t *AgentTracker) UpdateAgent(meta model.Meta) {
+
 	if meta.Hostname == "" {
 		// Don't track nameless agents
 		utils.Warn("Skipping UpdateAgent: meta.Hostname is empty")
@@ -56,7 +57,8 @@ func (t *AgentTracker) UpdateAgent(meta model.Meta) {
 	if !exists {
 		agent = &model.AgentStatus{
 			Hostname: meta.Hostname,
-			IP:       meta.PrivateIP,
+			IP:       meta.IPAddress,
+			OS:       meta.OS,
 			Labels:   meta.Tags,
 		}
 		t.agents[meta.Hostname] = agent
@@ -84,6 +86,7 @@ func (t *AgentTracker) GetAgents() []model.AgentStatus {
 		list = append(list, model.AgentStatus{
 			Hostname: a.Hostname,
 			IP:       a.IP,
+			OS:       a.OS,
 			Labels:   a.Labels,
 			Status:   status,
 			Since:    elapsed.Truncate(time.Second).String(),

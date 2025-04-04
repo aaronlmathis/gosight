@@ -29,8 +29,8 @@ type AgentStatus struct {
 	Hostname string            `json:"hostname"`
 	IP       string            `json:"ip"`
 	Labels   map[string]string `json:"labels,omitempty"`
-
-	LastSeen time.Time `json:"-"`      // internal only
-	Status   string    `json:"status"` // Online / Idle / Offline
-	Since    string    `json:"since"`  // "3s ago" for display
+	OS       string            `json:"os,omitempty"`
+	LastSeen time.Time         `json:"-"`      // internal only
+	Status   string            `json:"status"` // Online / Idle / Offline
+	Since    string            `json:"since"`  // "3s ago" for display
 }

@@ -34,13 +34,14 @@ import (
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func LoadServerConfig() *config.AgentConfig {
+func LoadAgentConfig() *config.AgentConfig {
 	// Flag declarations
 	configFlag := flag.String("config", "", "Path to agent config file")
 	serverURL := flag.String("server-url", "", "Override server URL")
 	interval := flag.Duration("interval", 0, "Override interval (e.g. 5s)")
 	host := flag.String("host", "", "Override hostname")
 	metrics := flag.String("metrics", "", "Comma-separated list of enabled metrics")
+	environment := flag.String("env", "", "Environment (dev, test, prod)")
 	logLevel := flag.String("log-level", "", "Log level (debug, info, warn, error)")
 	logFile := flag.String("log-file", "", "Path to log file")
 	customTags := flag.String("tags", "", "Comma-separated list of custom tags")
@@ -49,7 +50,7 @@ func LoadServerConfig() *config.AgentConfig {
 
 	// Resolve config path
 	configPath := resolvePath(*configFlag, "AGENT_CONFIG", "config.yaml")
-
+	log.Printf("📄 Loaded config file from: %s", configPath)
 	if err := config.EnsureDefaultConfig(configPath); err != nil {
 		log.Fatalf("Could not create default config: %v", err)
 	}
@@ -70,6 +71,9 @@ func LoadServerConfig() *config.AgentConfig {
 	}
 	if *host != "" {
 		cfg.HostOverride = *host
+	}
+	if *environment != "" {
+		cfg.Environment = *environment
 	}
 	if *metrics != "" {
 		cfg.MetricsEnabled = config.SplitCSV(*metrics)

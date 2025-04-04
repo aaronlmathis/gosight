@@ -32,6 +32,9 @@ import (
 )
 
 func SetupLogging(cfg *config.AgentConfig) {
+	if cfg.Environment == "dev" {
+		cfg.LogFile = ""
+	}
 	if err := utils.InitLogger(cfg.LogFile, cfg.LogLevel); err != nil {
 		fmt.Printf("Failed to initialize logger: %v\n", err)
 		os.Exit(1)

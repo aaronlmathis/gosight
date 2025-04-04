@@ -61,6 +61,7 @@ type AgentConfig struct {
 	Interval       time.Duration     `yaml:"interval"`
 	HostOverride   string            `yaml:"host"`
 	MetricsEnabled []string          `yaml:"metrics_enabled"`
+	Environment    string            `yaml:"environment"`
 	LogFile        string            `yaml:"log_file"`
 	LogLevel       string            `yaml:"log_level"`
 	TLS            TLSConfig         `yaml:"tls"`
@@ -95,6 +96,9 @@ func ApplyEnvOverrides(cfg *AgentConfig) {
 	if val := os.Getenv("AGENT_METRICS"); val != "" {
 		// Comma-separated list
 		cfg.MetricsEnabled = SplitCSV(val)
+	}
+	if val := os.Getenv("AGENT_ENVIRONMENT"); val != "" {
+		cfg.Environment = val
 	}
 	if val := os.Getenv("AGENT_LOG_FILE"); val != "" {
 		cfg.LogFile = val

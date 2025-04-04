@@ -1,6 +1,6 @@
 server_url: "localhost:50051"
 interval: 2s
-host: "dev-machine-01-from config"
+host: "dev-machine-01"
 metrics_enabled:
   - cpu
   - mem
@@ -10,6 +10,7 @@ metrics_enabled:
   - podman
 log_file: "./agent.log"     # Optional — empty means stdout/stderr
 log_level: "debug"     # Or "debug", etc.
+environment: "dev" # Optional — used for logging and debugging
 
 tls:
   ca_file: "../certs/ca.crt"

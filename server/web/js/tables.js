@@ -21,24 +21,29 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 // server/web/js/tables.js
 
 export function renderAgentTable(agents) {
-    const tbody = document.querySelector('#agentTableBody');
-    tbody.innerHTML = '';
-    for (const a of agents) {
-      tbody.insertAdjacentHTML('beforeend', `
-        <tr>
-          <td class="px-6 py-4">${a.name}</td>
-          <td class="px-6 py-4">
-            <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full 
-              ${a.status === 'Online' ? 'bg-green-100 text-green-800' : 
-                a.status === 'Idle' ? 'bg-yellow-100 text-yellow-800' : 
-                'bg-red-100 text-red-800'}">
-              ${a.status}
-            </span>
-          </td>
-          <td class="px-6 py-4">${a.lastSeen}</td>
-          <td class="px-6 py-4">${a.ip}</td>
-          <td class="px-6 py-4">${a.zone}</td>
-        </tr>
-      `);
+  const tbody = document.querySelector('#agentTableBody');
+  tbody.innerHTML = '';
+
+  for (const a of agents) {
+    let statusColor = 'bg-red-100 text-red-800';
+    if (a.status === 'Online') {
+      statusColor = 'bg-green-100 text-green-800';
+    } else if (a.status === 'Idle') {
+      statusColor = 'bg-yellow-100 text-yellow-800';
     }
+
+    tbody.insertAdjacentHTML('beforeend', `
+      <tr class="hover:bg-gray-50">
+        <td class="px-6 py-4 font-medium text-gray-900">${a.hostname}</td>
+        <td class="px-6 py-4">${a.ip}</td>
+        <td class="px-6 py-4">${a.os || '-'}</td>
+        <td class="px-6 py-4">${a.since}</td>
+        <td class="px-6 py-4">
+          <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full ${statusColor}">
+            ${a.status}
+          </span>
+        </td>
+      </tr>
+    `);
   }
+}

@@ -19,27 +19,6 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-/*
-SPDX-License-Identifier: GPL-3.0-or-later
-
-Copyright (C) 2025 Aaron Mathis aaron.mathis@gmail.com
-
-This file is part of GoSight.
-
-GoSight is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-GoSight is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with GoSight. If not, see https://www.gnu.org/licenses/.
-*/
-
 // gosight/shared/utils
 // log.go - Simple logging utility for the agent
 
@@ -55,6 +34,7 @@ os.Exit(1)
 package utils
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -91,7 +71,7 @@ func InitLogger(logFile string, level string) error {
 	if strings.ToLower(level) == "debug" {
 		debugEnabled = true
 	}
-	Info("🧪 Log system initialized. Debug enabled: %v", debugEnabled)
+	fmt.Printf("🧪 Log system initialized. Debug enabled: %v", debugEnabled)
 	return nil
 }
 
@@ -109,7 +89,7 @@ func Error(format string, args ...any) {
 
 func Fatal(format string, args ...any) {
 	errorLog.Fatalf(format, args...)
-	os.Exit(1)
+
 }
 
 func Debug(format string, args ...any) {

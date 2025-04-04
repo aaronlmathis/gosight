@@ -5,6 +5,11 @@ module.exports = {
       './templates/**/*.html',
       './js/**/*.js'
     ],
+    safelist: [
+      'bg-green-100', 'text-green-800',
+      'bg-yellow-100', 'text-yellow-800',
+      'bg-red-100', 'text-red-800',
+    ],
     darkMode: 'class', // Enables toggling via 'dark' class
     theme: {
       extend: {
