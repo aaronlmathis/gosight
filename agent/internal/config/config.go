@@ -56,6 +56,9 @@ type TLSConfig struct {
 	KeyFile  string `yaml:"key_file"`  // optional (for mTLS)
 }
 
+type PodmanConfig struct {
+	Socket string `yaml:"socket"`
+}
 type AgentConfig struct {
 	ServerURL      string            `yaml:"server_url"`
 	Interval       time.Duration     `yaml:"interval"`
@@ -65,6 +68,7 @@ type AgentConfig struct {
 	LogFile        string            `yaml:"log_file"`
 	LogLevel       string            `yaml:"log_level"`
 	TLS            TLSConfig         `yaml:"tls"`
+	Podman         PodmanConfig      `yaml:"podman"`
 	CustomTags     map[string]string `yaml:"custom_tags"` // static tags to be sent with every metric
 }
 

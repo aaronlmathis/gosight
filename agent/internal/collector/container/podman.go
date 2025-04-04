@@ -35,10 +35,17 @@ import (
 	"github.com/aaronlmathis/gosight/shared/model"
 )
 
-type PodmanCollector struct{}
+type PodmanCollector struct {
+	socketPath string
+}
 
 func NewPodmanCollector() *PodmanCollector {
-	return &PodmanCollector{}
+	// Default to rootful Podman socket
+	return &PodmanCollector{socketPath: "/run/podman/podman.sock"}
+}
+
+func NewPodmanCollectorWithSocket(path string) *PodmanCollector {
+	return &PodmanCollector{socketPath: path}
 }
 
 func (c *PodmanCollector) Name() string {
@@ -46,7 +53,7 @@ func (c *PodmanCollector) Name() string {
 }
 
 func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
-	containers, err := fetchContainers()
+	containers, err := fetchContainers(c.socketPath)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +62,7 @@ func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	now := time.Now()
 
 	for _, ctr := range containers {
-		stats, err := fetchContainerStats(ctr.ID)
+		stats, err := fetchContainerStats(c.socketPath, ctr.ID)
 		if err != nil {
 			continue
 		}
@@ -140,12 +147,11 @@ func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	return metrics, nil
 }
 
-func fetchContainers() ([]PodmanContainer, error) {
-	sockPath := "/run/podman/podman.sock"
+func fetchContainers(socketPath string) ([]PodmanContainer, error) {
 	client := &http.Client{
 		Transport: &http.Transport{
 			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial("unix", sockPath)
+				return net.Dial("unix", socketPath)
 			},
 		},
 		Timeout: 5 * time.Second,
@@ -170,12 +176,11 @@ func fetchContainers() ([]PodmanContainer, error) {
 	return containers, nil
 }
 
-func fetchContainerStats(containerID string) (*PodmanStats, error) {
-	sockPath := "/run/podman/podman.sock"
+func fetchContainerStats(socketPath, containerID string) (*PodmanStats, error) {
 	client := &http.Client{
 		Transport: &http.Transport{
 			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial("unix", sockPath)
+				return net.Dial("unix", socketPath)
 			},
 		},
 		Timeout: 5 * time.Second,

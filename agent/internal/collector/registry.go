@@ -75,7 +75,7 @@ func NewRegistry(cfg *config.AgentConfig) *Registry {
 		case "host":
 			reg.Collectors["host"] = system.NewHostCollector()
 		case "podman":
-			reg.Collectors["podman"] = container.NewPodmanCollector()
+			reg.Collectors["podman"] = container.NewPodmanCollectorWithSocket(cfg.Podman.Socket)
 		default:
 			utils.Warn("⚠️ Unknown collector: %s (skipping) \n", name)
 		}
