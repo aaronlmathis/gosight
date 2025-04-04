@@ -77,29 +77,31 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 				"instance": hostname,
 			})
 
-			for k, v := range m.Dimensions {
-				switch k {
-				case "container_id":
-					meta.ContainerID = v
-					meta.Tags["container_id"] = v
-				case "name":
-					meta.ContainerName = v
-					meta.Tags["name"] = v
-				case "image":
-					meta.ImageID = v
-					meta.Tags["image"] = v
-				case "status":
-					meta.Tags["status"] = v
-				case "ports":
-					meta.Tags["ports"] = v
-				default:
-					if meta.Tags == nil {
-						meta.Tags = make(map[string]string)
+			for _, m := range metrics {
+				for k, v := range m.Dimensions {
+					switch k {
+					case "container_id":
+						meta.ContainerID = v
+						meta.Tags["container_id"] = v
+					case "name":
+						meta.ContainerName = v
+						meta.Tags["name"] = v
+					case "image":
+						meta.ImageID = v
+						meta.Tags["image"] = v
+					case "status":
+						meta.Tags["status"] = v
+					case "ports":
+						meta.Tags["ports"] = v
+					default:
+						if meta.Tags == nil {
+							meta.Tags = make(map[string]string)
+						}
+						meta.Tags[k] = v
 					}
-					meta.Tags[k] = v
 				}
-			}
 
+			}
 			// Build Payload
 			payload := model.MetricPayload{
 				Host:      cfg.HostOverride,
