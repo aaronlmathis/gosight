@@ -80,6 +80,15 @@ func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 			"status":       ctr.State,
 		}
 
+		// Enrich with labels and ports if available
+		for k, v := range ctr.Labels {
+			dims["label."+k] = v
+		}
+
+		if ports := formatPorts(ctr.Ports); ports != "" {
+			dims["ports"] = ports
+		}
+
 		metrics = append(metrics, model.Metric{
 			Namespace:  "Container/Podman",
 			Name:       "container.uptime.seconds",
@@ -157,7 +166,7 @@ func fetchContainers(socketPath string) ([]PodmanContainer, error) {
 		Timeout: 5 * time.Second,
 	}
 
-	req, err := http.NewRequest("GET", "http://d/v4.0.0/containers/json", nil)
+	req, err := http.NewRequest("GET", "http://d/v4.0.0/containers/json?all=true", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -208,11 +217,34 @@ func fetchContainerStats(socketPath, containerID string) (*PodmanStats, error) {
 
 // Minimal container struct from Podman API
 type PodmanContainer struct {
-	ID        string    `json:"Id"`
-	Names     []string  `json:"Names"`
-	Image     string    `json:"Image"`
-	State     string    `json:"State"`
-	StartedAt time.Time `json:"StartedAt"`
+	ID        string            `json:"Id"`
+	Names     []string          `json:"Names"`
+	Image     string            `json:"Image"`
+	State     string            `json:"State"`
+	StartedAt time.Time         `json:"StartedAt"`
+	Labels    map[string]string `json:"Labels"`
+	Ports     []PortMapping     `json:"Ports"`
+}
+
+type PortMapping struct {
+	PrivatePort int    `json:"PrivatePort"`
+	PublicPort  int    `json:"PublicPort"`
+	Type        string `json:"Type"`
+}
+
+func formatPorts(ports []PortMapping) string {
+	if len(ports) == 0 {
+		return ""
+	}
+	var formatted []string
+	for _, p := range ports {
+		if p.PublicPort > 0 {
+			formatted = append(formatted, fmt.Sprintf("%d:%d/%s", p.PublicPort, p.PrivatePort, p.Type))
+		} else {
+			formatted = append(formatted, fmt.Sprintf("%d/%s", p.PrivatePort, p.Type))
+		}
+	}
+	return strings.Join(formatted, ",")
 }
 
 // Minimal stats struct from Podman API
