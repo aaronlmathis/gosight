@@ -102,6 +102,7 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 				}
 
 			}
+			utils.Debug("🚀 Final Meta Tags: %+v", meta.Tags)
 			// Build Payload
 			payload := model.MetricPayload{
 				Host:      cfg.HostOverride,
