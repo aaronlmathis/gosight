@@ -26,9 +26,12 @@ package store
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -50,6 +53,11 @@ type VictoriaStore struct {
 	batchTimeout  time.Duration
 	batchRetry    int
 	batchInterval time.Duration
+}
+
+type MetricRow struct {
+	Value float64           `json:"value"`
+	Tags  map[string]string `json:"tags"`
 }
 
 func NewVictoriaStore(url string, workers, queueSize, batchSize, timeoutMS, retry, retryIntervalMS int) *VictoriaStore {
@@ -354,4 +362,56 @@ func totalMetricCount(payloads []model.MetricPayload) int {
 		count += len(p.Metrics)
 	}
 	return count
+}
+
+// QueryInstant fetches the latest data points for a given metric name from VictoriaMetrics
+func QueryInstant(query string) ([]MetricRow, error) {
+	url := fmt.Sprintf("http://localhost:8428/api/v1/query?query=%s", query)
+
+	r, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("VM query failed: %w", err)
+	}
+	defer r.Body.Close()
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read failed: %w", err)
+	}
+	fmt.Println("---- VM Raw Response ----")
+	fmt.Println(string(body))
+	fmt.Println("--------------------------")
+
+	var parsed struct {
+		Status string `json:"status"`
+		Data   struct {
+			ResultType string `json:"resultType"`
+			Result     []struct {
+				Metric map[string]string `json:"metric"`
+				Value  [2]interface{}    `json:"value"`
+			} `json:"result"`
+		} `json:"data"`
+	}
+
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return nil, fmt.Errorf("failed to decode VM response: %w", err)
+	}
+
+	var rows []MetricRow
+	for _, item := range parsed.Data.Result {
+		strVal, ok := item.Value[1].(string)
+		if !ok {
+			continue
+		}
+		f, err := strconv.ParseFloat(strVal, 64)
+		if err != nil {
+			continue
+		}
+		rows = append(rows, MetricRow{
+			Tags:  item.Metric,
+			Value: f,
+		})
+	}
+
+	return rows, nil
 }

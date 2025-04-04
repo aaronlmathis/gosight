@@ -19,26 +19,32 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// server/internal/http/server.go
-// Basic http server for admin/dash
+// Handler for index page
+// server/internal/http/index.go
 
 package httpserver
 
 import (
 	"net/http"
+	"path/filepath"
+	"text/template"
 
-	"github.com/aaronlmathis/gosight/server/internal/config"
-	"github.com/aaronlmathis/gosight/server/internal/store"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func StartHTTPServer(cfg *config.Config, tracker *store.AgentTracker) {
-	InitHandlers(tracker)
-	mux := http.NewServeMux()
-	SetupRoutes(mux, cfg.Web.StaticDir, cfg.Web.TemplateDir, cfg.Server.Environment)
-
-	utils.Info("🌐 HTTP server running at %s", cfg.Server.HTTPAddr)
-	if err := http.ListenAndServe(cfg.Server.HTTPAddr, mux); err != nil {
-		utils.Error("HTTP server failed: %v", err)
+func RenderIndexPage(w http.ResponseWriter, r *http.Request, templateDir, env string) {
+	tmplPath := filepath.Join(templateDir, "index.html")
+	tmpl, err := template.ParseFiles(tmplPath)
+	if err != nil {
+		utils.Error("Template parse error: %v", err)
+		http.Error(w, "Template error", http.StatusInternalServerError)
+		return
 	}
+
+	data := map[string]interface{}{
+		"Title": "GoSight",
+		"Env":   env,
+	}
+
+	tmpl.Execute(w, data)
 }

@@ -27,8 +27,7 @@ import (
 	"net/http"
 )
 
-func NewRouter(staticDir, templateDir, env string) *http.ServeMux {
-	mux := http.NewServeMux()
+func SetupRoutes(mux *http.ServeMux, staticDir, templateDir, env string) {
 
 	// Serve static assets
 	fs := http.FileServer(http.Dir(staticDir))
@@ -36,11 +35,16 @@ func NewRouter(staticDir, templateDir, env string) *http.ServeMux {
 	mux.Handle("/js/", fs)
 	mux.Handle("/images/", fs)
 
-	// Route handlers
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		handleIndex(w, r, templateDir, env)
+		RenderIndexPage(w, r, templateDir, env)
 	})
-	mux.HandleFunc("/api/agents", handleAgentsAPI)
-
-	return mux
+	mux.HandleFunc("/agents", func(w http.ResponseWriter, r *http.Request) {
+		RenderAgentsPage(w, r, templateDir, env)
+	})
+	mux.HandleFunc("/containers", func(w http.ResponseWriter, r *http.Request) {
+		RenderContainersPage(w, r, templateDir, env)
+	})
+	mux.HandleFunc("/api/containers", HandleContainersAPI)
+	mux.HandleFunc("/api/agents", HandleAgentsAPI)
+	// ...
 }

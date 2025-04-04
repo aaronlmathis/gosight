@@ -1,4 +1,4 @@
-server_url: "localhost:50051"
+server_url: "10.10.10.136:50051"
 interval: 2s
 host: "dev-machine-01"
 metrics_enabled:
@@ -16,3 +16,7 @@ tls:
   ca_file: "../certs/ca.crt"
   cert_file: "../certs/client.crt"         # (only needed if doing mTLS)
   key_file: "../certs/client.key"          # (only needed if doing mTLS)
+
+podman:
+  enabled: true
+  socket: "/run/user/1000/podman/podman.sock"

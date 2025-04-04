@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GoSight Agents</title>
+  <link href="/css/output.css" rel="stylesheet" />
+  <script type="module" src="/js/agents.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased">
+
+  <div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-gray-900 text-gray-100 p-6 flex flex-col justify-between border-r border-gray-800">
+      <div>
+        <div class="flex items-center justify-between mb-10">
+          <h1 class="text-xl font-bold text-blue-400">GoSight</h1>
+          <span class="text-xs bg-gray-800 text-gray-300 font-semibold px-2 py-1 rounded">DEV</span>
+        </div>
+        <nav class="space-y-1">
+          <a href="/" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Dashboard</a>
+          <a href="#" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Metrics</a>
+          <a href="/agents" class="block px-3 py-2 rounded-md bg-gray-800 text-white">Agents</a>
+          <a href="/containers" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Containers</a>
+          <a href="#" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Logs</a>
+          <a href="#" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Config</a>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="flex-1 p-8">
+      <header class="flex items-center justify-between mb-8">
+        <div>
+          <h2 class="text-2xl font-semibold">Agents</h2>
+          <p class="text-sm text-gray-500">All connected agents in your environment</p>
+        </div>
+        <div id="lastUpdate" class="text-sm text-gray-400">Loading...</div>
+      </header>
+
+      <section class="bg-white rounded-2xl shadow p-6">
+<!-- Filter Controls -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 p-4 bg-white rounded-xl shadow border border-gray-200">
+    <!-- Search Field -->
+    <input
+      type="text"
+      id="search"
+      placeholder="Search hostname, IP, or OS..."
+      class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+  
+    <!-- Status Dropdown -->
+    <select
+      id="statusFilter"
+      class="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+    >
+      <option value="">All Statuses</option>
+      <option value="Online">Online</option>
+      <option value="Offline">Offline</option>
+    </select>
+  </div>
+              
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm text-left text-gray-700">
+            <thead class="bg-gray-100 text-gray-600">
+              <tr>
+                <th class="px-6 py-3">Hostname</th>
+                <th class="px-6 py-3">IP Address</th>
+                <th class="px-6 py-3">OS</th>
+                <th class="px-6 py-3">Last Check-In</th>
+                <th class="px-6 py-3">Status</th>
+              </tr>
+            </thead>
+            <tbody id="agentTableBody" class="divide-y divide-gray-200">
+              <!-- Filled by JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+</body>
+</html>

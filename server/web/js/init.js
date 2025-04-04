@@ -19,7 +19,7 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// gosight/server/internal/store/store.go
+// gosight/server/internal/web/js/init.js
 
 console.log("🚀 init.js loaded");
 // server/web/js/init.js

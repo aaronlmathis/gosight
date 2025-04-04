@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Containers - GoSight</title>
+  <link href="/css/output.css" rel="stylesheet">
+  <script type="module" src="/js/containers.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased">
+
+  <div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-gray-900 text-gray-100 p-6 flex flex-col justify-between border-r border-gray-800">
+      <div>
+        <div class="flex items-center justify-between mb-10">
+          <h1 class="text-xl font-bold text-blue-400">GoSight</h1>
+          <span class="text-xs bg-gray-800 text-gray-300 font-semibold px-2 py-1 rounded">DEV</span>
+        </div>
+        <nav class="space-y-1">
+          <a href="/" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Dashboard</a>
+          <a href="#" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Metrics</a>
+          <a href="/agents" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Agents</a>
+          <a href="/containers" class="block px-3 py-2 rounded-md bg-gray-800 text-white">Containers</a>
+          <a href="#" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Logs</a>
+          <a href="#" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Config</a>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="flex-1 p-8">
+      <header class="flex items-center justify-between mb-8">
+        <div>
+          <h2 class="text-2xl font-semibold">Containers</h2>
+          <p class="text-sm text-gray-500">Live container metrics across agents</p>
+        </div>
+        <div id="lastUpdate" class="text-sm text-gray-400">Loading...</div>
+      </header>
+
+      <section class="bg-white rounded-2xl shadow p-6 space-y-6">
+        <div class="overflow-x-auto rounded-lg border border-gray-200">
+          <table class="min-w-full divide-y divide-gray-200 text-sm text-left">
+            <thead class="bg-gray-100 text-gray-600 sticky top-0 z-10">
+              <tr>
+                <th class="px-4 py-2">Host</th>
+                <th class="px-4 py-2">Name</th>
+                <th class="px-4 py-2">Image</th>
+                <th class="px-4 py-2">Status</th>
+                <th class="px-4 py-2">CPU %</th>
+                <th class="px-4 py-2">Mem</th>
+                <th class="px-4 py-2">RX</th>
+                <th class="px-4 py-2">TX</th>
+                <th class="px-4 py-2">Uptime</th>
+              </tr>
+            </thead>
+            <tbody id="container-table" class="divide-y divide-gray-100 bg-white">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+</body>
+</html>

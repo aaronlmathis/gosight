@@ -18,14 +18,14 @@ req_extensions     = req_ext
 distinguished_name = dn
 
 [ dn ]
-CN = localhost
+CN = PCMC-Aaron
 
 [ req_ext ]
 subjectAltName = @alt_names
 
 [ alt_names ]
-DNS.1 = localhost
-IP.1  = 127.0.0.1
+DNS.1 = PCMC-Aaron
+IP.1  = 10.10.10.136
 EOF
 
 # === 3. Generate server cert ===
