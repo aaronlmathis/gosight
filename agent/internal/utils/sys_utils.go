@@ -23,7 +23,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 // Package system provides utility functions for system collectors
 // Package system provides collectors for system hardware (CPU/RAM/DISK/ETC)
 
-package system
+package agentutils
 
 import (
 	"time"
@@ -31,20 +31,20 @@ import (
 	"github.com/aaronlmathis/gosight/shared/model"
 )
 
-func metric(ns, sub, name string, value interface{}, typ, unit string, dims map[string]string, ts time.Time) model.Metric {
+func Metric(ns, sub, name string, value interface{}, typ, unit string, dims map[string]string, ts time.Time) model.Metric {
 	return model.Metric{
 		Namespace:    ns,
 		SubNamespace: sub,
 		Name:         name,
 		Timestamp:    ts,
-		Value:        toFloat64(value),
+		Value:        ToFloat64(value),
 		Type:         typ,
 		Unit:         unit,
 		Dimensions:   dims,
 	}
 }
 
-func toFloat64(v interface{}) float64 {
+func ToFloat64(v interface{}) float64 {
 	switch n := v.(type) {
 	case float64:
 		return n

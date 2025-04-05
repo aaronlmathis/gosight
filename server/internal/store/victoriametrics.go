@@ -188,6 +188,13 @@ func (v *VictoriaStore) worker() {
 }
 
 func (v *VictoriaStore) flush(batch []model.MetricPayload) {
+	// Normalize name to be Namespacee - subnamespace - name
+	for pi := range batch {
+		for mi := range batch[pi].Metrics {
+			m := &batch[pi].Metrics[mi]
+			m.Name = normalizeMetricName(m.Namespace, m.SubNamespace, m.Name)
+		}
+	}
 	payload := buildPrometheusFormat(batch)
 
 	var buf bytes.Buffer
@@ -238,6 +245,18 @@ func buildPrometheusFormat(batch []model.MetricPayload) string {
 		}
 	}
 	return sb.String()
+}
+
+func normalizeMetricName(ns, sub, name string) string {
+	var parts []string
+	if ns != "" {
+		parts = append(parts, strings.ToLower(strings.ReplaceAll(ns, "/", ".")))
+	}
+	if sub != "" {
+		parts = append(parts, strings.ToLower(strings.ReplaceAll(sub, "/", ".")))
+	}
+	parts = append(parts, name)
+	return strings.Join(parts, ".")
 }
 
 func formatLabels(meta *model.Meta) string {
@@ -466,19 +485,22 @@ func (v *VictoriaStore) QueryRange(metric string, start, end time.Time) ([]model
 	}
 
 	var points []model.Point
-	for _, value := range parsed.Data.Result[0].Values {
-		tRaw, ok1 := value[0].(float64)
-		vRaw, ok2 := value[1].(string)
-		if !ok1 || !ok2 {
-			continue
+	for _, series := range parsed.Data.Result {
+		for _, value := range series.Values {
+			tRaw, ok1 := value[0].(float64)
+			vRaw, ok2 := value[1].(string)
+			if !ok1 || !ok2 {
+				continue
+			}
+			ts := time.Unix(int64(tRaw), 0).UTC().Format(time.RFC3339)
+			val, err := strconv.ParseFloat(vRaw, 64)
+			if err != nil {
+				continue
+			}
+			points = append(points, model.Point{Timestamp: ts, Value: val})
 		}
-		ts := time.Unix(int64(tRaw), 0).UTC().Format(time.RFC3339)
-		val, err := strconv.ParseFloat(vRaw, 64)
-		if err != nil {
-			continue
-		}
-		points = append(points, model.Point{Timestamp: ts, Value: val})
 	}
+
 	return points, nil
 }
 

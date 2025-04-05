@@ -55,7 +55,7 @@ func ConvertToProtoPayload(payload model.MetricPayload) *proto.MetricPayload {
 		metrics = append(metrics, pm)
 	}
 	// Convert proto meta into model meta
-	pbMeta := convertMetaToProtoMeta(payload.Meta)
+	pbMeta := ConvertMetaToProtoMeta(payload.Meta)
 	if pbMeta == nil {
 		pbMeta = &proto.Meta{}
 	}
@@ -68,7 +68,7 @@ func ConvertToProtoPayload(payload model.MetricPayload) *proto.MetricPayload {
 	}
 }
 
-func convertMetaToProtoMeta(m *model.Meta) *proto.Meta {
+func ConvertMetaToProtoMeta(m *model.Meta) *proto.Meta {
 	if m == nil {
 		return nil
 	}

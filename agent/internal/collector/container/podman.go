@@ -32,6 +32,7 @@ import (
 	"strings"
 	"time"
 
+	agentutils "github.com/aaronlmathis/gosight/agent/internal/utils"
 	"github.com/aaronlmathis/gosight/shared/model"
 )
 
@@ -40,7 +41,6 @@ type PodmanCollector struct {
 }
 
 func NewPodmanCollector() *PodmanCollector {
-	// Default to rootful Podman socket
 	return &PodmanCollector{socketPath: "/run/podman/podman.sock"}
 }
 
@@ -85,7 +85,6 @@ type PodmanStats struct {
 	} `json:"networks"`
 }
 
-// Minimal container struct from Podman API
 type PodmanContainer struct {
 	ID        string            `json:"Id"`
 	Names     []string          `json:"Names"`
@@ -123,25 +122,21 @@ func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 			continue
 		}
 		inspect, err := inspectContainer(c.socketPath, ctr.ID)
-		if err != nil {
-			fmt.Printf("⚠️ Failed to inspect %s: %v\n", ctr.ID, err)
-		} else {
+		if err == nil {
 			t, err := time.Parse(time.RFC3339Nano, inspect.State.StartedAt)
-			if err != nil {
-				fmt.Printf("⚠️ Invalid StartedAt for %s: %q\n", ctr.ID, inspect.State.StartedAt)
-			} else {
+			if err == nil {
 				ctr.StartedAt = t
 			}
 		}
-		var uptime float64
+
+		uptime := 0.0
 		if !ctr.StartedAt.IsZero() {
 			uptime = now.Sub(ctr.StartedAt).Seconds()
 			if uptime > 1e6 || uptime < 0 {
 				uptime = 0
 			}
-		} else {
-			uptime = 0
 		}
+
 		running := 0.0
 		if strings.ToLower(ctr.State) == "running" {
 			running = 1.0
@@ -153,89 +148,52 @@ func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 			"image":        ctr.Image,
 			"status":       ctr.State,
 		}
-
-		// Enrich with labels and ports if available
 		for k, v := range ctr.Labels {
 			dims["label."+k] = v
 		}
-
 		if ports := formatPorts(ctr.Ports); ports != "" {
 			dims["ports"] = ports
 		}
 
-		metrics = append(metrics, model.Metric{
-			Namespace:  "Container/Podman",
-			Name:       "container.uptime.seconds",
-			Timestamp:  now,
-			Value:      uptime,
-			Unit:       "seconds",
-			Dimensions: dims,
-		})
-
-		metrics = append(metrics, model.Metric{
-			Namespace:  "Container/Podman",
-			Name:       "container.running",
-			Timestamp:  now,
-			Value:      running,
-			Unit:       "bool",
-			Dimensions: dims,
-		})
-
-		cpuPercent := calculateCPUPercent(stats)
-		metrics = append(metrics, model.Metric{
-			Namespace:  "Container/Podman",
-			Name:       "container.cpu.percent",
-			Timestamp:  now,
-			Value:      cpuPercent,
-			Unit:       "percent",
-			Dimensions: dims,
-		})
-
-		metrics = append(metrics, model.Metric{
-			Namespace: "Container/Podman",
-			Name:      "container.mem.usage_bytes",
-			Timestamp: now,
-			Value:     float64(stats.MemoryStats.Usage),
-
-			Unit:       "bytes",
-			Dimensions: dims,
-		})
-
-		metrics = append(metrics, model.Metric{
-			Namespace:  "Container/Podman",
-			Name:       "container.mem.limit_bytes",
-			Timestamp:  now,
-			Value:      float64(stats.MemoryStats.Limit),
-			Unit:       "bytes",
-			Dimensions: dims,
-		})
-
-		var rxTotal, txTotal uint64
-		for _, net := range stats.Networks {
-			rxTotal += net.RxBytes
-			txTotal += net.TxBytes
-		}
-
-		metrics = append(metrics, model.Metric{
-			Namespace:  "Container/Podman",
-			Name:       "container.net.rx_bytes",
-			Timestamp:  now,
-			Value:      float64(rxTotal),
-			Unit:       "bytes",
-			Dimensions: dims,
-		})
-
-		metrics = append(metrics, model.Metric{
-			Namespace:  "Container/Podman",
-			Name:       "container.net.tx_bytes",
-			Timestamp:  now,
-			Value:      float64(txTotal),
-			Unit:       "bytes",
-			Dimensions: dims,
-		})
+		metrics = append(metrics,
+			agentutils.Metric("Container", "Podman", "uptime_seconds", uptime, "gauge", "seconds", dims, now),
+			agentutils.Metric("Container", "Podman", "running", running, "gauge", "bool", dims, now),
+			agentutils.Metric("Container", "Podman", "cpu_percent", calculateCPUPercent(stats), "gauge", "percent", dims, now),
+			agentutils.Metric("Container", "Podman", "mem_usage_bytes", float64(stats.MemoryStats.Usage), "gauge", "bytes", dims, now),
+			agentutils.Metric("Container", "Podman", "mem_limit_bytes", float64(stats.MemoryStats.Limit), "gauge", "bytes", dims, now),
+			agentutils.Metric("Container", "Podman", "net_rx_bytes", sumNetRx(stats), "gauge", "bytes", dims, now),
+			agentutils.Metric("Container", "Podman", "net_tx_bytes", sumNetTx(stats), "gauge", "bytes", dims, now),
+		)
 	}
 
 	return metrics, nil
+}
+
+func sumNetRx(stats *PodmanStats) float64 {
+	var rx uint64
+	for _, net := range stats.Networks {
+		rx += net.RxBytes
+	}
+	return float64(rx)
+}
+
+func sumNetTx(stats *PodmanStats) float64 {
+	var tx uint64
+	for _, net := range stats.Networks {
+		tx += net.TxBytes
+	}
+	return float64(tx)
+}
+
+func calculateCPUPercent(stats *PodmanStats) float64 {
+	cpuDelta := float64(stats.CPUStats.CPUUsage.TotalUsage - stats.PreCPUStats.CPUUsage.TotalUsage)
+	sysDelta := float64(stats.CPUStats.SystemCPUUsage - stats.PreCPUStats.SystemCPUUsage)
+	onlineCPUs := float64(stats.CPUStats.OnlineCPUs)
+
+	if sysDelta > 0.0 && cpuDelta > 0.0 && onlineCPUs > 0.0 {
+		return (cpuDelta / sysDelta) * onlineCPUs * 100.0
+	}
+	return 0.0
 }
 
 func inspectContainer(socketPath, containerID string) (*PodmanInspect, error) {
@@ -247,13 +205,11 @@ func inspectContainer(socketPath, containerID string) (*PodmanInspect, error) {
 		},
 		Timeout: 5 * time.Second,
 	}
-
 	url := fmt.Sprintf("http://d/v4.5.0/containers/%s/json", containerID)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
-
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -276,23 +232,20 @@ func fetchContainers(socketPath string) ([]PodmanContainer, error) {
 		},
 		Timeout: 5 * time.Second,
 	}
-
 	req, err := http.NewRequest("GET", "http://d/v4.0.0/containers/json?all=true", nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return nil, err
 	}
-
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("podman API call failed: %w", err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	var containers []PodmanContainer
 	if err := json.NewDecoder(resp.Body).Decode(&containers); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+		return nil, err
 	}
-
 	return containers, nil
 }
 
@@ -305,36 +258,22 @@ func fetchContainerStats(socketPath, containerID string) (*PodmanStats, error) {
 		},
 		Timeout: 5 * time.Second,
 	}
-
 	url := fmt.Sprintf("http://d/v4.0.0/containers/%s/stats?stream=false", containerID)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create stats request: %w", err)
+		return nil, err
 	}
-
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("podman stats API call failed: %w", err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	var stats PodmanStats
 	if err := json.NewDecoder(resp.Body).Decode(&stats); err != nil {
-		return nil, fmt.Errorf("failed to decode stats response: %w", err)
+		return nil, err
 	}
-
 	return &stats, nil
-}
-
-func calculateCPUPercent(stats *PodmanStats) float64 {
-	cpuDelta := float64(stats.CPUStats.CPUUsage.TotalUsage - stats.PreCPUStats.CPUUsage.TotalUsage)
-	sysDelta := float64(stats.CPUStats.SystemCPUUsage - stats.PreCPUStats.SystemCPUUsage)
-	onlineCPUs := float64(stats.CPUStats.OnlineCPUs)
-
-	if sysDelta > 0.0 && cpuDelta > 0.0 && onlineCPUs > 0.0 {
-		return (cpuDelta / sysDelta) * onlineCPUs * 100.0
-	}
-	return 0.0
 }
 
 func formatPorts(ports []PortMapping) string {

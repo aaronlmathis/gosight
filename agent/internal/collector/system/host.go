@@ -31,6 +31,7 @@ import (
 	"fmt"
 	"time"
 
+	agentutils "github.com/aaronlmathis/gosight/agent/internal/utils"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/shirou/gopsutil/v4/host"
@@ -66,9 +67,9 @@ func (c *HostCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 
 	// Add simple numeric metrics
 	metrics = append(metrics,
-		metric("System", "Host", "uptime", info.Uptime, "gauge", "seconds", nil, now),
-		metric("System", "Host", "procs", info.Procs, "gauge", "count", nil, now),
-		metric("System", "Host", "users_loggedin", userCount, "gauge", "count", nil, now),
+		agentutils.Metric("System", "Host", "uptime", info.Uptime, "gauge", "seconds", nil, now),
+		agentutils.Metric("System", "Host", "procs", info.Procs, "gauge", "count", nil, now),
+		agentutils.Metric("System", "Host", "users_loggedin", userCount, "gauge", "count", nil, now),
 	)
 
 	// Host info as dimension-only metric
@@ -85,7 +86,7 @@ func (c *HostCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 		"host_id":               info.HostID,
 	}
 
-	metrics = append(metrics, metric("System", "Host", "info", 1, "gauge", "info", hostInfoDimensions, now))
+	metrics = append(metrics, agentutils.Metric("System", "Host", "info", 1, "gauge", "info", hostInfoDimensions, now))
 
 	utils.Debug("Collected host metrics: %v", metrics)
 	return metrics, nil

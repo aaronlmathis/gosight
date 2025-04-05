@@ -27,6 +27,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aaronlmathis/gosight/agent/api"
 	"github.com/aaronlmathis/gosight/agent/internal/config"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/proto"
@@ -119,7 +120,7 @@ func (s *Sender) SendMetrics(payload model.MetricPayload) error {
 	var convertedMeta *proto.Meta
 	// Convert meta to proto
 	if payload.Meta != nil {
-		convertedMeta = convertMetaToProto(payload.Meta)
+		convertedMeta = api.ConvertMetaToProtoMeta(payload.Meta)
 	}
 	//utils.Debug("🎯 Proto Meta Tags: %+v", convertedMeta)
 
@@ -136,45 +137,4 @@ func (s *Sender) SendMetrics(payload model.MetricPayload) error {
 
 	utils.Info("📤 Streamed %d metrics", len(pbMetrics))
 	return nil
-}
-func convertMetaToProto(m *model.Meta) *proto.Meta {
-	if m == nil {
-		return nil
-	}
-	return &proto.Meta{
-		Hostname:         m.Hostname,
-		IpAddress:        m.IPAddress,
-		Os:               m.OS,
-		OsVersion:        m.OSVersion,
-		KernelVersion:    m.KernelVersion,
-		Architecture:     m.Architecture,
-		CloudProvider:    m.CloudProvider,
-		Region:           m.Region,
-		AvailabilityZone: m.AvailabilityZone,
-		InstanceId:       m.InstanceID,
-		InstanceType:     m.InstanceType,
-		AccountId:        m.AccountID,
-		ProjectId:        m.ProjectID,
-		ResourceGroup:    m.ResourceGroup,
-		VpcId:            m.VPCID,
-		SubnetId:         m.SubnetID,
-		ImageId:          m.ImageID,
-		ServiceId:        m.ServiceID,
-		ContainerId:      m.ContainerID,
-		ContainerName:    m.ContainerName,
-		PodName:          m.PodName,
-		Namespace:        m.Namespace,
-		ClusterName:      m.ClusterName,
-		NodeName:         m.NodeName,
-		Application:      m.Application,
-		Environment:      m.Environment,
-		Service:          m.Service,
-		Version:          m.Version,
-		DeploymentId:     m.DeploymentID,
-		PublicIp:         m.PublicIP,
-		PrivateIp:        m.PrivateIP,
-		MacAddress:       m.MACAddress,
-		NetworkInterface: m.NetworkInterface,
-		Tags:             m.Tags,
-	}
 }

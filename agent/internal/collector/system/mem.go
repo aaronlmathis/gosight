@@ -30,6 +30,7 @@ import (
 	"context"
 	"time"
 
+	agentutils "github.com/aaronlmathis/gosight/agent/internal/utils"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/shirou/gopsutil/v4/mem"
@@ -56,10 +57,10 @@ func (c *MEMCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	} else if memory != nil {
 		dims := map[string]string{"source": "physical"}
 		metrics = append(metrics,
-			metric("System", "Memory", "total", memory.Total, "gauge", "bytes", dims, now),
-			metric("System", "Memory", "available", memory.Available, "gauge", "bytes", dims, now),
-			metric("System", "Memory", "used", memory.Used, "gauge", "bytes", dims, now),
-			metric("System", "Memory", "used_percent", memory.UsedPercent, "gauge", "percent", dims, now),
+			agentutils.Metric("System", "Memory", "total", memory.Total, "gauge", "bytes", dims, now),
+			agentutils.Metric("System", "Memory", "available", memory.Available, "gauge", "bytes", dims, now),
+			agentutils.Metric("System", "Memory", "used", memory.Used, "gauge", "bytes", dims, now),
+			agentutils.Metric("System", "Memory", "used_percent", memory.UsedPercent, "gauge", "percent", dims, now),
 		)
 	}
 
@@ -70,10 +71,10 @@ func (c *MEMCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	} else if swap != nil {
 		dims := map[string]string{"source": "swap"}
 		metrics = append(metrics,
-			metric("System", "Memory", "total", swap.Total, "gauge", "bytes", dims, now),
-			metric("System", "Memory", "used", swap.Used, "gauge", "bytes", dims, now),
-			metric("System", "Memory", "available", swap.Free, "gauge", "bytes", dims, now),
-			metric("System", "Memory", "used_percent", swap.UsedPercent, "gauge", "percent", dims, now),
+			agentutils.Metric("System", "Memory", "total", swap.Total, "gauge", "bytes", dims, now),
+			agentutils.Metric("System", "Memory", "used", swap.Used, "gauge", "bytes", dims, now),
+			agentutils.Metric("System", "Memory", "available", swap.Free, "gauge", "bytes", dims, now),
+			agentutils.Metric("System", "Memory", "used_percent", swap.UsedPercent, "gauge", "percent", dims, now),
 		)
 	}
 

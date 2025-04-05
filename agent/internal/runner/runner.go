@@ -26,12 +26,12 @@ package runner
 import (
 	"context"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
 	"github.com/aaronlmathis/gosight/agent/internal/collector"
 	"github.com/aaronlmathis/gosight/agent/internal/config"
-	"github.com/aaronlmathis/gosight/agent/internal/meta"
 	"github.com/aaronlmathis/gosight/agent/internal/sender"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
@@ -76,6 +76,8 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 			containerBatches := make(map[string][]model.Metric)
 			containerMetas := make(map[string]*model.Meta)
 
+			ipv4 := utils.GetLocalIP()
+
 			for _, m := range metrics {
 				if strings.HasPrefix(m.Name, "container.") {
 					id := m.Dimensions["container_id"]
@@ -107,8 +109,8 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 						}
 					}
 					meta.Hostname = hostname
-					meta.IPAddress = utils.GetLocalIP()
-					meta.OS = "linux"
+					meta.IPAddress = ipv4
+					meta.OS = m.Dimensions["os"]
 					endpointID := utils.GenerateEndpointID(meta)
 					if meta.Tags == nil {
 						meta.Tags = make(map[string]string)
@@ -122,21 +124,23 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 
 			// send host metrics as one payload
 			if len(hostMetrics) > 0 {
-				meta := meta.BuildMeta(cfg, map[string]string{
-					"job":      "gosight-agent",
-					"instance": hostname,
-				})
-				payload := model.MetricPayload{
-					Host:      cfg.HostOverride,
-					Timestamp: time.Now(),
-					Metrics:   hostMetrics,
-					Meta:      meta,
+				hostMeta := &model.Meta{
+					Hostname:     hostname,
+					IPAddress:    ipv4
+					OS:           runtime.GOOS,
+					Architecture: runtime.GOARCH,
+					Tags: map[string]string{
+						"hostname":   hostname,
+						"ip_address": ipv4
+						"os":         runtime.GOOS,
+					},
 				}
-				utils.Info("📦 Payload for host %s has %s metrics", payload.Metrics[0].Namespace, payload.Metrics[0].SubNamespace)
-				select {
-				case taskQueue <- payload:
-				default:
-					utils.Warn("⚠️ Host task queue full! Dropping host metrics")
+
+				hostMeta.Tags["endpoint_id"] = utils.GenerateEndpointID(hostMeta)
+
+				taskQueue <- model.MetricPayload{
+					Meta:    hostMeta,
+					Metrics: hostMetrics,
 				}
 			}
 

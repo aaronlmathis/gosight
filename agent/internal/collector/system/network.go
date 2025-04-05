@@ -29,6 +29,7 @@ import (
 	"context"
 	"time"
 
+	agentutils "github.com/aaronlmathis/gosight/agent/internal/utils"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/shirou/gopsutil/v4/net"
@@ -58,12 +59,12 @@ func (c *NetworkCollector) Collect(ctx context.Context) ([]model.Metric, error) 
 		dims := map[string]string{"interface": iface.Name}
 
 		metrics = append(metrics,
-			metric("System", "Network", "bytes_sent", iface.BytesSent, "counter", "bytes", dims, now),
-			metric("System", "Network", "bytes_recv", iface.BytesRecv, "counter", "bytes", dims, now),
-			metric("System", "Network", "packets_sent", iface.PacketsSent, "counter", "count", dims, now),
-			metric("System", "Network", "packets_recv", iface.PacketsRecv, "counter", "count", dims, now),
-			metric("System", "Network", "err_in", iface.Errin, "counter", "count", dims, now),
-			metric("System", "Network", "err_out", iface.Errout, "counter", "count", dims, now),
+			agentutils.Metric("System", "Network", "bytes_sent", iface.BytesSent, "counter", "bytes", dims, now),
+			agentutils.Metric("System", "Network", "bytes_recv", iface.BytesRecv, "counter", "bytes", dims, now),
+			agentutils.Metric("System", "Network", "packets_sent", iface.PacketsSent, "counter", "count", dims, now),
+			agentutils.Metric("System", "Network", "packets_recv", iface.PacketsRecv, "counter", "count", dims, now),
+			agentutils.Metric("System", "Network", "err_in", iface.Errin, "counter", "count", dims, now),
+			agentutils.Metric("System", "Network", "err_out", iface.Errout, "counter", "count", dims, now),
 		)
 	}
 

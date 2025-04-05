@@ -32,6 +32,7 @@ import (
 	"strings"
 	"time"
 
+	agentutils "github.com/aaronlmathis/gosight/agent/internal/utils"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/shirou/gopsutil/v4/disk"
 )
@@ -68,14 +69,14 @@ func (c *DiskCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 		}
 
 		metrics = append(metrics,
-			metric("System", "Disk", "total", usage.Total, "gauge", "bytes", dims, now),
-			metric("System", "Disk", "used", usage.Used, "gauge", "bytes", dims, now),
-			metric("System", "Disk", "free", usage.Free, "gauge", "bytes", dims, now),
-			metric("System", "Disk", "used_percent", usage.UsedPercent, "gauge", "percent", dims, now),
-			metric("System", "Disk", "inodes_total", usage.InodesTotal, "gauge", "count", dims, now),
-			metric("System", "Disk", "inodes_used", usage.InodesUsed, "gauge", "count", dims, now),
-			metric("System", "Disk", "inodes_free", usage.InodesFree, "gauge", "count", dims, now),
-			metric("System", "Disk", "inodes_used_percent", usage.InodesUsedPercent, "gauge", "percent", dims, now),
+			agentutils.Metric("System", "Disk", "total", usage.Total, "gauge", "bytes", dims, now),
+			agentutils.Metric("System", "Disk", "used", usage.Used, "gauge", "bytes", dims, now),
+			agentutils.Metric("System", "Disk", "free", usage.Free, "gauge", "bytes", dims, now),
+			agentutils.Metric("System", "Disk", "used_percent", usage.UsedPercent, "gauge", "percent", dims, now),
+			agentutils.Metric("System", "Disk", "inodes_total", usage.InodesTotal, "gauge", "count", dims, now),
+			agentutils.Metric("System", "Disk", "inodes_used", usage.InodesUsed, "gauge", "count", dims, now),
+			agentutils.Metric("System", "Disk", "inodes_free", usage.InodesFree, "gauge", "count", dims, now),
+			agentutils.Metric("System", "Disk", "inodes_used_percent", usage.InodesUsedPercent, "gauge", "percent", dims, now),
 		)
 	}
 
@@ -87,16 +88,16 @@ func (c *DiskCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 			}
 
 			metrics = append(metrics,
-				metric("System", "DiskIO", "read_count", io.ReadCount, "counter", "count", dims, now),
-				metric("System", "DiskIO", "write_count", io.WriteCount, "counter", "count", dims, now),
-				metric("System", "DiskIO", "read_bytes", io.ReadBytes, "counter", "bytes", dims, now),
-				metric("System", "DiskIO", "write_bytes", io.WriteBytes, "counter", "bytes", dims, now),
-				metric("System", "DiskIO", "read_time", io.ReadTime, "counter", "milliseconds", dims, now),
-				metric("System", "DiskIO", "write_time", io.WriteTime, "counter", "milliseconds", dims, now),
-				metric("System", "DiskIO", "io_time", io.IoTime, "counter", "milliseconds", dims, now),
-				metric("System", "DiskIO", "merged_read_count", io.MergedReadCount, "counter", "count", dims, now),
-				metric("System", "DiskIO", "merged_write_count", io.MergedWriteCount, "counter", "count", dims, now),
-				metric("System", "DiskIO", "weighted_io", io.WeightedIO, "counter", "milliseconds", dims, now),
+				agentutils.Metric("System", "DiskIO", "read_count", io.ReadCount, "counter", "count", dims, now),
+				agentutils.Metric("System", "DiskIO", "write_count", io.WriteCount, "counter", "count", dims, now),
+				agentutils.Metric("System", "DiskIO", "read_bytes", io.ReadBytes, "counter", "bytes", dims, now),
+				agentutils.Metric("System", "DiskIO", "write_bytes", io.WriteBytes, "counter", "bytes", dims, now),
+				agentutils.Metric("System", "DiskIO", "read_time", io.ReadTime, "counter", "milliseconds", dims, now),
+				agentutils.Metric("System", "DiskIO", "write_time", io.WriteTime, "counter", "milliseconds", dims, now),
+				agentutils.Metric("System", "DiskIO", "io_time", io.IoTime, "counter", "milliseconds", dims, now),
+				agentutils.Metric("System", "DiskIO", "merged_read_count", io.MergedReadCount, "counter", "count", dims, now),
+				agentutils.Metric("System", "DiskIO", "merged_write_count", io.MergedWriteCount, "counter", "count", dims, now),
+				agentutils.Metric("System", "DiskIO", "weighted_io", io.WeightedIO, "counter", "milliseconds", dims, now),
 			)
 		}
 	}

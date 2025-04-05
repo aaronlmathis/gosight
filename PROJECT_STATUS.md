@@ -1,60 +1,43 @@
-## ✅ Current Status (as of 2025-04-02)
+# GoSight Project Status
 
-### Security
-- [x] TLS and optional mTLS fully supported via `config.yaml`
-- [x] Logs SHA256 fingerprint and Common Name (CN) of connecting agent certificates
+Last updated: 2025-04-05
 
-### Agent
-- [x] CPU, Memory, Disk, and Network collectors implemented using `gopsutil`
-- [x] Collector registry and runtime loader (`registry.go`)
-- [x] Configurable agent via `config.yaml`, CLI flags, and ENV vars
-- [x] Periodic collection loop using `runner.go`
-- [x] `model.Meta` system implemented for sending host/container/application metadata
-- [x] User-defined custom tags via `yaml` and CLI `--tags` flag
-- [x] `utils.MergeMaps()` utility to merge agent-level and runtime tags
-- [x] Agent uses gRPC streaming (`SubmitStream`) with TLS/mTLS support
-- [x] Protobuf schema updated with full `Meta` struct and map tags
-- [x] Metrics packaged and sent as `MetricPayload` via gRPC stream
-- [x] `convert.go` updated to include full `Meta` field serialization
+## ✅ Completed Milestones
 
-### Server
-- [x] gRPC server accepts streamed metrics with mTLS (optional)
-- [x] Graceful shutdown and signal handling using `grpcServer.GracefulStop()`
-- [x] Modular storage backend with current support for VictoriaMetrics
-- [x] VictoriaMetrics batch writer implemented with:
-  - gzip compression  
-  - retry/backoff logic  
-  - worker pool  
-  - full meta label conversion
-- [x] Dynamic Prometheus-style label generation from `model.Meta`
-- [x] Internal debug and metrics dashboard logic tested via `/api/v1/*`
-- [x] Custom CLI script built to audit stored metrics and metadata
+- [x] **Agent ↔ Server gRPC streaming works**
+  - CPU metrics collector implemented
+  - Worker pool and retry logic in agent sender
+- [x] **Server uses TLS**
+  - gRPC server now serves over TLS using a server certificate signed by a local CA
+  - TLS configuration is fully loaded from `server/config.yaml`
+- [x] **Agent connects securely over TLS**
+  - Agent validates the server using the CA certificate
+  - TLS configuration is fully loaded from `agent/config.yaml`
+- [x] **Mutual TLS (mTLS) implemented**
+  - Agent presents client certificate during handshake
+  - Server validates agent certificate using client CA (same CA used to sign both)
+- [x] **Cert generation tooling added**
+  - Bash and PowerShell scripts support SAN-based certs
+  - Scripts located in `install/`, output to `/certs`
+- [x] **gRPC server bootstrapping refactored**
+  - Clean `NewGRPCServer(cfg)` returns `*grpc.Server` and `net.Listener`
+  - Optional reflection controlled via `debug.enable_reflection` in config
+- [x] **Project folder structure audit complete**
+  - TLS helpers, sender, and runner logic separated cleanly
+  - Internal paths follow Go idioms (e.g. `internal/config`, `internal/sender`)
+- [x] **Graceful shutdown and signal handling for gRPC server and agent**
+  - Agent and server now exit cleanly on `SIGINT` or `SIGTERM`
+- [x] **TLS fingerprint logging**
+  - TLS fingerprint or Common Name from connecting agent cert is logged at connect
+- [x] **Podman container collector added**
+  - Native Podman REST API integration (no Docker dependency)
+  - Includes memory, CPU, network, and metadata collection per container
+  - Integrated into agent and dashboard
 
----
+## 🔜 In Progress / Next
 
-## 🛣️ Roadmap Items
-
-1. **Historical Storage & Querying**  
-   Store timestamped metrics in VictoriaMetrics and later allow query via Go API or dashboard UI.
-
-2. **Container & Kubernetes Collectors**  
-   Add native Podman collector (REST), Docker (optional), and later K8s metadata tagging.
-
-3. **Dashboard UI**  
-   Tailwind-powered dark theme dashboard already prototyped. Integrate metric graphs and alert banners.
-
-4. **Alerting & Triggers**  
-   Allow users to define thresholds or PromQL-style rules to trigger actions or webhook notifications.
-
-5. **Additional System Collectors**
-   - `loadavg.go` — load average (Linux only)  
-   - `uptime.go` — simple metric for system uptime  
-   - `processes.go` — total processes, running, sleeping, etc.  
-   - `filesystem.go` — count of mounted volumes, failed mounts  
-
----
-
-## 🔧 In Progress / Next Goals
-
-- [ ] Refactor agent and server config structs to support full TLS/mTLS config validation  
-- [ ] Historical dashboard views and time-series charting  
+- [ ] Refactor agent and server config structs to support full TLS/mTLS config validation
+- [ ] Persistent metric storage backend (SQLite, PostgreSQL)
+- [ ] Historical dashboard views and time-series charting
+- [ ] Alerting engine and trigger conditions
+- [ ] Podman container lifecycle tracking and restart alerting
