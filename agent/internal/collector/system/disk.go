@@ -33,7 +33,6 @@ import (
 	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
-	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/shirou/gopsutil/v4/disk"
 )
 
@@ -51,240 +50,56 @@ func (c *DiskCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	var metrics []model.Metric
 	now := time.Now()
 
-	// --- Collect Usage Metrics per Partition ---
-
-	// Get all relevant partitions (physical devices, excludes pseudo filesystems)
-	partitions, err := disk.Partitions(false) // Set to true if you want *everything* including tmpfs, devpts etc.
+	partitions, err := disk.Partitions(false)
 	if err != nil {
-		utils.Error("Error getting disk partitions: %v", err)
-		// Decide if you want to return here or try collecting IO counters anyway
 		return nil, fmt.Errorf("failed to get disk partitions: %w", err)
 	}
 
 	for _, p := range partitions {
-		// Get usage stats for this specific partition mount point
 		usage, err := disk.Usage(p.Mountpoint)
-		if err != nil {
-			// Log error but continue with other partitions
-			utils.Warn("Error getting disk usage for %s: %v", p.Mountpoint, err)
-			continue // Skip this partition
+		if err != nil || usage == nil {
+			continue
 		}
 
-		if usage == nil {
-			utils.Warn("Disk usage info is nil for %s", p.Mountpoint)
-			continue // Skip this partition
-		}
-
-		// Add dimensions to identify the specific partition
-		usageDimensions := map[string]string{
+		dims := map[string]string{
 			"mountpoint": p.Mountpoint,
-			"device":     strings.TrimPrefix(p.Device, "/dev/"), // e.g., /dev/sda1
+			"device":     strings.TrimPrefix(p.Device, "/dev/"),
 			"fstype":     p.Fstype,
 		}
 
-		// Append various usage metrics for this partition
 		metrics = append(metrics,
-			model.Metric{
-				Namespace:    "System",
-				SubNamespace: "Disk",
-				Name:         "disk.total",
-				Timestamp:    now,
-				Value:        float64(usage.Total), // Convert uint64 to float64
-				Unit:         "bytes",
-				Dimensions:   usageDimensions,
-			},
-			model.Metric{
-				Namespace:    "System",
-				SubNamespace: "Disk",
-				Name:         "disk.used",
-				Timestamp:    now,
-				Value:        float64(usage.Used), // Convert uint64 to float64
-				Unit:         "bytes",
-				Dimensions:   usageDimensions,
-			},
-			model.Metric{
-				Namespace:    "System",
-				SubNamespace: "Disk",
-				Name:         "disk.free",
-				Timestamp:    now,
-				Value:        float64(usage.Free), // Convert uint64 to float64
-				Unit:         "bytes",
-				Dimensions:   usageDimensions,
-			},
-			model.Metric{
-				Namespace:    "System",
-				SubNamespace: "Disk",
-				Name:         "disk.used_percent",
-				Timestamp:    now,
-				Value:        usage.UsedPercent, // Already float64
-				Unit:         "percent",
-				Dimensions:   usageDimensions,
-			},
-			// Inode metrics (optional, but good to have)
-			model.Metric{
-				Namespace:    "System",
-				SubNamespace: "Disk",
-				Name:         "disk.inodes_total",
-				Timestamp:    now,
-				Value:        float64(usage.InodesTotal),
-				Unit:         "count",
-				Dimensions:   usageDimensions,
-			},
-			model.Metric{
-				Namespace:    "System",
-				SubNamespace: "Disk",
-				Name:         "disk.inodes_used",
-				Timestamp:    now,
-				Value:        float64(usage.InodesUsed),
-				Unit:         "count",
-				Dimensions:   usageDimensions,
-			},
-			model.Metric{
-				Namespace:    "System",
-				SubNamespace: "Disk",
-				Name:         "disk.inodes_free",
-				Timestamp:    now,
-				Value:        float64(usage.InodesFree),
-				Unit:         "count",
-				Dimensions:   usageDimensions,
-			},
-			model.Metric{
-				Namespace:    "System",
-				SubNamespace: "Disk",
-				Name:         "disk.inodes_used_percent",
-				Timestamp:    now,
-				Value:        usage.InodesUsedPercent,
-				Unit:         "percent",
-				Dimensions:   usageDimensions,
-			},
+			metric("System", "Disk", "total", usage.Total, "gauge", "bytes", dims, now),
+			metric("System", "Disk", "used", usage.Used, "gauge", "bytes", dims, now),
+			metric("System", "Disk", "free", usage.Free, "gauge", "bytes", dims, now),
+			metric("System", "Disk", "used_percent", usage.UsedPercent, "gauge", "percent", dims, now),
+			metric("System", "Disk", "inodes_total", usage.InodesTotal, "gauge", "count", dims, now),
+			metric("System", "Disk", "inodes_used", usage.InodesUsed, "gauge", "count", dims, now),
+			metric("System", "Disk", "inodes_free", usage.InodesFree, "gauge", "count", dims, now),
+			metric("System", "Disk", "inodes_used_percent", usage.InodesUsedPercent, "gauge", "percent", dims, now),
 		)
 	}
 
-	// --- Collect I/O Counters per Device ---
-
-	// Get IO statistics for block devices (e.g., sda, nvme0n1)
-	// Passing no args gets all devices
-	ioCounters, err := disk.IOCounters()
-	if err != nil {
-		// Log error but potentially return metrics collected so far
-		utils.Error("Error getting disk IO counters: %v", err)
-		// Decide if this error is critical enough to return, or just log
-		// return metrics, fmt.Errorf("failed to get disk IO counters: %w", err) // Option 1: Return error
-		// Option 2: Continue without IO counters (current behavior)
-	} else {
-		for deviceName, ioStat := range ioCounters {
-			// Add dimensions to identify the specific device
-			ioDimensions := map[string]string{
-				"device":        deviceName, // e.g., sda, nvme0n1 (note: different from partition device name sometimes)
-				"serial_number": ioStat.SerialNumber,
+	if ioCounters, err := disk.IOCounters(); err == nil {
+		for device, io := range ioCounters {
+			dims := map[string]string{
+				"device":        device,
+				"serial_number": io.SerialNumber,
 			}
 
-			// Append various I/O metrics for this device
 			metrics = append(metrics,
-				model.Metric{
-					Namespace:    "System",
-					SubNamespace: "DiskIO",
-					Name:         "diskio.read_count",
-					Timestamp:    now,
-					Value:        float64(ioStat.ReadCount),
-					Unit:         "count",
-					Dimensions:   ioDimensions,
-				},
-				model.Metric{
-					Namespace:    "System",
-					SubNamespace: "DiskIO",
-					Name:         "diskio.write_count",
-					Timestamp:    now,
-					Value:        float64(ioStat.WriteCount),
-					Unit:         "count",
-					Dimensions:   ioDimensions,
-				},
-				model.Metric{
-					Namespace:    "System",
-					SubNamespace: "DiskIO",
-					Name:         "diskio.read_bytes",
-					Timestamp:    now,
-					Value:        float64(ioStat.ReadBytes),
-					Unit:         "bytes",
-					Dimensions:   ioDimensions,
-				},
-				model.Metric{
-					Namespace:    "System",
-					SubNamespace: "DiskIO",
-					Name:         "diskio.write_bytes",
-					Timestamp:    now,
-					Value:        float64(ioStat.WriteBytes),
-					Unit:         "bytes",
-					Dimensions:   ioDimensions,
-				},
-				model.Metric{
-					Namespace:    "System",
-					SubNamespace: "DiskIO",
-					Name:         "diskio.read_time",
-					Timestamp:    now,
-					Value:        float64(ioStat.ReadTime),
-					Unit:         "milliseconds",
-					Dimensions:   ioDimensions,
-				},
-				model.Metric{
-					Namespace:    "System",
-					SubNamespace: "DiskIO",
-					Name:         "diskio.write_time",
-					Timestamp:    now,
-					Value:        float64(ioStat.WriteTime),
-					Unit:         "milliseconds",
-					Dimensions:   ioDimensions,
-				},
-				model.Metric{
-					Namespace:    "System",
-					SubNamespace: "DiskIO",
-					Name:         "diskio.io_time",
-					Timestamp:    now,
-					Value:        float64(ioStat.IoTime),
-					Unit:         "milliseconds",
-					Dimensions:   ioDimensions,
-				},
-
-				model.Metric{
-					Namespace:    "System",
-					SubNamespace: "DiskIO",
-					Name:         "diskio.merged_read_count", // Number of reads merged
-					Timestamp:    now,
-					Value:        float64(ioStat.MergedReadCount),
-					Unit:         "count",
-					Dimensions:   ioDimensions, // Use dimensions possibly updated with SerialNumber
-				},
-				model.Metric{
-					Namespace:    "System",
-					SubNamespace: "DiskIO",
-					Name:         "diskio.merged_write_count", // Number of writes merged
-					Timestamp:    now,
-					Value:        float64(ioStat.MergedWriteCount),
-					Unit:         "count",
-					Dimensions:   ioDimensions,
-				},
-				model.Metric{
-					Namespace:    "System",
-					SubNamespace: "DiskIO",
-					Name:         "diskio.weighted_io", // Time spent doing I/Os (ms)
-					Timestamp:    now,
-					Value:        float64(ioStat.WeightedIO), // Removed as WeightedIOtime is not defined
-					Unit:         "milliseconds",
-					Dimensions:   ioDimensions,
-				},
-				// Add BusyTime if using gopsutil v3.3.0+
-				// model.Metric{
-				// 	Namespace:  "System/DiskIO",
-				// 	Name:       "diskio.busy_time", // Time disk spent busy (Linux only, requires kernel 4.18+)
-				// 	Timestamp:  now,
-				// 	Value:      float64(ioStat.BusyTime),
-				// 	Unit:       "milliseconds",
-				// 	Dimensions: ioDimensions,
-				// },
+				metric("System", "DiskIO", "read_count", io.ReadCount, "counter", "count", dims, now),
+				metric("System", "DiskIO", "write_count", io.WriteCount, "counter", "count", dims, now),
+				metric("System", "DiskIO", "read_bytes", io.ReadBytes, "counter", "bytes", dims, now),
+				metric("System", "DiskIO", "write_bytes", io.WriteBytes, "counter", "bytes", dims, now),
+				metric("System", "DiskIO", "read_time", io.ReadTime, "counter", "milliseconds", dims, now),
+				metric("System", "DiskIO", "write_time", io.WriteTime, "counter", "milliseconds", dims, now),
+				metric("System", "DiskIO", "io_time", io.IoTime, "counter", "milliseconds", dims, now),
+				metric("System", "DiskIO", "merged_read_count", io.MergedReadCount, "counter", "count", dims, now),
+				metric("System", "DiskIO", "merged_write_count", io.MergedWriteCount, "counter", "count", dims, now),
+				metric("System", "DiskIO", "weighted_io", io.WeightedIO, "counter", "milliseconds", dims, now),
 			)
 		}
 	}
 
-	// Return all collected metrics and nil error (or the first critical error encountered)
 	return metrics, nil
 }

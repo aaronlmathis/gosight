@@ -48,72 +48,22 @@ func (c *NetworkCollector) Collect(ctx context.Context) ([]model.Metric, error) 
 	now := time.Now()
 	var metrics []model.Metric
 
-	interfaces, err := net.IOCounters(true) // true = per interface
+	interfaces, err := net.IOCounters(true)
 	if err != nil {
 		utils.Error("❌ Failed to get network IO counters: %v", err)
 		return nil, err
 	}
 
 	for _, iface := range interfaces {
-		dimensions := map[string]string{
-			"interface": iface.Name,
-		}
+		dims := map[string]string{"interface": iface.Name}
 
 		metrics = append(metrics,
-			model.Metric{
-				Namespace:    "System",
-				SubNamespace: "Network",
-				Name:         "network.bytes_sent_total",
-				Timestamp:    now,
-				Value:        float64(iface.BytesSent),
-				Unit:         "bytes",
-				Dimensions:   dimensions,
-			},
-			model.Metric{
-				Namespace:    "System",
-				SubNamespace: "Network",
-				Name:         "network.bytes_recv_total",
-				Timestamp:    now,
-				Value:        float64(iface.BytesRecv),
-				Unit:         "bytes",
-				Dimensions:   dimensions,
-			},
-			model.Metric{
-				Namespace:    "System",
-				SubNamespace: "Network",
-				Name:         "network.packets_sent_total",
-				Timestamp:    now,
-				Value:        float64(iface.PacketsSent),
-				Unit:         "count",
-				Dimensions:   dimensions,
-			},
-			model.Metric{
-				Namespace:    "System",
-				SubNamespace: "Network",
-				Name:         "network.packets_recv_total",
-				Timestamp:    now,
-				Value:        float64(iface.PacketsRecv),
-				Unit:         "count",
-				Dimensions:   dimensions,
-			},
-			model.Metric{
-				Namespace:    "System",
-				SubNamespace: "Network",
-				Name:         "network.err_in_total",
-				Timestamp:    now,
-				Value:        float64(iface.Errin),
-				Unit:         "count",
-				Dimensions:   dimensions,
-			},
-			model.Metric{
-				Namespace:    "System",
-				SubNamespace: "Network",
-				Name:         "network.err_out_total",
-				Timestamp:    now,
-				Value:        float64(iface.Errout),
-				Unit:         "count",
-				Dimensions:   dimensions,
-			},
+			metric("System", "Network", "bytes_sent", iface.BytesSent, "counter", "bytes", dims, now),
+			metric("System", "Network", "bytes_recv", iface.BytesRecv, "counter", "bytes", dims, now),
+			metric("System", "Network", "packets_sent", iface.PacketsSent, "counter", "count", dims, now),
+			metric("System", "Network", "packets_recv", iface.PacketsRecv, "counter", "count", dims, now),
+			metric("System", "Network", "err_in", iface.Errin, "counter", "count", dims, now),
+			metric("System", "Network", "err_out", iface.Errout, "counter", "count", dims, now),
 		)
 	}
 

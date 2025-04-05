@@ -47,100 +47,34 @@ func (c *MEMCollector) Name() string {
 
 func (c *MEMCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	var metrics []model.Metric
-
 	now := time.Now()
+
+	// --- Virtual Memory ---
 	memory, err := mem.VirtualMemory()
 	if err != nil {
-		utils.Info("Error getting memory info: %v", err)
-		utils.Debug("Error getting memory info: %v", err)
-	} else if memory == nil {
-		utils.Info("Memory info is nil")
-		utils.Debug("Memory info is nil")
-	} else {
-		metrics = append(metrics, model.Metric{
-			Namespace:    "System",
-			SubNamespace: "Memory",
-			Name:         "mem.total",
-			Timestamp:    now,
-			Value:        float64(memory.Total),
-			Unit:         "bytes",
-			Dimensions:   map[string]string{"source": "physical"},
-		})
-		metrics = append(metrics, model.Metric{
-			Namespace:    "System",
-			SubNamespace: "Memory",
-			Name:         "mem.available",
-			Timestamp:    now,
-			Value:        float64(memory.Available),
-			Unit:         "bytes",
-			Dimensions:   map[string]string{"source": "physical"},
-		})
-		metrics = append(metrics, model.Metric{
-			Namespace:    "System",
-			SubNamespace: "Memory",
-			Name:         "mem.used",
-			Timestamp:    now,
-			Value:        float64(memory.Used),
-			Unit:         "bytes",
-			Dimensions:   map[string]string{"source": "physical"},
-		})
-		metrics = append(metrics, model.Metric{
-			Namespace:    "System",
-			SubNamespace: "Memory",
-			Name:         "mem.used_percent",
-			Timestamp:    now,
-			Value:        memory.UsedPercent,
-			Unit:         "percent",
-			Dimensions:   map[string]string{"source": "physical"},
-		})
+		utils.Warn("Error getting memory info: %v", err)
+	} else if memory != nil {
+		dims := map[string]string{"source": "physical"}
+		metrics = append(metrics,
+			metric("System", "Memory", "total", memory.Total, "gauge", "bytes", dims, now),
+			metric("System", "Memory", "available", memory.Available, "gauge", "bytes", dims, now),
+			metric("System", "Memory", "used", memory.Used, "gauge", "bytes", dims, now),
+			metric("System", "Memory", "used_percent", memory.UsedPercent, "gauge", "percent", dims, now),
+		)
 	}
 
-	// Swap memory
+	// --- Swap Memory ---
 	swap, err := mem.SwapMemory()
 	if err != nil {
-		utils.Info("Error getting swap memory info: %v", err)
-		utils.Debug("Error getting swap memory info: %v", err)
-	}
-	if swap == nil {
-		utils.Info("Swap memory info is nil")
-		utils.Debug("Swap memory info is nil")
-	} else {
-		metrics = append(metrics, model.Metric{
-			Namespace:    "System",
-			SubNamespace: "Memory",
-			Name:         "swap.total",
-			Timestamp:    now,
-			Value:        float64(swap.Total),
-			Unit:         "bytes",
-			Dimensions:   map[string]string{"source": "swap"},
-		})
-		metrics = append(metrics, model.Metric{
-			Namespace:    "System",
-			SubNamespace: "Memory",
-			Name:         "swap.used",
-			Timestamp:    now,
-			Value:        float64(swap.Used),
-			Unit:         "bytes",
-			Dimensions:   map[string]string{"source": "swap"},
-		})
-		metrics = append(metrics, model.Metric{
-			Namespace:    "System",
-			SubNamespace: "Memory",
-			Name:         "swap.available",
-			Timestamp:    now,
-			Value:        float64(swap.Free),
-			Unit:         "bytes",
-			Dimensions:   map[string]string{"source": "swap"},
-		})
-		metrics = append(metrics, model.Metric{
-			Namespace:    "System",
-			SubNamespace: "Memory",
-			Name:         "swap.used_percent",
-			Timestamp:    now,
-			Value:        swap.UsedPercent,
-			Unit:         "percent",
-			Dimensions:   map[string]string{"source": "swap"},
-		})
+		utils.Warn("Error getting swap memory info: %v", err)
+	} else if swap != nil {
+		dims := map[string]string{"source": "swap"}
+		metrics = append(metrics,
+			metric("System", "Memory", "total", swap.Total, "gauge", "bytes", dims, now),
+			metric("System", "Memory", "used", swap.Used, "gauge", "bytes", dims, now),
+			metric("System", "Memory", "available", swap.Free, "gauge", "bytes", dims, now),
+			metric("System", "Memory", "used_percent", swap.UsedPercent, "gauge", "percent", dims, now),
+		)
 	}
 
 	return metrics, nil

@@ -121,7 +121,7 @@ func (s *Sender) SendMetrics(payload model.MetricPayload) error {
 	if payload.Meta != nil {
 		convertedMeta = convertMetaToProto(payload.Meta)
 	}
-	utils.Debug("🎯 Proto Meta Tags: %+v", convertedMeta)
+	//utils.Debug("🎯 Proto Meta Tags: %+v", convertedMeta)
 
 	req := &proto.MetricPayload{
 		Host:      payload.Host,

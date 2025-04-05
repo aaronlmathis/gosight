@@ -50,93 +50,43 @@ func (c *HostCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	var metrics []model.Metric
 	now := time.Now()
 
-	// --- Collect Core Host Information ---
 	info, err := host.InfoWithContext(ctx)
 	if err != nil {
 		utils.Error("Error getting host info: %v", err)
-		// Host info is pretty fundamental, return error if failed
 		return nil, fmt.Errorf("failed to get host info: %w", err)
 	}
 
-	// --- Collect Logged-in User Information ---
-	// Note: Getting users might fail due to permissions or unavailable utmp databases
 	users, err := host.UsersWithContext(ctx)
-	userCount := 0 // Default to 0 if error occurs
+	userCount := 0
 	if err != nil {
 		utils.Warn("Error getting host users (continuing anyway): %v", err)
-		// Continue collection even if users can't be determined
 	} else {
 		userCount = len(users)
 	}
 
-	// --- Create Metrics ---
+	// Add simple numeric metrics
+	metrics = append(metrics,
+		metric("System", "Host", "uptime", info.Uptime, "gauge", "seconds", nil, now),
+		metric("System", "Host", "procs", info.Procs, "gauge", "count", nil, now),
+		metric("System", "Host", "users_loggedin", userCount, "gauge", "count", nil, now),
+	)
 
-	// Uptime Metric
-	metrics = append(metrics, model.Metric{
-		Namespace: "System",
-		Name:      "host.uptime",
-		Timestamp: now,
-		Value:     float64(info.Uptime), // Uptime in seconds
-		Unit:      "seconds",
-		// Dimensions could be added here, but maybe keep them on host.info
-		Dimensions: map[string]string{"hostname": info.Hostname}, // Or add hostname Dimension: map[string]string{"hostname": info.Hostname}?
-	})
-
-	// Process Count Metric
-	metrics = append(metrics, model.Metric{
-		Namespace:  "System",
-		Name:       "host.procs",
-		Timestamp:  now,
-		Value:      float64(info.Procs), // Number of processes
-		Unit:       "count",
-		Dimensions: map[string]string{"hostname": info.Hostname},
-	})
-
-	// Logged-in User Count Metric
-	metrics = append(metrics, model.Metric{
-		Namespace:  "System",
-		Name:       "host.users_loggedin",
-		Timestamp:  now,
-		Value:      float64(userCount), // Number of logged-in users
-		Unit:       "count",
-		Dimensions: map[string]string{"hostname": info.Hostname},
-	})
-
-	// Informational Metric with Host Details as Dimensions
-	// This sends relatively static info periodically as dimensions on a simple metric
+	// Host info as dimension-only metric
 	hostInfoDimensions := map[string]string{
 		"hostname":              info.Hostname,
-		"os":                    info.OS,             // e.g., "linux", "darwin", "windows"
-		"platform":              info.Platform,       // e.g., "ubuntu", "arch", "centos", "darwin", "windows"
-		"platform_family":       info.PlatformFamily, // e.g., "debian", "rhel", "arch", "suse", "gentoo", "darwin", "windows"
+		"os":                    info.OS,
+		"platform":              info.Platform,
+		"platform_family":       info.PlatformFamily,
 		"platform_version":      info.PlatformVersion,
 		"kernel_version":        info.KernelVersion,
 		"kernel_arch":           info.KernelArch,
-		"virtualization_system": info.VirtualizationSystem, // e.g., "kvm", "docker", "vmware", ""
-		"virtualization_role":   info.VirtualizationRole,   // e.g., "guest", "host"
-		"host_id":               info.HostID,               // Often UUID, persistent across reboots
+		"virtualization_system": info.VirtualizationSystem,
+		"virtualization_role":   info.VirtualizationRole,
+		"host_id":               info.HostID,
 	}
 
-	metrics = append(metrics, model.Metric{
-		Namespace:  "System",
-		Name:       "host.info", // Metric name indicating this carries info
-		Timestamp:  now,
-		Value:      1,      // Constant value, focus is on dimensions
-		Unit:       "info", // Custom unit perhaps
-		Dimensions: hostInfoDimensions,
-	})
-
-	// Optionally add Boot Time metric
-	// metrics = append(metrics, model.Metric{
-	// 	Namespace:  "System",
-	// 	Name:       "host.boot_time",
-	// 	Timestamp:  now,
-	// 	Value:      float64(info.BootTime), // Boot time as Unix timestamp
-	// 	Unit:       "unix_timestamp",
-	// 	Dimensions: map[string]string{},
-	// })
+	metrics = append(metrics, metric("System", "Host", "info", 1, "gauge", "info", hostInfoDimensions, now))
 
 	utils.Debug("Collected host metrics: %v", metrics)
-
 	return metrics, nil
 }
