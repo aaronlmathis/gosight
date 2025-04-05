@@ -33,7 +33,6 @@ import (
 	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
-	"golang.org/x/tools/go/analysis/passes/inspect"
 )
 
 type PodmanCollector struct {
@@ -53,6 +52,34 @@ func (c *PodmanCollector) Name() string {
 	return "podman"
 }
 
+type ContainerInspect struct {
+	State struct {
+		StartedAt string `json:"StartedAt"`
+	} `json:"State"`
+}
+
+func inspectContainer(socketPath, id string) (*ContainerInspect, error) {
+	url := fmt.Sprintf("http://d/v4.5.0/containers/%s/json", id)
+	client := &http.Client{
+		Transport: &http.Transport{
+			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+				return net.Dial("unix", socketPath)
+			},
+		},
+	}
+	req, _ := http.NewRequest("GET", url, nil)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var inspect ContainerInspect
+	if err := json.NewDecoder(resp.Body).Decode(&inspect); err != nil {
+		return nil, err
+	}
+	return &inspect, nil
+}
 func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	containers, err := fetchContainers(c.socketPath)
 	if err != nil {
@@ -67,6 +94,12 @@ func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 		if err != nil {
 			continue
 		}
+		inspect, err := inspectContainer(c.socketPath, ctr.ID)
+		if err != nil {
+			fmt.Printf("⚠️  Failed to inspect container %s: %v\n", ctr.ID, err)
+			continue
+		}
+
 		t, err := time.Parse(time.RFC3339Nano, inspect.State.StartedAt)
 		if err != nil {
 			fmt.Printf("⚠️  Invalid StartedAt for %s: %q\n", ctr.Image, inspect.State.StartedAt)
