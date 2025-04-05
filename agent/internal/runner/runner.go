@@ -84,8 +84,12 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 					}
 					containerBatches[id] = append(containerBatches[id], m)
 
-					meta := &model.Meta{
-						Tags: make(map[string]string),
+					meta, ok := containerMetas[id]
+					if !ok {
+						meta = &model.Meta{
+							Tags: make(map[string]string),
+						}
+						containerMetas[id] = meta
 					}
 					for k, v := range m.Dimensions {
 						switch k {
