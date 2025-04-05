@@ -27,9 +27,17 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 
 package store
 
-import "github.com/aaronlmathis/gosight/shared/model"
+import (
+	"time"
+
+	"github.com/aaronlmathis/gosight/shared/model"
+)
 
 type MetricStore interface {
 	Write(metrics []model.MetricPayload) error
 	Close() error
+
+	QueryInstant(metric string) ([]MetricRow, error)
+	QueryRange(metric string, start, end time.Time) ([]model.Point, error)
+	QueryAll(metric string) ([]model.Point, error)
 }

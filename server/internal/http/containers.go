@@ -26,8 +26,6 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package httpserver
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"path/filepath"
 	"sort"
@@ -52,7 +50,11 @@ type ContainerMetrics struct {
 	Ports  string            `json:"ports,omitempty"`
 }
 
-func HandleContainersAPI(w http.ResponseWriter, r *http.Request) {
+type ContainerHandler struct {
+	Store store.MetricStore
+}
+
+func (h *ContainerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	queries := map[string]string{
 		"cpu":    `container.cpu.percent`,
 		"mem":    `container.mem.usage_bytes`,
@@ -65,22 +67,20 @@ func HandleContainersAPI(w http.ResponseWriter, r *http.Request) {
 	results := make(map[string]*ContainerMetrics)
 
 	for metric, query := range queries {
-		rows, err := store.QueryInstant(query)
+		rows, err := h.Store.QueryInstant(query)
 		if err != nil {
-			http.Error(w, "Query error: "+err.Error(), 500)
+			http.Error(w, "Query error: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
-
 		for _, row := range rows {
-			fmt.Printf("🔎 Row Tags for %s: %+v\n", metric, row.Tags)
 			id := row.Tags["container_id"]
 			if id == "" {
 				continue
 			}
 			if _, ok := results[id]; !ok {
 				results[id] = &ContainerMetrics{
-					Host:   row.Tags["hostname"],       // ✅ fix here
-					Name:   row.Tags["container_name"], // ✅ fix here
+					Host:   row.Tags["hostname"],
+					Name:   row.Tags["container_name"],
 					Image:  row.Tags["image"],
 					Status: "stopped",
 					Labels: make(map[string]string),
@@ -94,8 +94,6 @@ func HandleContainersAPI(w http.ResponseWriter, r *http.Request) {
 			}
 
 			val := row.Value
-			fmt.Printf("📊 Metric=%s | Container=%s | Value=%f\n", metric, results[id].Name, val)
-
 			switch metric {
 			case "cpu":
 				results[id].CPU = &val
@@ -112,16 +110,17 @@ func HandleContainersAPI(w http.ResponseWriter, r *http.Request) {
 			case "status":
 				if val > 0 {
 					results[id].Status = "running"
-				} else {
-					results[id].Status = "stopped"
 				}
 			}
 		}
 	}
 
-	containerList := values(results)
+	containerList := make([]*ContainerMetrics, 0, len(results))
+	for _, c := range results {
+		containerList = append(containerList, c)
+	}
 
-	// Optional filters
+	// Filters
 	hostFilter := r.URL.Query().Get("host")
 	imageFilter := r.URL.Query().Get("image")
 	statusFilter := r.URL.Query().Get("status")
@@ -147,19 +146,9 @@ func HandleContainersAPI(w http.ResponseWriter, r *http.Request) {
 		return filtered[i].Host < filtered[j].Host
 	})
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(filtered)
+	utils.JSON(w, http.StatusOK, filtered)
 }
 
-func values(m map[string]*ContainerMetrics) []*ContainerMetrics {
-	out := make([]*ContainerMetrics, 0, len(m))
-	for _, v := range m {
-		out = append(out, v)
-	}
-	return out
-}
-
-// Renders the containers.html page
 func RenderContainersPage(w http.ResponseWriter, r *http.Request, templateDir, env string) {
 	tmplPath := filepath.Join(templateDir, "containers.html")
 	tmpl, err := template.ParseFiles(tmplPath)

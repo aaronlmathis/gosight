@@ -48,6 +48,7 @@ func InitMetricStore(cfg *config.Config) (store.MetricStore, error) {
 }
 
 func InitMetricIndex() (*store.MetricIndex, error) {
+
 	metricIndex := store.NewMetricIndex()
 
 	return metricIndex, nil

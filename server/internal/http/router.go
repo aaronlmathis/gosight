@@ -30,7 +30,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func SetupRoutes(r *mux.Router, index *store.MetricIndex, staticDir, templateDir, env string) {
+func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore store.MetricStore, staticDir, templateDir, env string) {
 
 	// Serve static assets
 	fs := http.FileServer(http.Dir(staticDir))
@@ -47,14 +47,19 @@ func SetupRoutes(r *mux.Router, index *store.MetricIndex, staticDir, templateDir
 	r.HandleFunc("/containers", func(w http.ResponseWriter, r *http.Request) {
 		RenderContainersPage(w, r, templateDir, env)
 	})
-	r.HandleFunc("/api/containers", HandleContainersAPI).Methods("GET")
+
+	r.Handle("/api/containers", &ContainerHandler{Store: metricStore})
+
 	r.HandleFunc("/api/agents", HandleAgentsAPI).Methods("GET")
 
-	meta := NewMetricMetaHandler(index)
+	meta := NewMetricMetaHandler(metricIndex, metricStore)
 
-	r.HandleFunc("/api/metrics/namespaces", meta.GetNamespaces).Methods("GET")
-	r.HandleFunc("/api/metrics/subnamespaces", meta.GetSubNamespaces).Methods("GET")
-	r.HandleFunc("/api/metrics/names", meta.GetMetricNames).Methods("GET")
-	r.HandleFunc("/api/metrics/dimensions", meta.GetDimensions).Methods("GET")
+	r.HandleFunc("/api/{namespace}/{sub}/{metric}/latest", meta.GetLatestValue).Methods("GET")
+	r.HandleFunc("/api/{namespace}/{sub}/{metric}/data", meta.GetMetricData).Methods("GET")
+	r.HandleFunc("/api/{namespace}/{sub}/dimensions", meta.GetDimensions).Methods("GET")
+	r.HandleFunc("/api/{namespace}/{sub}", meta.GetMetricNames).Methods("GET")
+	r.HandleFunc("/api/{namespace}", meta.GetSubNamespaces).Methods("GET")
+	r.HandleFunc("/api", meta.GetNamespaces).Methods("GET")
+
 	// ...
 }

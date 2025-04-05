@@ -33,11 +33,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func StartHTTPServer(cfg *config.Config, tracker *store.AgentTracker, metricIndex *store.MetricIndex) {
+func StartHTTPServer(cfg *config.Config, tracker *store.AgentTracker, metricStore store.MetricStore, metricIndex *store.MetricIndex) {
 	InitHandlers(tracker)
 
 	router := mux.NewRouter()
-	SetupRoutes(router, metricIndex, cfg.Web.StaticDir, cfg.Web.TemplateDir, cfg.Server.Environment)
+	apiStore := &APIMetricStore{Store: metricStore}
+	SetupRoutes(router, metricIndex, apiStore, cfg.Web.StaticDir, cfg.Web.TemplateDir, cfg.Server.Environment)
 
 	utils.Info("🌐 HTTP server running at %s", cfg.Server.HTTPAddr)
 	if err := http.ListenAndServe(cfg.Server.HTTPAddr, router); err != nil {

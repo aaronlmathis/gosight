@@ -30,6 +30,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -365,8 +366,8 @@ func totalMetricCount(payloads []model.MetricPayload) int {
 }
 
 // QueryInstant fetches the latest data points for a given metric name from VictoriaMetrics
-func QueryInstant(query string) ([]MetricRow, error) {
-	url := fmt.Sprintf("http://localhost:8428/api/v1/query?query=%s", query)
+func (v *VictoriaStore) QueryInstant(metric string) ([]MetricRow, error) {
+	url := fmt.Sprintf("http://localhost:8428/api/v1/query?query=%s", metric)
 
 	r, err := http.Get(url)
 	if err != nil {
@@ -414,4 +415,75 @@ func QueryInstant(query string) ([]MetricRow, error) {
 	}
 
 	return rows, nil
+}
+
+func (v *VictoriaStore) QueryRange(metric string, start, end time.Time) ([]model.Point, error) {
+	queryURL := fmt.Sprintf("%s/api/v1/query_range", v.url)
+
+	// Default range if missing
+	if start.IsZero() {
+		start = time.Now().Add(-5 * time.Minute)
+	}
+	if end.IsZero() {
+		end = time.Now()
+	}
+
+	// Build query params
+	params := url.Values{}
+	params.Set("query", metric)
+	params.Set("start", start.Format(time.RFC3339))
+	params.Set("end", end.Format(time.RFC3339))
+	params.Set("step", "15s")
+
+	fullURL := fmt.Sprintf("%s?%s", queryURL, params.Encode())
+
+	resp, err := http.Get(fullURL)
+	if err != nil {
+		return nil, fmt.Errorf("VictoriaMetrics range query failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read failed: %w", err)
+	}
+
+	var parsed struct {
+		Status string `json:"status"`
+		Data   struct {
+			ResultType string `json:"resultType"`
+			Result     []struct {
+				Values [][]interface{} `json:"values"`
+			} `json:"result"`
+		} `json:"data"`
+	}
+
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return nil, fmt.Errorf("parse error: %w", err)
+	}
+	if parsed.Status != "success" || len(parsed.Data.Result) == 0 {
+		return nil, nil // no data
+	}
+
+	var points []model.Point
+	for _, value := range parsed.Data.Result[0].Values {
+		tRaw, ok1 := value[0].(float64)
+		vRaw, ok2 := value[1].(string)
+		if !ok1 || !ok2 {
+			continue
+		}
+		ts := time.Unix(int64(tRaw), 0).UTC().Format(time.RFC3339)
+		val, err := strconv.ParseFloat(vRaw, 64)
+		if err != nil {
+			continue
+		}
+		points = append(points, model.Point{Timestamp: ts, Value: val})
+	}
+	return points, nil
+}
+
+func (v *VictoriaStore) QueryAll(metric string) ([]model.Point, error) {
+	start := time.Unix(0, 0)                // Unix epoch
+	end := time.Now().UTC()                 // current time
+	return v.QueryRange(metric, start, end) // reuse existing method
 }
