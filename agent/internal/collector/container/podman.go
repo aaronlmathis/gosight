@@ -52,34 +52,56 @@ func (c *PodmanCollector) Name() string {
 	return "podman"
 }
 
-type ContainerInspect struct {
-	State struct {
-		StartedAt string `json:"StartedAt"`
-	} `json:"State"`
+type PodmanStats struct {
+	Read string `json:"read"`
+	Name string `json:"name"`
+	ID   string `json:"id"`
+
+	CPUStats struct {
+		CPUUsage struct {
+			TotalUsage        uint64 `json:"total_usage"`
+			UsageInKernelmode uint64 `json:"usage_in_kernelmode"`
+			UsageInUsermode   uint64 `json:"usage_in_usermode"`
+		} `json:"cpu_usage"`
+		SystemCPUUsage uint64 `json:"system_cpu_usage"`
+		OnlineCPUs     int    `json:"online_cpus"`
+	} `json:"cpu_stats"`
+
+	PreCPUStats struct {
+		CPUUsage struct {
+			TotalUsage uint64 `json:"total_usage"`
+		} `json:"cpu_usage"`
+		SystemCPUUsage uint64 `json:"system_cpu_usage"`
+	} `json:"precpu_stats"`
+
+	MemoryStats struct {
+		Usage uint64 `json:"usage"`
+		Limit uint64 `json:"limit"`
+	} `json:"memory_stats"`
+
+	Networks map[string]struct {
+		RxBytes uint64 `json:"rx_bytes"`
+		TxBytes uint64 `json:"tx_bytes"`
+	} `json:"networks"`
 }
 
-func inspectContainer(socketPath, id string) (*ContainerInspect, error) {
-	url := fmt.Sprintf("http://d/v4.5.0/containers/%s/json", id)
-	client := &http.Client{
-		Transport: &http.Transport{
-			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial("unix", socketPath)
-			},
-		},
-	}
-	req, _ := http.NewRequest("GET", url, nil)
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var inspect ContainerInspect
-	if err := json.NewDecoder(resp.Body).Decode(&inspect); err != nil {
-		return nil, err
-	}
-	return &inspect, nil
+// Minimal container struct from Podman API
+type PodmanContainer struct {
+	ID        string            `json:"Id"`
+	Names     []string          `json:"Names"`
+	Image     string            `json:"Image"`
+	State     string            `json:"State"`
+	StartedAt time.Time         `json:"StartedAt"`
+	Labels    map[string]string `json:"Labels"`
+	Ports     []PortMapping     `json:"Ports"`
 }
+
+type PortMapping struct {
+	PrivatePort int    `json:"PrivatePort"`
+	PublicPort  int    `json:"PublicPort"`
+	Type        string `json:"Type"`
+}
+
 func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	containers, err := fetchContainers(c.socketPath)
 	if err != nil {
@@ -94,19 +116,7 @@ func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 		if err != nil {
 			continue
 		}
-		inspect, err := inspectContainer(c.socketPath, ctr.ID)
-		if err != nil {
-			fmt.Printf("⚠️  Failed to inspect container %s: %v\n", ctr.ID, err)
-			continue
-		}
 
-		t, err := time.Parse(time.RFC3339Nano, inspect.State.StartedAt)
-		if err != nil {
-			fmt.Printf("⚠️  Invalid StartedAt for %s: %q\n", ctr.Image, inspect.State.StartedAt)
-		} else {
-			fmt.Printf("⏱️  %s started at %s (uptime %.1fs)\n", ctr.ID, t.Format(time.RFC3339), time.Since(t).Seconds())
-			ctr.StartedAt = t
-		}
 		var uptime float64
 		if !ctr.StartedAt.IsZero() {
 			uptime = now.Sub(ctr.StartedAt).Seconds()
@@ -155,20 +165,22 @@ func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 			Dimensions: dims,
 		})
 
+		cpuPercent := calculateCPUPercent(stats)
 		metrics = append(metrics, model.Metric{
 			Namespace:  "Container/Podman",
 			Name:       "container.cpu.percent",
 			Timestamp:  now,
-			Value:      stats.CPU.Percent,
+			Value:      cpuPercent,
 			Unit:       "percent",
 			Dimensions: dims,
 		})
 
 		metrics = append(metrics, model.Metric{
-			Namespace:  "Container/Podman",
-			Name:       "container.mem.usage_bytes",
-			Timestamp:  now,
-			Value:      stats.Mem.Usage,
+			Namespace: "Container/Podman",
+			Name:      "container.mem.usage_bytes",
+			Timestamp: now,
+			Value:     float64(stats.MemoryStats.Usage),
+
 			Unit:       "bytes",
 			Dimensions: dims,
 		})
@@ -177,16 +189,22 @@ func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 			Namespace:  "Container/Podman",
 			Name:       "container.mem.limit_bytes",
 			Timestamp:  now,
-			Value:      stats.Mem.Limit,
+			Value:      float64(stats.MemoryStats.Limit),
 			Unit:       "bytes",
 			Dimensions: dims,
 		})
+
+		var rxTotal, txTotal uint64
+		for _, net := range stats.Networks {
+			rxTotal += net.RxBytes
+			txTotal += net.TxBytes
+		}
 
 		metrics = append(metrics, model.Metric{
 			Namespace:  "Container/Podman",
 			Name:       "container.net.rx_bytes",
 			Timestamp:  now,
-			Value:      stats.Net.RxBytes,
+			Value:      float64(rxTotal),
 			Unit:       "bytes",
 			Dimensions: dims,
 		})
@@ -195,7 +213,7 @@ func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 			Namespace:  "Container/Podman",
 			Name:       "container.net.tx_bytes",
 			Timestamp:  now,
-			Value:      stats.Net.TxBytes,
+			Value:      float64(txTotal),
 			Unit:       "bytes",
 			Dimensions: dims,
 		})
@@ -263,21 +281,15 @@ func fetchContainerStats(socketPath, containerID string) (*PodmanStats, error) {
 	return &stats, nil
 }
 
-// Minimal container struct from Podman API
-type PodmanContainer struct {
-	ID        string            `json:"Id"`
-	Names     []string          `json:"Names"`
-	Image     string            `json:"Image"`
-	State     string            `json:"State"`
-	StartedAt time.Time         `json:"StartedAt"`
-	Labels    map[string]string `json:"Labels"`
-	Ports     []PortMapping     `json:"Ports"`
-}
+func calculateCPUPercent(stats *PodmanStats) float64 {
+	cpuDelta := float64(stats.CPUStats.CPUUsage.TotalUsage - stats.PreCPUStats.CPUUsage.TotalUsage)
+	sysDelta := float64(stats.CPUStats.SystemCPUUsage - stats.PreCPUStats.SystemCPUUsage)
+	onlineCPUs := float64(stats.CPUStats.OnlineCPUs)
 
-type PortMapping struct {
-	PrivatePort int    `json:"PrivatePort"`
-	PublicPort  int    `json:"PublicPort"`
-	Type        string `json:"Type"`
+	if sysDelta > 0.0 && cpuDelta > 0.0 && onlineCPUs > 0.0 {
+		return (cpuDelta / sysDelta) * onlineCPUs * 100.0
+	}
+	return 0.0
 }
 
 func formatPorts(ports []PortMapping) string {
@@ -293,19 +305,4 @@ func formatPorts(ports []PortMapping) string {
 		}
 	}
 	return strings.Join(formatted, ",")
-}
-
-// Minimal stats struct from Podman API
-type PodmanStats struct {
-	CPU struct {
-		Percent float64 `json:"cpu_percent"`
-	} `json:"cpu_stats"`
-	Mem struct {
-		Usage float64 `json:"mem_usage"`
-		Limit float64 `json:"mem_limit"`
-	} `json:"mem_stats"`
-	Net struct {
-		RxBytes float64 `json:"rx_bytes"`
-		TxBytes float64 `json:"tx_bytes"`
-	} `json:"net_stats"`
 }
