@@ -126,12 +126,12 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 			if len(hostMetrics) > 0 {
 				hostMeta := &model.Meta{
 					Hostname:     hostname,
-					IPAddress:    ipv4
+					IPAddress:    ipv4,
 					OS:           runtime.GOOS,
 					Architecture: runtime.GOARCH,
 					Tags: map[string]string{
 						"hostname":   hostname,
-						"ip_address": ipv4
+						"ip_address": ipv4,
 						"os":         runtime.GOOS,
 					},
 				}
