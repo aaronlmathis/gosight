@@ -3,7 +3,6 @@ package runner
 import (
 	"context"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/aaronlmathis/gosight/agent/internal/collector"
@@ -54,7 +53,7 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 			containerMetas := make(map[string]*model.Meta)
 
 			for _, m := range metrics {
-				if strings.HasPrefix(m.Name, "container.") {
+				if len(m.Dimensions) > 0 && m.Dimensions["container_id"] != "" {
 					id := m.Dimensions["container_id"]
 					if id == "" {
 						continue
@@ -118,7 +117,7 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 					Metrics:   hostMetrics,
 					Meta:      meta,
 				}
-				utils.Info("📦 META Payload for host. %s -  %s - %s", payload.Meta.Tags["endpoint_id"], payload.Meta.Tags["instance"], payload.Meta.Tags["job"])
+				//utils.Info("📦 META Payload for host. %s -  %s - %s", payload.Meta.Tags["endpoint_id"], payload.Meta.Tags["instance"], payload.Meta.Tags["job"])
 				select {
 				case taskQueue <- payload:
 				default:
@@ -134,10 +133,8 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 					Metrics:   metrics,
 					Meta:      containerMetas[id],
 				}
-				utils.Info("📦 META Payload for host. %s -  %s - %s", payload.Meta.Tags["endpoint_id"], payload.Meta.Tags["instance"], payload.Meta.Tags["job"])
-				for _, m := range metrics {
-					utils.Info("   • %s = %f [tags: %+v]", m.Name, m.Value, m.Dimensions)
-				}
+				//utils.Info("📦 META Payload for host. %s -  %s - %s", payload.Meta.Tags["endpoint_id"], payload.Meta.Tags["instance"], payload.Meta.Tags["job"])
+
 				select {
 				case taskQueue <- payload:
 				default:

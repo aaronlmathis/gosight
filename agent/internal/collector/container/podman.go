@@ -142,6 +142,7 @@ func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 			running = 1.0
 		}
 
+		//utils.Debug("Is container_id set? %s", ctr.ID)
 		dims := map[string]string{
 			"container_id": ctr.ID[:12],
 			"name":         strings.TrimPrefix(ctr.Names[0], "/"),
@@ -154,7 +155,7 @@ func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 		if ports := formatPorts(ctr.Ports); ports != "" {
 			dims["ports"] = ports
 		}
-
+		//utils.Debug("Container dimensions: %+v", dims)
 		metrics = append(metrics,
 			agentutils.Metric("Container", "Podman", "uptime_seconds", uptime, "gauge", "seconds", dims, now),
 			agentutils.Metric("Container", "Podman", "running", running, "gauge", "bool", dims, now),

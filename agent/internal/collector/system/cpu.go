@@ -32,7 +32,6 @@ import (
 	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
-	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/shirou/gopsutil/v4/cpu"
 )
 
@@ -161,9 +160,6 @@ func (c *CPUCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 		})
 	}
 
-	for _, m := range metrics {
-		utils.Debug("📡 Collector output: %+v", m)
-	}
 	return metrics, nil
 }
 

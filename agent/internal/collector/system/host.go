@@ -88,6 +88,6 @@ func (c *HostCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 
 	metrics = append(metrics, agentutils.Metric("System", "Host", "info", 1, "gauge", "info", hostInfoDimensions, now))
 
-	utils.Debug("Collected host metrics: %v", metrics)
+	//utils.Debug("Collected host metrics: %v", metrics)
 	return metrics, nil
 }
