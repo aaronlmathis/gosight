@@ -67,7 +67,15 @@ func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 			continue
 		}
 
-		uptime := now.Sub(ctr.StartedAt).Seconds()
+		var uptime float64
+		if !ctr.StartedAt.IsZero() {
+			uptime = now.Sub(ctr.StartedAt).Seconds()
+			if uptime > 1e6 || uptime < 0 {
+				uptime = 0
+			}
+		} else {
+			uptime = 0
+		}
 		running := 0.0
 		if strings.ToLower(ctr.State) == "running" {
 			running = 1.0
