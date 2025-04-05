@@ -19,29 +19,36 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// server/internal/http/server.go
-// Basic http server for admin/dash
+// gosight/agent/internal/bootstrap/metric_store.go
+// // Package bootstrap initializes the metric store and metric index for the GoSight agent.
+// Package store provides an interface for storing and retrieving metrics.
+// It includes an in-memory store and a file-based store for persistence.
 
-package httpserver
+package bootstrap
 
 import (
-	"net/http"
+	"fmt"
 
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/store"
 	"github.com/aaronlmathis/gosight/shared/utils"
-	"github.com/gorilla/mux"
 )
 
-func StartHTTPServer(cfg *config.Config, tracker *store.AgentTracker, metricIndex *store.MetricIndex) {
-	InitHandlers(tracker)
+func InitMetricStore(cfg *config.Config) (store.MetricStore, error) {
+	engine := cfg.Storage.Engine
+	utils.Info("📦 Initializing metric store engine: %s", engine)
 
-	router := mux.NewRouter()
-	SetupRoutes(router, metricIndex, cfg.Web.StaticDir, cfg.Web.TemplateDir, cfg.Server.Environment)
-
-	utils.Info("🌐 HTTP server running at %s", cfg.Server.HTTPAddr)
-	if err := http.ListenAndServe(cfg.Server.HTTPAddr, router); err != nil {
-		utils.Error("HTTP server failed: %v", err)
+	s, err := store.InitStore(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init metric store: %w", err)
 	}
 
+	utils.Info("✅ Metric store [%s] initialized successfully", engine)
+	return s, nil
+}
+
+func InitMetricIndex() (*store.MetricIndex, error) {
+	metricIndex := store.NewMetricIndex()
+
+	return metricIndex, nil
 }

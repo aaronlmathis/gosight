@@ -26,14 +26,11 @@ package bootstrap
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/aaronlmathis/gosight/server/internal/config"
-	"github.com/aaronlmathis/gosight/server/internal/store"
-	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 func LoadServerConfig() *config.Config {
@@ -96,17 +93,4 @@ func absPath(path string) string {
 		log.Fatalf("Failed to resolve path: %v", err)
 	}
 	return abs
-}
-
-func InitMetricStore(cfg *config.Config) (store.MetricStore, error) {
-	engine := cfg.Storage.Engine
-	utils.Info("📦 Initializing metric store engine: %s", engine)
-
-	s, err := store.InitStore(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init metric store: %w", err)
-	}
-
-	utils.Info("✅ Metric store [%s] initialized successfully", engine)
-	return s, nil
 }

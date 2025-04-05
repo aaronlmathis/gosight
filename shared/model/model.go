@@ -32,6 +32,7 @@ type StatisticValues struct {
 
 type Metric struct {
 	Namespace         string            `json:"namespace,omitempty"`
+	SubNamespace      string            `json:"subnamespace,omitempty"`
 	Name              string            `json:"name"`
 	Timestamp         time.Time         `json:"timestamp,omitempty"`
 	Value             float64           `json:"value,omitempty"`

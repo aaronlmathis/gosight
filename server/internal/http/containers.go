@@ -43,11 +43,11 @@ type ContainerMetrics struct {
 	Name   string            `json:"name"`
 	Image  string            `json:"image"`
 	Status string            `json:"status"`
-	CPU    float64           `json:"cpu"`
-	Mem    float64           `json:"mem"`
-	RX     float64           `json:"rx"`
-	TX     float64           `json:"tx"`
-	Uptime float64           `json:"uptime"`
+	CPU    *float64          `json:"cpu,omitempty"`
+	Mem    *float64          `json:"mem,omitempty"`
+	RX     *float64          `json:"rx,omitempty"`
+	TX     *float64          `json:"tx,omitempty"`
+	Uptime *float64          `json:"uptime,omitempty"`
 	Labels map[string]string `json:"labels,omitempty"`
 	Ports  string            `json:"ports,omitempty"`
 }
@@ -94,20 +94,26 @@ func HandleContainersAPI(w http.ResponseWriter, r *http.Request) {
 			}
 
 			val := row.Value
+			fmt.Printf("📊 Metric=%s | Container=%s | Value=%f\n", metric, results[id].Name, val)
+
 			switch metric {
 			case "cpu":
-				results[id].CPU = val
+				results[id].CPU = &val
 			case "mem":
-				results[id].Mem = val
+				results[id].Mem = &val
 			case "rx":
-				results[id].RX = val
+				results[id].RX = &val
 			case "tx":
-				results[id].TX = val
+				results[id].TX = &val
 			case "uptime":
-				results[id].Uptime = val
+				if val > 0 && val < 1e6 {
+					results[id].Uptime = &val
+				}
 			case "status":
-				if val == 1 {
+				if val > 0 {
 					results[id].Status = "running"
+				} else {
+					results[id].Status = "stopped"
 				}
 			}
 		}

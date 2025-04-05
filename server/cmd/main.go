@@ -50,11 +50,16 @@ func main() {
 	if err != nil {
 		utils.Fatal("Agent tracker init failed: %v", err)
 	}
+
+	metricIndex, err := bootstrap.InitMetricIndex()
+	if err != nil {
+		utils.Fatal("Metric index init failed: %v", err)
+	}
+
 	// Start HTTP server for admin console/api
+	go httpserver.StartHTTPServer(cfg, agentTracker, metricIndex)
 
-	go httpserver.StartHTTPServer(cfg, agentTracker)
-
-	grpcServer, listener, err := server.NewGRPCServer(cfg, metricStore, agentTracker)
+	grpcServer, listener, err := server.NewGRPCServer(cfg, metricStore, agentTracker, metricIndex)
 	if err != nil {
 		utils.Fatal("Failed to start gRPC server: %v", err)
 	}

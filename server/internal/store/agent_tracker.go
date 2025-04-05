@@ -94,16 +94,3 @@ func (t *AgentTracker) GetAgents() []model.AgentStatus {
 	}
 	return list
 }
-
-func deriveStatus(lastSeen time.Time) string {
-	elapsed := time.Since(lastSeen)
-
-	switch {
-	case elapsed < 10*time.Second:
-		return "Online"
-	case elapsed < 60*time.Second:
-		return "Idle"
-	default:
-		return "Offline"
-	}
-}

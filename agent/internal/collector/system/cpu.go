@@ -32,6 +32,7 @@ import (
 	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
+	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/shirou/gopsutil/v4/cpu"
 )
 
@@ -54,11 +55,12 @@ func (c *CPUCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	if err == nil {
 		for i, val := range percentPerCore {
 			metrics = append(metrics, model.Metric{
-				Namespace: "System/CPU",
-				Name:      "cpu.usage_percent",
-				Timestamp: now,
-				Value:     val,
-				Unit:      "percent",
+				Namespace:    "System",
+				SubNamespace: "CPU",
+				Name:         "cpu.usage_percent",
+				Timestamp:    now,
+				Value:        val,
+				Unit:         "percent",
 				Dimensions: map[string]string{
 					"core":  formatCore(i),
 					"scope": "per_core",
@@ -71,11 +73,12 @@ func (c *CPUCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	percentTotal, err := cpu.PercentWithContext(ctx, 200*time.Millisecond, false)
 	if err == nil && len(percentTotal) > 0 {
 		metrics = append(metrics, model.Metric{
-			Namespace: "System/CPU",
-			Name:      "cpu.usage_percent",
-			Timestamp: now,
-			Value:     percentTotal[0],
-			Unit:      "percent",
+			Namespace:    "System",
+			SubNamespace: "CPU",
+			Name:         "cpu.usage_percent",
+			Timestamp:    now,
+			Value:        percentTotal[0],
+			Unit:         "percent",
 			Dimensions: map[string]string{
 				"scope": "total",
 			},
@@ -98,11 +101,12 @@ func (c *CPUCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 			"guest_nice": t.GuestNice,
 		} {
 			metrics = append(metrics, model.Metric{
-				Namespace: "System/CPU",
-				Name:      "cpu.time." + k,
-				Timestamp: now,
-				Value:     v,
-				Unit:      "seconds",
+				Namespace:    "System",
+				SubNamespace: "CPU",
+				Name:         "cpu.time." + k,
+				Timestamp:    now,
+				Value:        v,
+				Unit:         "seconds",
 				Dimensions: map[string]string{
 					"scope": "total",
 				},
@@ -114,11 +118,12 @@ func (c *CPUCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	if info, err := cpu.InfoWithContext(ctx); err == nil && len(info) > 0 {
 		for i, cpu := range info {
 			metrics = append(metrics, model.Metric{
-				Namespace: "System/CPU",
-				Name:      "cpu.clock_mhz",
-				Timestamp: now,
-				Value:     cpu.Mhz,
-				Unit:      "MHz",
+				Namespace:    "System",
+				SubNamespace: "CPU",
+				Name:         "cpu.clock_mhz",
+				Timestamp:    now,
+				Value:        cpu.Mhz,
+				Unit:         "MHz",
 				Dimensions: map[string]string{
 					"core":     formatCore(i),
 					"vendor":   cpu.VendorID,
@@ -133,23 +138,27 @@ func (c *CPUCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	// CPU Counts
 	if count, err := cpu.CountsWithContext(ctx, true); err == nil {
 		metrics = append(metrics, model.Metric{
-			Namespace: "System/CPU",
-			Name:      "cpu.count.logical",
-			Timestamp: now,
-			Value:     float64(count),
-			Unit:      "count",
+			Namespace:    "System",
+			SubNamespace: "CPU",
+			Name:         "cpu.count.logical",
+			Timestamp:    now,
+			Value:        float64(count),
+			Unit:         "count",
 		})
 	}
 	if count, err := cpu.CountsWithContext(ctx, false); err == nil {
 		metrics = append(metrics, model.Metric{
-			Namespace: "System/CPU",
-			Name:      "cpu.count.physical",
-			Timestamp: now,
-			Value:     float64(count),
-			Unit:      "count",
+			Namespace:    "System",
+			SubNamespace: "CPU",
+			Name:         "cpu.count.physical",
+			Timestamp:    now,
+			Value:        float64(count),
+			Unit:         "count",
 		})
 	}
-
+	for _, m := range metrics {
+		utils.Debug("📡 Collector output: %+v", m)
+	}
 	return metrics, nil
 }
 

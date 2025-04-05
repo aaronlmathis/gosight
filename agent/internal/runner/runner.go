@@ -109,6 +109,11 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 					meta.Hostname = hostname
 					meta.IPAddress = utils.GetLocalIP()
 					meta.OS = "linux"
+					endpointID := utils.GenerateEndpointID(meta)
+					if meta.Tags == nil {
+						meta.Tags = make(map[string]string)
+					}
+					meta.Tags["endpoint_id"] = endpointID
 					containerMetas[id] = meta
 				} else {
 					hostMetrics = append(hostMetrics, m)

@@ -19,29 +19,25 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// server/internal/http/server.go
-// Basic http server for admin/dash
+// gosight/agent/internal/store/index.go
+// Package store provides an interface for storing and retrieving metrics.
+// It includes an in-memory store and a file-based store for persistence.
 
-package httpserver
+// shared/utils/json.go
+// Package utils provides utility functions for the GoSight agent.
+// It includes functions for logging, JSON encoding/decoding, and other common tasks.
+// Package json provides utility functions for JSON encoding and decoding.
+// It includes functions for writing JSON responses to HTTP requests.
+
+package utils
 
 import (
+	"encoding/json"
 	"net/http"
-
-	"github.com/aaronlmathis/gosight/server/internal/config"
-	"github.com/aaronlmathis/gosight/server/internal/store"
-	"github.com/aaronlmathis/gosight/shared/utils"
-	"github.com/gorilla/mux"
 )
 
-func StartHTTPServer(cfg *config.Config, tracker *store.AgentTracker, metricIndex *store.MetricIndex) {
-	InitHandlers(tracker)
-
-	router := mux.NewRouter()
-	SetupRoutes(router, metricIndex, cfg.Web.StaticDir, cfg.Web.TemplateDir, cfg.Server.Environment)
-
-	utils.Info("🌐 HTTP server running at %s", cfg.Server.HTTPAddr)
-	if err := http.ListenAndServe(cfg.Server.HTTPAddr, router); err != nil {
-		utils.Error("HTTP server failed: %v", err)
-	}
-
+func JSON(w http.ResponseWriter, status int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(data)
 }

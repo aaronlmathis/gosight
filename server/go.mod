@@ -5,6 +5,7 @@ go 1.23.7
 require gopkg.in/yaml.v3 v3.0.1
 
 require (
+	github.com/gorilla/mux v1.8.1 // indirect
 	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect

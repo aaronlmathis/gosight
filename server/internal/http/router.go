@@ -25,26 +25,36 @@ package httpserver
 
 import (
 	"net/http"
+
+	"github.com/aaronlmathis/gosight/server/internal/store"
+	"github.com/gorilla/mux"
 )
 
-func SetupRoutes(mux *http.ServeMux, staticDir, templateDir, env string) {
+func SetupRoutes(r *mux.Router, index *store.MetricIndex, staticDir, templateDir, env string) {
 
 	// Serve static assets
 	fs := http.FileServer(http.Dir(staticDir))
-	mux.Handle("/css/", fs)
-	mux.Handle("/js/", fs)
-	mux.Handle("/images/", fs)
+	r.PathPrefix("/css/").Handler(fs)
+	r.PathPrefix("/js/").Handler(fs)
+	r.PathPrefix("/images/").Handler(fs)
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		RenderIndexPage(w, r, templateDir, env)
 	})
-	mux.HandleFunc("/agents", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/agents", func(w http.ResponseWriter, r *http.Request) {
 		RenderAgentsPage(w, r, templateDir, env)
 	})
-	mux.HandleFunc("/containers", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/containers", func(w http.ResponseWriter, r *http.Request) {
 		RenderContainersPage(w, r, templateDir, env)
 	})
-	mux.HandleFunc("/api/containers", HandleContainersAPI)
-	mux.HandleFunc("/api/agents", HandleAgentsAPI)
+	r.HandleFunc("/api/containers", HandleContainersAPI).Methods("GET")
+	r.HandleFunc("/api/agents", HandleAgentsAPI).Methods("GET")
+
+	meta := NewMetricMetaHandler(index)
+
+	r.HandleFunc("/api/metrics/namespaces", meta.GetNamespaces).Methods("GET")
+	r.HandleFunc("/api/metrics/subnamespaces", meta.GetSubNamespaces).Methods("GET")
+	r.HandleFunc("/api/metrics/names", meta.GetMetricNames).Methods("GET")
+	r.HandleFunc("/api/metrics/dimensions", meta.GetDimensions).Methods("GET")
 	// ...
 }

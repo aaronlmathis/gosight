@@ -58,36 +58,40 @@ func (c *MEMCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 		utils.Debug("Memory info is nil")
 	} else {
 		metrics = append(metrics, model.Metric{
-			Namespace:  "System/Memory",
-			Name:       "mem.total",
-			Timestamp:  now,
-			Value:      float64(memory.Total),
-			Unit:       "bytes",
-			Dimensions: map[string]string{"source": "physical"},
+			Namespace:    "System",
+			SubNamespace: "Memory",
+			Name:         "mem.total",
+			Timestamp:    now,
+			Value:        float64(memory.Total),
+			Unit:         "bytes",
+			Dimensions:   map[string]string{"source": "physical"},
 		})
 		metrics = append(metrics, model.Metric{
-			Namespace:  "System/Memory",
-			Name:       "mem.available",
-			Timestamp:  now,
-			Value:      float64(memory.Available),
-			Unit:       "bytes",
-			Dimensions: map[string]string{"source": "physical"},
+			Namespace:    "System",
+			SubNamespace: "Memory",
+			Name:         "mem.available",
+			Timestamp:    now,
+			Value:        float64(memory.Available),
+			Unit:         "bytes",
+			Dimensions:   map[string]string{"source": "physical"},
 		})
 		metrics = append(metrics, model.Metric{
-			Namespace:  "System/Memory",
-			Name:       "mem.used",
-			Timestamp:  now,
-			Value:      float64(memory.Used),
-			Unit:       "bytes",
-			Dimensions: map[string]string{"source": "physical"},
+			Namespace:    "System",
+			SubNamespace: "Memory",
+			Name:         "mem.used",
+			Timestamp:    now,
+			Value:        float64(memory.Used),
+			Unit:         "bytes",
+			Dimensions:   map[string]string{"source": "physical"},
 		})
 		metrics = append(metrics, model.Metric{
-			Namespace:  "System/Memory",
-			Name:       "mem.used_percent",
-			Timestamp:  now,
-			Value:      memory.UsedPercent,
-			Unit:       "percent",
-			Dimensions: map[string]string{"source": "physical"},
+			Namespace:    "System",
+			SubNamespace: "Memory",
+			Name:         "mem.used_percent",
+			Timestamp:    now,
+			Value:        memory.UsedPercent,
+			Unit:         "percent",
+			Dimensions:   map[string]string{"source": "physical"},
 		})
 	}
 
@@ -102,36 +106,40 @@ func (c *MEMCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 		utils.Debug("Swap memory info is nil")
 	} else {
 		metrics = append(metrics, model.Metric{
-			Namespace:  "System/Memory",
-			Name:       "swap.total",
-			Timestamp:  now,
-			Value:      float64(swap.Total),
-			Unit:       "bytes",
-			Dimensions: map[string]string{"source": "swap"},
+			Namespace:    "System",
+			SubNamespace: "Memory",
+			Name:         "swap.total",
+			Timestamp:    now,
+			Value:        float64(swap.Total),
+			Unit:         "bytes",
+			Dimensions:   map[string]string{"source": "swap"},
 		})
 		metrics = append(metrics, model.Metric{
-			Namespace:  "System/Memory",
-			Name:       "swap.used",
-			Timestamp:  now,
-			Value:      float64(swap.Used),
-			Unit:       "bytes",
-			Dimensions: map[string]string{"source": "swap"},
+			Namespace:    "System",
+			SubNamespace: "Memory",
+			Name:         "swap.used",
+			Timestamp:    now,
+			Value:        float64(swap.Used),
+			Unit:         "bytes",
+			Dimensions:   map[string]string{"source": "swap"},
 		})
 		metrics = append(metrics, model.Metric{
-			Namespace:  "System/Memory",
-			Name:       "swap.available",
-			Timestamp:  now,
-			Value:      float64(swap.Free),
-			Unit:       "bytes",
-			Dimensions: map[string]string{"source": "swap"},
+			Namespace:    "System",
+			SubNamespace: "Memory",
+			Name:         "swap.available",
+			Timestamp:    now,
+			Value:        float64(swap.Free),
+			Unit:         "bytes",
+			Dimensions:   map[string]string{"source": "swap"},
 		})
 		metrics = append(metrics, model.Metric{
-			Namespace:  "System/Memory",
-			Name:       "swap.used_percent",
-			Timestamp:  now,
-			Value:      swap.UsedPercent,
-			Unit:       "percent",
-			Dimensions: map[string]string{"source": "swap"},
+			Namespace:    "System",
+			SubNamespace: "Memory",
+			Name:         "swap.used_percent",
+			Timestamp:    now,
+			Value:        swap.UsedPercent,
+			Unit:         "percent",
+			Dimensions:   map[string]string{"source": "swap"},
 		})
 	}
 

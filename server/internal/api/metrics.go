@@ -34,16 +34,18 @@ import (
 // MetricsHandler implements pb.MetricsServiceServer
 // MetricsHandler implements MetricsServiceServer
 type MetricsHandler struct {
-	store   store.MetricStore
-	Tracker *store.AgentTracker
+	store       store.MetricStore
+	Tracker     *store.AgentTracker
+	metricIndex *store.MetricIndex
 	pb.UnimplementedMetricsServiceServer
 }
 
-func NewMetricsHandler(s store.MetricStore, tracker *store.AgentTracker) *MetricsHandler {
+func NewMetricsHandler(s store.MetricStore, tracker *store.AgentTracker, metricIndex *store.MetricIndex) *MetricsHandler {
 	utils.Debug("🚀 MetricsHandler initialized with store: %T", s)
 	return &MetricsHandler{
-		store:   s,
-		Tracker: tracker,
+		store:       s,
+		Tracker:     tracker,
+		metricIndex: metricIndex,
 	}
 }
 
@@ -70,6 +72,10 @@ func (h *MetricsHandler) SubmitStream(stream pb.MetricsService_SubmitStreamServe
 
 			if converted.Meta.Hostname != "" {
 				h.Tracker.UpdateAgent(*converted.Meta)
+			}
+			for _, m := range converted.Metrics {
+				h.metricIndex.Add(m.Namespace, m.SubNamespace, m.Name, m.Dimensions)
+				utils.Debug("🧩 Indexed: %s / %s / %s", m.Namespace, m.SubNamespace, m.Name)
 			}
 		}
 	}
