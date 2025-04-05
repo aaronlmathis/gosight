@@ -46,8 +46,8 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 	}
 	defer sndr.Close()
 
-	taskQueue := make(chan model.MetricPayload, 100)
-	go sender.StartWorkerPool(ctx, sndr, taskQueue, 5)
+	taskQueue := make(chan model.MetricPayload, 500)
+	go sender.StartWorkerPool(ctx, sndr, taskQueue, 10)
 
 	ticker := time.NewTicker(cfg.Interval)
 	defer ticker.Stop()
