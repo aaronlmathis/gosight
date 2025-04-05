@@ -132,6 +132,7 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 					Metrics:   hostMetrics,
 					Meta:      meta,
 				}
+				utils.Info("📦 Payload for host %s has %s metrics", payload.Metrics[0].Namespace, payload.Metrics[0].SubNamespace)
 				select {
 				case taskQueue <- payload:
 				default:

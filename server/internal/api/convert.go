@@ -32,6 +32,7 @@ func ConvertToModelPayload(pbPayload *proto.MetricPayload) model.MetricPayload {
 	for _, m := range pbPayload.Metrics {
 		metric := model.Metric{
 			Namespace:         m.Namespace,
+			SubNamespace:      m.Subnamespace,
 			Name:              m.Name,
 			Timestamp:         m.Timestamp.AsTime(),
 			Value:             m.Value,

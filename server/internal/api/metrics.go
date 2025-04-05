@@ -64,7 +64,7 @@ func (h *MetricsHandler) SubmitStream(stream pb.MetricsService_SubmitStreamServe
 		}
 
 		converted := ConvertToModelPayload(req)
-
+		utils.Debug("📦 Received metrics from host: %s at %s", converted.Metrics[0].Namespace, converted.Metrics[0].SubNamespace)
 		if err := h.store.Write([]model.MetricPayload{converted}); err != nil {
 			utils.Warn("❌ Failed to enqueue metrics from %s: %v", converted.Host, err)
 		} else {

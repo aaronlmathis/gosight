@@ -36,6 +36,7 @@ func ConvertToProtoPayload(payload model.MetricPayload) *proto.MetricPayload {
 		pm := &proto.Metric{
 			Namespace:         m.Namespace,
 			Name:              m.Name,
+			Subnamespace:      m.SubNamespace,
 			Timestamp:         timestamppb.New(m.Timestamp),
 			Value:             m.Value,
 			Unit:              m.Unit,

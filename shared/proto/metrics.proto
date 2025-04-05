@@ -14,14 +14,15 @@ message StatisticValues {
 
 message Metric {
   string namespace = 1; // e.g. "host", "container", "nginx"
-  string name = 2;
-  google.protobuf.Timestamp timestamp = 3;
-  double value = 4;
-  StatisticValues statistic_values = 5;
-  string unit = 6;
-  map<string, string> dimensions = 7;
-  int32 storage_resolution = 8;
-  string type = 9;      // e.g. "gauge", "counter"
+  string subnamespace = 2;
+  string name = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  double value = 5;
+  StatisticValues statistic_values = 6;
+  string unit = 7;
+  map<string, string> dimensions = 8;
+  int32 storage_resolution = 9;
+  string type = 10;      // e.g. "gauge", "counter"
 
 }
 
