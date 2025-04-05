@@ -30,6 +30,11 @@ type StatisticValues struct {
 	Sum         float64 `json:"sum"`
 }
 
+type Point struct {
+	Timestamp string  `json:"timestamp"`
+	Value     float64 `json:"value"`
+}
+
 type Metric struct {
 	Namespace         string            `json:"namespace,omitempty"`
 	SubNamespace      string            `json:"subnamespace,omitempty"`

@@ -26,6 +26,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package store
 
 import (
+	"strings"
 	"sync"
 )
 
@@ -50,20 +51,24 @@ func (idx *MetricIndex) Add(namespace, sub, name string, dims map[string]string)
 	idx.mu.Lock()
 	defer idx.mu.Unlock()
 
-	idx.Namespaces[namespace] = struct{}{}
+	normNamespace := strings.ToLower(namespace)
+	normSub := strings.ToLower(sub)
+	normName := strings.ToLower(name)
 
-	if _, ok := idx.SubNamespaces[namespace]; !ok {
-		idx.SubNamespaces[namespace] = make(map[string]struct{})
-	}
-	idx.SubNamespaces[namespace][sub] = struct{}{}
+	idx.Namespaces[normNamespace] = struct{}{}
 
-	if _, ok := idx.MetricNames[namespace]; !ok {
-		idx.MetricNames[namespace] = make(map[string]map[string]struct{})
+	if _, ok := idx.SubNamespaces[normNamespace]; !ok {
+		idx.SubNamespaces[normNamespace] = make(map[string]struct{})
 	}
-	if _, ok := idx.MetricNames[namespace][sub]; !ok {
-		idx.MetricNames[namespace][sub] = make(map[string]struct{})
+	idx.SubNamespaces[normNamespace][normSub] = struct{}{}
+
+	if _, ok := idx.MetricNames[normNamespace]; !ok {
+		idx.MetricNames[normNamespace] = make(map[string]map[string]struct{})
 	}
-	idx.MetricNames[namespace][sub][name] = struct{}{}
+	if _, ok := idx.MetricNames[normNamespace][normSub]; !ok {
+		idx.MetricNames[normNamespace][normSub] = make(map[string]struct{})
+	}
+	idx.MetricNames[normNamespace][normSub][normName] = struct{}{}
 
 	for k, v := range dims {
 		if _, ok := idx.Dimensions[k]; !ok {

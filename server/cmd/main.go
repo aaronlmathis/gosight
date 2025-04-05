@@ -57,7 +57,7 @@ func main() {
 	}
 
 	// Start HTTP server for admin console/api
-	go httpserver.StartHTTPServer(cfg, agentTracker, metricIndex)
+	go httpserver.StartHTTPServer(cfg, agentTracker, metricStore, metricIndex)
 
 	grpcServer, listener, err := server.NewGRPCServer(cfg, metricStore, agentTracker, metricIndex)
 	if err != nil {

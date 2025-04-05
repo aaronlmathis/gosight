@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/aaronlmathis/gosight/server/internal/store"
@@ -55,7 +56,7 @@ func (h *MetricMetaHandler) GetNamespaces(w http.ResponseWriter, r *http.Request
 
 func (h *MetricMetaHandler) GetSubNamespaces(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	ns := vars["namespace"]
+	ns := strings.ToLower(vars["namespace"])
 
 	if ns == "" {
 		http.Error(w, "missing ?namespace", http.StatusBadRequest)
@@ -66,7 +67,7 @@ func (h *MetricMetaHandler) GetSubNamespaces(w http.ResponseWriter, r *http.Requ
 
 func (h *MetricMetaHandler) GetMetricNames(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	ns := vars["namespace"]
+	ns := strings.ToLower(vars["namespace"])
 
 	sub := vars["sub"]
 	if ns == "" || sub == "" {
@@ -82,9 +83,9 @@ func (h *MetricMetaHandler) GetDimensions(w http.ResponseWriter, r *http.Request
 
 func (h *MetricMetaHandler) GetMetricData(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	ns := vars["namespace"]
-	sub := vars["sub"]
-	metric := vars["metric"]
+	ns := strings.ToLower(vars["namespace"])
+	sub := strings.ToLower(vars["sub"])
+	metric := strings.ToLower(vars["metric"])
 
 	valid := regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
 	if !valid.MatchString(ns) || !valid.MatchString(sub) || !valid.MatchString(metric) {
@@ -149,9 +150,9 @@ func (h *MetricMetaHandler) GetMetricData(w http.ResponseWriter, r *http.Request
 
 func (h *MetricMetaHandler) GetLatestValue(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	ns := vars["namespace"]
-	sub := vars["sub"]
-	metric := vars["metric"]
+	ns := strings.ToLower(vars["namespace"])
+	sub := strings.ToLower(vars["sub"])
+	metric := strings.ToLower(vars["metric"])
 
 	fullMetricName := fmt.Sprintf("%s.%s.%s", ns, sub, metric)
 	utils.Debug("📡 Querying latest value for: %s", fullMetricName)

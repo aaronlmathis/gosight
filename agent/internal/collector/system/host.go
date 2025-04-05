@@ -73,7 +73,7 @@ func (c *HostCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 
 	// Uptime Metric
 	metrics = append(metrics, model.Metric{
-		Namespace: "System/Host",
+		Namespace: "System",
 		Name:      "host.uptime",
 		Timestamp: now,
 		Value:     float64(info.Uptime), // Uptime in seconds
@@ -84,7 +84,7 @@ func (c *HostCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 
 	// Process Count Metric
 	metrics = append(metrics, model.Metric{
-		Namespace:  "System/Host",
+		Namespace:  "System",
 		Name:       "host.procs",
 		Timestamp:  now,
 		Value:      float64(info.Procs), // Number of processes
@@ -94,7 +94,7 @@ func (c *HostCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 
 	// Logged-in User Count Metric
 	metrics = append(metrics, model.Metric{
-		Namespace:  "System/Host",
+		Namespace:  "System",
 		Name:       "host.users_loggedin",
 		Timestamp:  now,
 		Value:      float64(userCount), // Number of logged-in users
@@ -118,7 +118,7 @@ func (c *HostCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	}
 
 	metrics = append(metrics, model.Metric{
-		Namespace:  "System/Host",
+		Namespace:  "System",
 		Name:       "host.info", // Metric name indicating this carries info
 		Timestamp:  now,
 		Value:      1,      // Constant value, focus is on dimensions
@@ -128,7 +128,7 @@ func (c *HostCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 
 	// Optionally add Boot Time metric
 	// metrics = append(metrics, model.Metric{
-	// 	Namespace:  "System/Host",
+	// 	Namespace:  "System",
 	// 	Name:       "host.boot_time",
 	// 	Timestamp:  now,
 	// 	Value:      float64(info.BootTime), // Boot time as Unix timestamp
