@@ -95,10 +95,24 @@ func (s *Sender) SendMetrics(payload model.MetricPayload) error {
 	pbMetrics := make([]*proto.Metric, 0, len(payload.Metrics))
 	for _, m := range payload.Metrics {
 		pbMetric := &proto.Metric{
-			Name:      m.Name,
-			Value:     m.Value,
-			Unit:      m.Unit,
-			Timestamp: timestamppb.New(m.Timestamp),
+			Name:         m.Name,
+			Namespace:    m.Namespace,
+			Subnamespace: m.SubNamespace,
+			Timestamp:    timestamppb.New(m.Timestamp),
+
+			Value:             m.Value,
+			Unit:              m.Unit,
+			StorageResolution: int32(m.StorageResolution),
+			Type:              m.Type,
+			Dimensions:        m.Dimensions,
+		}
+		if m.StatisticValues != nil {
+			pbMetric.StatisticValues = &proto.StatisticValues{
+				Minimum:     m.StatisticValues.Minimum,
+				Maximum:     m.StatisticValues.Maximum,
+				SampleCount: int32(m.StatisticValues.SampleCount),
+				Sum:         m.StatisticValues.Sum,
+			}
 		}
 		pbMetrics = append(pbMetrics, pbMetric)
 	}
