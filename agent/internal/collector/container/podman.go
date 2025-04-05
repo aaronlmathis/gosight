@@ -33,6 +33,7 @@ import (
 	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
+	"golang.org/x/tools/go/analysis/passes/inspect"
 )
 
 type PodmanCollector struct {
@@ -66,7 +67,12 @@ func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 		if err != nil {
 			continue
 		}
-
+		t, err := time.Parse(time.RFC3339Nano, inspect.State.StartedAt)
+		if err != nil {
+			fmt.Printf("⚠️  Invalid StartedAt for %s: %q\n", ctr.Image, inspect.State.StartedAt)
+		} else {
+			ctr.StartedAt = t
+		}
 		var uptime float64
 		if !ctr.StartedAt.IsZero() {
 			uptime = now.Sub(ctr.StartedAt).Seconds()
