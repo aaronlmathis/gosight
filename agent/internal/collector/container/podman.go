@@ -104,6 +104,7 @@ func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 		if err != nil {
 			fmt.Printf("⚠️  Invalid StartedAt for %s: %q\n", ctr.Image, inspect.State.StartedAt)
 		} else {
+			fmt.Printf("⏱️  %s started at %s (uptime %.1fs)\n", ctr.ID, t.Format(time.RFC3339), time.Since(t).Seconds())
 			ctr.StartedAt = t
 		}
 		var uptime float64
