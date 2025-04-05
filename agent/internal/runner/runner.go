@@ -142,6 +142,10 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 					Metrics:   metrics,
 					Meta:      containerMetas[id],
 				}
+				utils.Info("📦 Payload for container %s has %d metrics", id, len(metrics))
+				for _, m := range metrics {
+					utils.Info("   • %s = %f [tags: %+v]", m.Name, m.Value, m.Dimensions)
+				}
 				select {
 				case taskQueue <- payload:
 				default:
