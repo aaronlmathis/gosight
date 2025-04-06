@@ -22,17 +22,12 @@ func (a *APIMetricStore) Close() error {
 	return a.Store.Close()
 }
 
-func (a *APIMetricStore) QueryInstant(metric, instance string) ([]store.MetricRow, error) {
+func (a *APIMetricStore) QueryInstant(metric string, filters map[string]string) ([]model.MetricRow, error) {
 	utils.Debug("🔍 QueryInstant: %s", metric)
-	return a.Store.QueryInstant(metric, instance)
+	return a.Store.QueryInstant(metric, filters)
 }
 
-func (a *APIMetricStore) QueryRange(metric string, start, end time.Time) ([]model.Point, error) {
+func (a *APIMetricStore) QueryRange(metric string, start, end time.Time, filters map[string]string) ([]model.Point, error) {
 	utils.Debug("📈 QueryRange: %s (%s - %s)", metric, start.Format(time.RFC3339), end.Format(time.RFC3339))
-	return a.Store.QueryRange(metric, start, end)
-}
-
-func (a *APIMetricStore) QueryAll(metric string) ([]model.Point, error) {
-	utils.Debug("🧾 QueryAll: %s", metric)
-	return a.Store.QueryAll(metric)
+	return a.Store.QueryRange(metric, start, end, filters)
 }

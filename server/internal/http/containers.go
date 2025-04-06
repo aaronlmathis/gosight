@@ -66,8 +66,10 @@ func (h *ContainerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	results := make(map[string]*ContainerMetrics)
 
-	for metric, query := range queries {
-		rows, err := h.Store.QueryInstant(query, "")
+	for metricKey, metricName := range queries {
+		rows, err := h.Store.QueryInstant(metricName, map[string]string{
+			"namespace": "container",
+		})
 		if err != nil {
 			http.Error(w, "Query error: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -94,7 +96,7 @@ func (h *ContainerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			val := row.Value
-			switch metric {
+			switch metricKey {
 			case "cpu":
 				results[id].CPU = &val
 			case "mem":
@@ -115,12 +117,14 @@ func (h *ContainerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Convert results map to list
 	containerList := make([]*ContainerMetrics, 0, len(results))
 	for _, c := range results {
 		containerList = append(containerList, c)
 	}
 
 	// Filters
+	subFilter := r.URL.Query().Get("subnamespace")
 	hostFilter := r.URL.Query().Get("host")
 	imageFilter := r.URL.Query().Get("image")
 	statusFilter := r.URL.Query().Get("status")
@@ -134,6 +138,9 @@ func (h *ContainerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		if statusFilter != "" && c.Status != statusFilter {
+			continue
+		}
+		if subFilter != "" && c.Labels["subnamespace"] != subFilter {
 			continue
 		}
 		filtered = append(filtered, c)

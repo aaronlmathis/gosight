@@ -26,6 +26,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package store
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 )
@@ -68,7 +69,8 @@ func (idx *MetricIndex) Add(namespace, sub, name string, dims map[string]string)
 	if _, ok := idx.MetricNames[normNamespace][normSub]; !ok {
 		idx.MetricNames[normNamespace][normSub] = make(map[string]struct{})
 	}
-	idx.MetricNames[normNamespace][normSub][normName] = struct{}{}
+	fullName := fmt.Sprintf("%s.%s.%s", normNamespace, normSub, normName)
+	idx.MetricNames[normNamespace][normSub][fullName] = struct{}{}
 
 	for k, v := range dims {
 		if _, ok := idx.Dimensions[k]; !ok {

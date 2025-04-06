@@ -130,7 +130,7 @@ func (s *Sender) SendMetrics(payload model.MetricPayload) error {
 		Metrics:   pbMetrics,
 		Meta:      convertedMeta,
 	}
-
+	utils.Debug("📦 Sending %d metrics to server: %v", len(pbMetrics), pbMetrics)
 	if err := s.stream.Send(req); err != nil {
 		return fmt.Errorf("stream send failed: %w", err)
 	}

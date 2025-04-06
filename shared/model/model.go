@@ -102,3 +102,8 @@ type MetricPayload struct {
 	Metrics   []Metric  `json:"metrics"`
 	Meta      *Meta     `json:"meta,omitempty"`
 }
+
+type MetricRow struct {
+	Value float64           `json:"value"`
+	Tags  map[string]string `json:"tags"`
+}
