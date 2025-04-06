@@ -67,7 +67,7 @@ func NewSender(ctx context.Context, cfg *config.Config) (*Sender, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	utils.Info("📡 Connecting to server at: %s", cfg.Agent.ServerURL)
 	// Create gRPC client
 	// and establish a stream for sending metrics
 	client := proto.NewMetricsServiceClient(clientConn)
@@ -122,7 +122,7 @@ func (s *Sender) SendMetrics(payload model.MetricPayload) error {
 	if payload.Meta != nil {
 		convertedMeta = api.ConvertMetaToProtoMeta(payload.Meta)
 	}
-	//utils.Debug("🎯 Proto Meta Tags: %+v", convertedMeta)
+	utils.Debug("🎯 Proto Meta Tags: %+v", convertedMeta)
 
 	req := &proto.MetricPayload{
 		Host:      payload.Host,

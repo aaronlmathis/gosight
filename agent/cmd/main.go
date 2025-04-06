@@ -42,6 +42,7 @@ func main() {
 	fmt.Printf("🔧 About to init logger with level = %s\n", cfg.Logs.LogLevel)
 	bootstrap.SetupLogging(cfg)
 	utils.Debug("✅ Debug logging is active from main.go")
+	utils.Info("📡 Connecting to server at: %s", cfg.Agent.ServerURL)
 	// Graceful shutdown context
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
