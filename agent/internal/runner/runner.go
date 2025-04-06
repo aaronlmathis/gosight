@@ -61,7 +61,7 @@ func RunAgent(ctx context.Context, cfg *config.Config) {
 						containerMetas[id] = containerMeta
 					}
 
-					utils.Debug("🔍 Dimensions given with: %s - %v", id, m.Dimensions)
+					//utils.Debug("🔍 Dimensions given with: %s - %v", id, m.Dimensions)
 					// Populate meta with container-specific information
 					for k, v := range m.Dimensions {
 						switch k {
@@ -79,7 +79,7 @@ func RunAgent(ctx context.Context, cfg *config.Config) {
 						}
 					}
 					meta.BuildStandardTags(containerMeta, m, true)
-					utils.Debug("🔍 Container Meta Tags: %v", containerMeta.Tags)
+					//utils.Debug("🔍 Container Meta Tags: %v", containerMeta.Tags)
 				} else {
 					// Host metrics, collect them separately
 					hostMetrics = append(hostMetrics, m)
@@ -97,7 +97,7 @@ func RunAgent(ctx context.Context, cfg *config.Config) {
 					Metrics:   hostMetrics,
 					Meta:      hostMeta,
 				}
-				utils.Info("📦 META Payload for: %s - %v", payload.Host, payload.Meta)
+				//utils.Info("📦 META Payload for: %s - %v", payload.Host, payload.Meta)
 				select {
 				case taskQueue <- payload:
 				default:

@@ -122,7 +122,7 @@ func (s *Sender) SendMetrics(payload model.MetricPayload) error {
 	if payload.Meta != nil {
 		convertedMeta = api.ConvertMetaToProtoMeta(payload.Meta)
 	}
-	utils.Debug("🎯 Proto Meta Tags: %+v", convertedMeta)
+	//utils.Debug("🎯 Proto Meta Tags: %+v", convertedMeta)
 
 	req := &proto.MetricPayload{
 		Host:      payload.Host,
@@ -130,11 +130,11 @@ func (s *Sender) SendMetrics(payload model.MetricPayload) error {
 		Metrics:   pbMetrics,
 		Meta:      convertedMeta,
 	}
-	utils.Debug("📦 Sending %d metrics to server: %v", len(pbMetrics), pbMetrics)
+	//utils.Debug("📦 Sending %d metrics to server: %v", len(pbMetrics), pbMetrics)
 	if err := s.stream.Send(req); err != nil {
 		return fmt.Errorf("stream send failed: %w", err)
 	}
 
-	utils.Info("📤 Streamed %d metrics", len(pbMetrics))
+	//utils.Info("📤 Streamed %d metrics", len(pbMetrics))
 	return nil
 }
