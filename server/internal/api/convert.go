@@ -24,7 +24,6 @@ package api
 import (
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/proto"
-	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 func ConvertToModelPayload(pbPayload *proto.MetricPayload) model.MetricPayload {
@@ -50,7 +49,7 @@ func ConvertToModelPayload(pbPayload *proto.MetricPayload) model.MetricPayload {
 				Sum:         m.StatisticValues.Sum,
 			}
 		}
-		utils.Debug("Received metric: %v", metric)
+		//utils.Debug("Received metric: %v", metric)
 		if pbPayload.Meta != nil {
 			modelMeta = convertProtoMetaToModelMeta(pbPayload.Meta)
 		}

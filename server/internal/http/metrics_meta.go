@@ -121,19 +121,21 @@ func (h *MetricMetaHandler) GetMetricData(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	// Extract label filters from query
 	filters := make(map[string]string)
 	for key, values := range r.URL.Query() {
-		if key == "start" || key == "end" || key == "step" {
+		if key == "start" || key == "end" || key == "latest" || key == "step" {
 			continue
 		}
-		if len(values) > 0 {
+		if len(values) == 1 {
 			filters[key] = values[0]
+		} else if len(values) > 1 {
+			// Create regex-style filter for multiple values
+			filters[key] = fmt.Sprintf("~^(%s)$", strings.Join(values, "|"))
 		}
 	}
 
 	// Construct the full metric name directly
-	fullMetric := metric
+	fullMetric := fmt.Sprintf("%s.%s.%s", ns, sub, metric)
 
 	// Default time window
 	if start.IsZero() && end.IsZero() {
@@ -160,11 +162,16 @@ func (h *MetricMetaHandler) GetLatestValue(w http.ResponseWriter, r *http.Reques
 
 	fullMetric := fmt.Sprintf("%s.%s.%s", ns, sub, metric)
 
-	// Build filters from query parameters
 	filters := make(map[string]string)
 	for key, values := range r.URL.Query() {
-		if len(values) > 0 {
+		if key == "start" || key == "end" || key == "latest" || key == "step" {
+			continue
+		}
+		if len(values) == 1 {
 			filters[key] = values[0]
+		} else if len(values) > 1 {
+			// Create regex-style filter for multiple values
+			filters[key] = fmt.Sprintf("~^(%s)$", strings.Join(values, "|"))
 		}
 	}
 
@@ -219,15 +226,16 @@ func (h *MetricMetaHandler) HandleAPIQuery(w http.ResponseWriter, r *http.Reques
 			return
 		}
 	}
-
-	// Build filters map from remaining query parameters
 	filters := make(map[string]string)
 	for key, values := range r.URL.Query() {
-		if key == "metric" || key == "start" || key == "end" || key == "latest" {
+		if key == "start" || key == "end" || key == "latest" || key == "step" {
 			continue
 		}
-		if len(values) > 0 {
+		if len(values) == 1 {
 			filters[key] = values[0]
+		} else if len(values) > 1 {
+			// Create regex-style filter for multiple values
+			filters[key] = fmt.Sprintf("~^(%s)$", strings.Join(values, "|"))
 		}
 	}
 
