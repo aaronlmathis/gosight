@@ -45,7 +45,7 @@ type Sender struct {
 }
 
 // NewSender establishes a gRPC connection
-func NewSender(ctx context.Context, cfg *config.AgentConfig) (*Sender, error) {
+func NewSender(ctx context.Context, cfg *config.Config) (*Sender, error) {
 
 	// Load TLS config for agent
 	tlsCfg, err := loadTLSConfig(cfg)
@@ -61,7 +61,7 @@ func NewSender(ctx context.Context, cfg *config.AgentConfig) (*Sender, error) {
 	}
 
 	// Establish gRPC connection
-	clientConn, err := grpc.NewClient(cfg.ServerURL,
+	clientConn, err := grpc.NewClient(cfg.Agent.ServerURL,
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)),
 	)
 	if err != nil {
@@ -71,7 +71,7 @@ func NewSender(ctx context.Context, cfg *config.AgentConfig) (*Sender, error) {
 	// Create gRPC client
 	// and establish a stream for sending metrics
 	client := proto.NewMetricsServiceClient(clientConn)
-	utils.Info("📤 established gRPC Connection with %v", cfg.ServerURL)
+	utils.Info("📤 established gRPC Connection with %v", cfg.Agent.ServerURL)
 
 	//
 	stream, err := client.SubmitStream(ctx)

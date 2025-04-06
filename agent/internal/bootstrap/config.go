@@ -34,7 +34,7 @@ import (
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func LoadAgentConfig() *config.AgentConfig {
+func LoadAgentConfig() *config.Config {
 	// Flag declarations
 	configFlag := flag.String("config", "", "Path to agent config file")
 	serverURL := flag.String("server-url", "", "Override server URL")
@@ -43,7 +43,8 @@ func LoadAgentConfig() *config.AgentConfig {
 	metrics := flag.String("metrics", "", "Comma-separated list of enabled metrics")
 	environment := flag.String("env", "", "Environment (dev, test, prod)")
 	logLevel := flag.String("log-level", "", "Log level (debug, info, warn, error)")
-	logFile := flag.String("log-file", "", "Path to log file")
+	errorLogFile := flag.String("error_log", "", "Path to error log file")
+	appLogFile := flag.String("app_log", "", "Path to app log file")
 	customTags := flag.String("tags", "", "Comma-separated list of custom tags")
 
 	flag.Parse()
@@ -64,28 +65,31 @@ func LoadAgentConfig() *config.AgentConfig {
 
 	// Apply CLI flag overrides (highest priority)
 	if *serverURL != "" {
-		cfg.ServerURL = *serverURL
+		cfg.Agent.ServerURL = *serverURL
 	}
 	if *interval != 0 {
-		cfg.Interval = *interval
+		cfg.Agent.Interval = *interval
 	}
 	if *host != "" {
-		cfg.HostOverride = *host
+		cfg.Agent.HostOverride = *host
 	}
 	if *environment != "" {
-		cfg.Environment = *environment
+		cfg.Agent.Environment = *environment
 	}
 	if *metrics != "" {
-		cfg.MetricsEnabled = config.SplitCSV(*metrics)
+		cfg.Agent.MetricsEnabled = config.SplitCSV(*metrics)
 	}
 	if *logLevel != "" {
-		cfg.LogLevel = *logLevel
+		cfg.Logs.LogLevel = *logLevel
 	}
-	if *logFile != "" {
-		cfg.LogFile = *logFile
+	if *appLogFile != "" {
+		cfg.Logs.AppLogFile = *appLogFile
+	}
+	if *errorLogFile != "" {
+		cfg.Logs.ErrorLogFile = *errorLogFile
 	}
 	if *customTags != "" {
-		cfg.CustomTags = utils.ParseTagString(*customTags)
+		cfg.Agent.CustomTags = utils.ParseTagString(*customTags)
 	}
 
 	return cfg

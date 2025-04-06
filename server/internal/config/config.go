@@ -38,10 +38,13 @@ type Config struct {
 		GRPCAddr    string `yaml:"grpc_addr"`
 		HTTPAddr    string `yaml:"http_addr"`
 		Environment string `yaml:"environment"`
-		LogFile     string `yaml:"log_file"`
-		LogLevel    string `yaml:"log_level"`
 	} `yaml:"server"`
 
+	Logs struct {
+		ErrorLogFile string `yaml:"error_log_file"`
+		AppLogFile   string `yaml:"app_log_file"`
+		LogLevel     string `yaml:"log_level"`
+	}
 	Web struct {
 		StaticDir    string `yaml:"static_dir"`
 		TemplateDir  string `yaml:"template_dir"`
@@ -83,28 +86,31 @@ func LoadConfig(path string) (*Config, error) {
 }
 
 func ApplyEnvOverrides(cfg *Config) {
-	if val := os.Getenv("SERVER_GRPC_LISTEN"); val != "" {
+	if val := os.Getenv("GOSIGHT_GRPC_LISTEN"); val != "" {
 		cfg.Server.GRPCAddr = val
 	}
-	if val := os.Getenv("SERVER_HTTP_LISTEN"); val != "" {
+	if val := os.Getenv("GOSIGHT_HTTP_LISTEN"); val != "" {
 		cfg.Server.HTTPAddr = val
 	}
-	if val := os.Getenv("SERVER_LOG_FILE"); val != "" {
-		cfg.Server.LogFile = val
+	if val := os.Getenv("GOSIGHT_ERROR_LOG_FILE"); val != "" {
+		cfg.Logs.ErrorLogFile = val
 	}
-	if val := os.Getenv("SERVER_LOG_LEVEL"); val != "" {
-		cfg.Server.LogLevel = val
+	if val := os.Getenv("GOSIGHT_APP_LOG_FILE"); val != "" {
+		cfg.Logs.ErrorLogFile = val
 	}
-	if val := os.Getenv("SERVER_TLS_CERT_FILE"); val != "" {
+	if val := os.Getenv("GOSIGHT_LOG_LEVEL"); val != "" {
+		cfg.Logs.LogLevel = val
+	}
+	if val := os.Getenv("GOSIGHT_TLS_CERT_FILE"); val != "" {
 		cfg.TLS.CertFile = val
 	}
-	if val := os.Getenv("SERVER_TLS_KEY_FILE"); val != "" {
+	if val := os.Getenv("GOSIGHT_TLS_KEY_FILE"); val != "" {
 		cfg.TLS.KeyFile = val
 	}
-	if val := os.Getenv("SERVER_TLS_CLIENT_CA_FILE"); val != "" {
+	if val := os.Getenv("GOSIGHT_TLS_CLIENT_CA_FILE"); val != "" {
 		cfg.TLS.ClientCAFile = val
 	}
-	if val := os.Getenv("SERVER_DEBUG_ENABLE_REFLECTION"); val != "" {
+	if val := os.Getenv("GOSIGHT_DEBUG_ENABLE_REFLECTION"); val != "" {
 		cfg.Debug.EnableReflection = val == "true"
 	}
 }

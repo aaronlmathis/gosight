@@ -31,11 +31,11 @@ import (
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func SetupLogging(cfg *config.AgentConfig) {
-	if cfg.Environment == "dev" {
-		cfg.LogFile = ""
+func SetupLogging(cfg *config.Config) {
+	if cfg.Agent.Environment == "dev" {
+		cfg.Logs.ErrorLogFile = ""
 	}
-	if err := utils.InitLogger(cfg.LogFile, cfg.LogLevel); err != nil {
+	if err := utils.InitLogger(cfg.Agent.AppLogFile, cfg.Agent.ErrorLogFile, cfg.Logs.LogLevel); err != nil {
 		fmt.Printf("Failed to initialize logger: %v\n", err)
 		os.Exit(1)
 	}

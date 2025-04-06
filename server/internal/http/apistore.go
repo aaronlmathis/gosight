@@ -22,9 +22,9 @@ func (a *APIMetricStore) Close() error {
 	return a.Store.Close()
 }
 
-func (a *APIMetricStore) QueryInstant(metric string) ([]store.MetricRow, error) {
+func (a *APIMetricStore) QueryInstant(metric, instance string) ([]store.MetricRow, error) {
 	utils.Debug("🔍 QueryInstant: %s", metric)
-	return a.Store.QueryInstant(metric)
+	return a.Store.QueryInstant(metric, instance)
 }
 
 func (a *APIMetricStore) QueryRange(metric string, start, end time.Time) ([]model.Point, error) {

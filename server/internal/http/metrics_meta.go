@@ -69,12 +69,17 @@ func (h *MetricMetaHandler) GetMetricNames(w http.ResponseWriter, r *http.Reques
 	vars := mux.Vars(r)
 	ns := strings.ToLower(vars["namespace"])
 
-	sub := vars["sub"]
+	sub := strings.ToLower(vars["sub"])
+
 	if ns == "" || sub == "" {
-		http.Error(w, "missing ?namespace and ?sub", http.StatusBadRequest)
+		http.Error(w, "missing namespace in the URL path", http.StatusBadRequest)
 		return
 	}
-	utils.JSON(w, http.StatusOK, h.Index.GetMetricNames(ns, sub))
+	utils.Debug("🔍 GetMetricNames: namespace=%s, sub=%s", ns, sub) // Add this log
+	metricNames := h.Index.GetMetricNames(ns, sub)
+	utils.Debug("🔍 GetMetricNames: Found metrics=%v", metricNames) // Add this log
+	utils.JSON(w, http.StatusOK, metricNames)
+
 }
 
 func (h *MetricMetaHandler) GetDimensions(w http.ResponseWriter, r *http.Request) {
@@ -153,11 +158,12 @@ func (h *MetricMetaHandler) GetLatestValue(w http.ResponseWriter, r *http.Reques
 	ns := strings.ToLower(vars["namespace"])
 	sub := strings.ToLower(vars["sub"])
 	metric := strings.ToLower(vars["metric"])
+	instance := r.URL.Query().Get("instance") // Get the 'instance' query parameter
 
 	fullMetricName := fmt.Sprintf("%s.%s.%s", ns, sub, metric)
 	utils.Debug("📡 Querying latest value for: %s", fullMetricName)
 
-	rows, err := h.Store.QueryInstant(fullMetricName)
+	rows, err := h.Store.QueryInstant(fullMetricName, instance)
 	if err != nil {
 		utils.JSON(w, http.StatusInternalServerError, map[string]string{
 			"error": fmt.Sprintf("failed to query latest value: %v", err),
@@ -175,4 +181,91 @@ func (h *MetricMetaHandler) GetLatestValue(w http.ResponseWriter, r *http.Reques
 		Value:     rows[0].Value,
 	}
 	utils.JSON(w, http.StatusOK, point)
+}
+
+func (h *MetricMetaHandler) HandleAPIQuery(w http.ResponseWriter, r *http.Request) {
+	metric := r.URL.Query().Get("metric")
+	if metric == "" {
+		utils.JSON(w, http.StatusBadRequest, map[string]string{
+			"error": "missing 'metric' parameter",
+		})
+		return
+	}
+
+	// Optional query modifiers
+	latest := r.URL.Query().Get("latest") == "true"
+	startStr := r.URL.Query().Get("start")
+	endStr := r.URL.Query().Get("end")
+
+	var start, end time.Time
+	var err error
+	if startStr != "" {
+		start, err = time.Parse(time.RFC3339, startStr)
+		if err != nil {
+			utils.JSON(w, http.StatusBadRequest, map[string]string{
+				"error": fmt.Sprintf("invalid start time: %v", err),
+			})
+			return
+		}
+	}
+	if endStr != "" {
+		end, err = time.Parse(time.RFC3339, endStr)
+		if err != nil {
+			utils.JSON(w, http.StatusBadRequest, map[string]string{
+				"error": fmt.Sprintf("invalid end time: %v", err),
+			})
+			return
+		}
+	}
+
+	// Convert all remaining query parameters into Prometheus-style label filters
+	matchers := make([]string, 0)
+	for key, values := range r.URL.Query() {
+		if key == "metric" || key == "start" || key == "end" || key == "latest" {
+			continue
+		}
+		for _, val := range values {
+			matchers = append(matchers, fmt.Sprintf(`%s="%s"`, key, val))
+		}
+	}
+	query := metric
+	if len(matchers) > 0 {
+		query = fmt.Sprintf(`%s{%s}`, metric, strings.Join(matchers, ","))
+	}
+
+	if h.Store == nil {
+		utils.JSON(w, http.StatusInternalServerError, map[string]string{
+			"error": "metric store not available",
+		})
+		return
+	}
+
+	if latest {
+		rows, err := h.Store.QueryInstant(query, "")
+		if err != nil {
+			utils.JSON(w, http.StatusInternalServerError, map[string]string{
+				"error": fmt.Sprintf("query error: %v", err),
+			})
+			return
+		}
+		if len(rows) == 0 {
+			utils.JSON(w, http.StatusOK, []model.Point{})
+			return
+		}
+		utils.JSON(w, http.StatusOK, model.Point{
+			Timestamp: time.Now().UTC().Format(time.RFC3339),
+			Value:     rows[0].Value,
+		})
+		return
+	}
+
+	points, err := h.Store.QueryRange(query, start, end)
+	if err != nil {
+		utils.JSON(w, http.StatusInternalServerError, map[string]string{
+			"error": fmt.Sprintf("query range error: %v", err),
+		})
+		return
+	}
+
+	utils.JSON(w, http.StatusOK, points)
 }

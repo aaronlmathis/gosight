@@ -32,7 +32,7 @@ import (
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func BuildMeta(cfg *config.AgentConfig, addTags map[string]string) *model.Meta {
+func BuildHostMeta(cfg *config.Config, addTags map[string]string) *model.Meta {
 	hostname, err := os.Hostname()
 	if err != nil {
 		hostname = "unknown"
@@ -45,7 +45,7 @@ func BuildMeta(cfg *config.AgentConfig, addTags map[string]string) *model.Meta {
 		utils.Warn("⚠️ Failed to get local IP address")
 	}
 
-	tags := utils.MergeMaps(cfg.CustomTags, addTags)
+	tags := utils.MergeMaps(cfg.Agent.CustomTags, addTags)
 
 	return &model.Meta{
 		Hostname:     hostname,
@@ -54,5 +54,28 @@ func BuildMeta(cfg *config.AgentConfig, addTags map[string]string) *model.Meta {
 		Architecture: runtime.GOARCH,
 		Version:      "0.1", // you could inject this via build flags
 		Tags:         tags,
+	}
+}
+
+func BuildContainerMeta(cfg *config.Config, addTags map[string]string) *model.Meta {
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "unknown"
+		utils.Warn("⚠️ Failed to get hostname: %v", err)
+	}
+
+	ip := utils.GetLocalIP()
+	if ip == "" {
+		ip = "unknown"
+		utils.Warn("⚠️ Failed to get local IP address")
+	}
+
+	tags := utils.MergeMaps(cfg.Agent.CustomTags, addTags)
+
+	return &model.Meta{
+		Hostname:  hostname,
+		IPAddress: ip,
+		Version:   "0.1", // you could inject this via build flags
+		Tags:      tags,
 	}
 }

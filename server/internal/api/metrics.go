@@ -75,7 +75,7 @@ func (h *MetricsHandler) SubmitStream(stream pb.MetricsService_SubmitStreamServe
 			}
 			for _, m := range converted.Metrics {
 				h.metricIndex.Add(m.Namespace, m.SubNamespace, m.Name, m.Dimensions)
-				utils.Debug("🧩 Indexed: %s / %s / %s", m.Namespace, m.SubNamespace, m.Name)
+				//utils.Debug("🧩 Indexed: %s / %s / %s", m.Namespace, m.SubNamespace, m.Name)
 			}
 		}
 	}

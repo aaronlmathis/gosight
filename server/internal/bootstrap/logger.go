@@ -32,7 +32,7 @@ import (
 )
 
 func SetupLogging(cfg *config.Config) {
-	if err := utils.InitLogger(cfg.Server.LogFile, cfg.Server.LogLevel); err != nil {
+	if err := utils.InitLogger(cfg.Logs.AppLogFile, cfg.Logs.ErrorLogFile, cfg.Logs.LogLevel); err != nil {
 		fmt.Printf("Failed to initialize logger: %v\n", err)
 		os.Exit(1)
 	}

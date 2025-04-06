@@ -28,6 +28,8 @@ go.work.sum
 
 
 *.log
+agent/*.log
+server/*.log
 launch_containers*
 certs/
 */launch_containers.sh

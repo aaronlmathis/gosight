@@ -2,7 +2,6 @@ package runner
 
 import (
 	"context"
-	"os"
 	"time"
 
 	"github.com/aaronlmathis/gosight/agent/internal/collector"
@@ -14,7 +13,7 @@ import (
 )
 
 // RunAgent starts the agent's collection loop and sends tasks to the pool
-func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
+func RunAgent(ctx context.Context, cfg *config.Config) {
 	reg := collector.NewRegistry(cfg)
 	sndr, err := sender.NewSender(ctx, cfg)
 	if err != nil {
@@ -25,10 +24,10 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 	taskQueue := make(chan model.MetricPayload, 500)
 	go sender.StartWorkerPool(ctx, sndr, taskQueue, 10)
 
-	ticker := time.NewTicker(cfg.Interval)
+	ticker := time.NewTicker(cfg.Agent.Interval)
 	defer ticker.Stop()
 
-	utils.Info("🚀 Agent started. Sending metrics every %v", cfg.Interval)
+	utils.Info("🚀 Agent started. Sending metrics every %v", cfg.Agent.Interval)
 
 	for {
 		select {
@@ -40,12 +39,6 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 			if err != nil {
 				utils.Error("❌ Metric collection failed: %v", err)
 				continue
-			}
-
-			hostname, err := os.Hostname()
-			if err != nil {
-				hostname = "unknown"
-				utils.Warn("⚠️ Failed to get hostname: %v", err)
 			}
 
 			var hostMetrics []model.Metric
@@ -61,41 +54,32 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 					// Add container metrics to containerBatches
 					containerBatches[id] = append(containerBatches[id], m)
 
-					// Initialize and populate container meta if not already done
-					meta, ok := containerMetas[id]
-					if !ok {
-						meta = &model.Meta{
-							Tags: make(map[string]string),
-						}
-						containerMetas[id] = meta
+					// Initialize Meta only once per container ID
+					containerMeta, exists := containerMetas[id]
+					if !exists {
+						containerMeta = meta.BuildContainerMeta(cfg, nil)
+						containerMetas[id] = containerMeta
 					}
 
+					utils.Debug("🔍 Dimensions given with: %s - %v", id, m.Dimensions)
 					// Populate meta with container-specific information
 					for k, v := range m.Dimensions {
 						switch k {
 						case "container_id":
-							meta.ContainerID = v
-							meta.Tags["container_id"] = v
-						case "container_name":
-							meta.ContainerName = v
-							meta.Tags["container_name"] = v
+							containerMeta.ContainerID = v
+							containerMeta.Tags["container_id"] = v
+						case "name", "container_name":
+							containerMeta.ContainerName = v
+							containerMeta.Tags["container_name"] = v
 						case "image":
-							meta.ImageID = v
-							meta.Tags["image"] = v
+							containerMeta.ImageID = v
+							containerMeta.Tags["image"] = v
 						default:
-							meta.Tags[k] = v
+							containerMeta.Tags[k] = v
 						}
 					}
-
-					// Populate meta with common tags like hostname and IP
-					meta.Hostname = hostname
-					meta.IPAddress = utils.GetLocalIP()
-
-					// Generate endpoint ID for this container
-					if meta.Tags == nil {
-						meta.Tags = make(map[string]string)
-					}
-					meta.Tags["endpoint_id"] = utils.GenerateEndpointID(meta)
+					meta.BuildStandardTags(containerMeta, m, true)
+					utils.Debug("🔍 Container Meta Tags: %v", containerMeta.Tags)
 				} else {
 					// Host metrics, collect them separately
 					hostMetrics = append(hostMetrics, m)
@@ -104,20 +88,16 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 
 			// Send host metrics as a single payload
 			if len(hostMetrics) > 0 {
-				meta := meta.BuildMeta(cfg, map[string]string{
-					"job":      hostMetrics[0].Namespace,
-					"instance": hostname,
-				})
-				endpointID := utils.GenerateEndpointID(meta)
-				meta.Tags["instance"] = endpointID
-				meta.Tags["endpoint_id"] = endpointID // Attach endpoint ID to host metrics
+				hostMeta := meta.BuildHostMeta(cfg, nil)
+				meta.BuildStandardTags(hostMeta, hostMetrics[0], false)
+
 				payload := model.MetricPayload{
-					Host:      cfg.HostOverride,
+					Host:      cfg.Agent.HostOverride,
 					Timestamp: time.Now(),
 					Metrics:   hostMetrics,
-					Meta:      meta,
+					Meta:      hostMeta,
 				}
-				//utils.Info("📦 META Payload for host. %s -  %s - %s", payload.Meta.Tags["endpoint_id"], payload.Meta.Tags["instance"], payload.Meta.Tags["job"])
+				utils.Info("📦 META Payload for: %s - %v", payload.Host, payload.Meta)
 				select {
 				case taskQueue <- payload:
 				default:
@@ -128,12 +108,12 @@ func RunAgent(ctx context.Context, cfg *config.AgentConfig) {
 			// Send each container as a separate payload
 			for id, metrics := range containerBatches {
 				payload := model.MetricPayload{
-					Host:      cfg.HostOverride,
+					Host:      cfg.Agent.HostOverride,
 					Timestamp: time.Now(),
 					Metrics:   metrics,
 					Meta:      containerMetas[id],
 				}
-				//utils.Info("📦 META Payload for host. %s -  %s - %s", payload.Meta.Tags["endpoint_id"], payload.Meta.Tags["instance"], payload.Meta.Tags["job"])
+				utils.Info("📦 META Payload for: %s - %v", payload.Host, payload.Meta)
 
 				select {
 				case taskQueue <- payload:

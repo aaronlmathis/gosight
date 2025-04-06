@@ -67,7 +67,7 @@ func (h *ContainerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	results := make(map[string]*ContainerMetrics)
 
 	for metric, query := range queries {
-		rows, err := h.Store.QueryInstant(query)
+		rows, err := h.Store.QueryInstant(query, "")
 		if err != nil {
 			http.Error(w, "Query error: "+err.Error(), http.StatusInternalServerError)
 			return

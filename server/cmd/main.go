@@ -35,7 +35,7 @@ func main() {
 
 	// Bootstrap config loading (flags -> env -> file)
 	cfg := bootstrap.LoadServerConfig()
-	fmt.Printf("🔧 About to init logger with level = %s\n", cfg.Server.LogLevel)
+	fmt.Printf("🔧 About to init logger with level = %s\n", cfg.Logs.LogLevel)
 	// Initialize logging
 	bootstrap.SetupLogging(cfg)
 

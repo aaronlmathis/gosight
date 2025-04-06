@@ -59,6 +59,8 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 	r.HandleFunc("/api/{namespace}/{sub}/dimensions", meta.GetDimensions).Methods("GET")
 	r.HandleFunc("/api/{namespace}/{sub}", meta.GetMetricNames).Methods("GET")
 	r.HandleFunc("/api/{namespace}", meta.GetSubNamespaces).Methods("GET")
+	r.HandleFunc("/api/query", meta.HandleAPIQuery).Methods("GET")
+
 	r.HandleFunc("/api", meta.GetNamespaces).Methods("GET")
 
 	// ...

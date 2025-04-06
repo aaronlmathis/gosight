@@ -50,34 +50,42 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type TLSConfig struct {
-	CAFile   string `yaml:"ca_file"`   // used by agent to trust the server
-	CertFile string `yaml:"cert_file"` // optional (for mTLS)
-	KeyFile  string `yaml:"key_file"`  // optional (for mTLS)
+type Config struct {
+	TLS struct {
+		CAFile   string `yaml:"ca_file"`   // used by agent to trust the server
+		CertFile string `yaml:"cert_file"` // optional (for mTLS)
+		KeyFile  string `yaml:"key_file"`  // optional (for mTLS)
+	}
+
+	Logs struct {
+		ErrorLogFile string `yaml:"error_log_file"`
+		AppLogFile   string `yaml:"app_log_file"`
+		LogLevel     string `yaml:"log_level"`
+	}
+
+	Podman struct {
+		Socket string `yaml:"socket"`
+	}
+
+	Agent struct {
+		ServerURL      string            `yaml:"server_url"`
+		Interval       time.Duration     `yaml:"interval"`
+		HostOverride   string            `yaml:"host"`
+		MetricsEnabled []string          `yaml:"metrics_enabled"`
+		Environment    string            `yaml:"environment"`
+		AppLogFile     string            `yaml:"app_log_file"`
+		ErrorLogFile   string            `yaml:"error_log_file"`
+		LogLevel       string            `yaml:"log_level"`
+		CustomTags     map[string]string `yaml:"custom_tags"` // static tags to be sent with every metric
+	}
 }
 
-type PodmanConfig struct {
-	Socket string `yaml:"socket"`
-}
-type AgentConfig struct {
-	ServerURL      string            `yaml:"server_url"`
-	Interval       time.Duration     `yaml:"interval"`
-	HostOverride   string            `yaml:"host"`
-	MetricsEnabled []string          `yaml:"metrics_enabled"`
-	Environment    string            `yaml:"environment"`
-	LogFile        string            `yaml:"log_file"`
-	LogLevel       string            `yaml:"log_level"`
-	TLS            TLSConfig         `yaml:"tls"`
-	Podman         PodmanConfig      `yaml:"podman"`
-	CustomTags     map[string]string `yaml:"custom_tags"` // static tags to be sent with every metric
-}
-
-func LoadConfig(path string) (*AgentConfig, error) {
+func LoadConfig(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	var cfg AgentConfig
+	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
@@ -85,47 +93,50 @@ func LoadConfig(path string) (*AgentConfig, error) {
 	return &cfg, nil
 }
 
-func ApplyEnvOverrides(cfg *AgentConfig) {
-	if val := os.Getenv("AGENT_SERVER_URL"); val != "" {
-		cfg.ServerURL = val
+func ApplyEnvOverrides(cfg *Config) {
+	if val := os.Getenv("GOSIGHT_SERVER_URL"); val != "" {
+		cfg.Agent.ServerURL = val
 	}
-	if val := os.Getenv("AGENT_INTERVAL"); val != "" {
+	if val := os.Getenv("GOSIGHT_INTERVAL"); val != "" {
 		if d, err := time.ParseDuration(val); err == nil {
-			cfg.Interval = d
+			cfg.Agent.Interval = d
 		}
 	}
-	if val := os.Getenv("AGENT_HOST"); val != "" {
-		cfg.HostOverride = val
+	if val := os.Getenv("GOSIGHT_HOST"); val != "" {
+		cfg.Agent.HostOverride = val
 	}
-	if val := os.Getenv("AGENT_METRICS"); val != "" {
+	if val := os.Getenv("GOSIGHT_METRICS"); val != "" {
 		// Comma-separated list
-		cfg.MetricsEnabled = SplitCSV(val)
+		cfg.Agent.MetricsEnabled = SplitCSV(val)
 	}
-	if val := os.Getenv("AGENT_ENVIRONMENT"); val != "" {
-		cfg.Environment = val
+	if val := os.Getenv("GOSIGHT_ENVIRONMENT"); val != "" {
+		cfg.Agent.Environment = val
 	}
-	if val := os.Getenv("AGENT_LOG_FILE"); val != "" {
-		cfg.LogFile = val
+	if val := os.Getenv("GOSIGHT_ERROR_LOG_FILE"); val != "" {
+		cfg.Logs.ErrorLogFile = val
 	}
-	if val := os.Getenv("AGENT_LOG_LEVEL"); val != "" {
-		cfg.LogLevel = val
+	if val := os.Getenv("GOSIGHT_APP_LOG_FILE"); val != "" {
+		cfg.Logs.ErrorLogFile = val
 	}
-	if val := os.Getenv("AGENT_TLS_CERT_FILE"); val != "" {
+	if val := os.Getenv("GOSIGHT_LOG_LEVEL"); val != "" {
+		cfg.Logs.LogLevel = val
+	}
+	if val := os.Getenv("GOSIGHT_TLS_CERT_FILE"); val != "" {
 		cfg.TLS.CertFile = val
 	}
-	if val := os.Getenv("AGENT_TLS_KEY_FILE"); val != "" {
+	if val := os.Getenv("GOSIGHT_TLS_KEY_FILE"); val != "" {
 		cfg.TLS.KeyFile = val
 	}
-	if val := os.Getenv("AGENT_TLS_CA_FILE"); val != "" {
+	if val := os.Getenv("GOSIGHT_TLS_CA_FILE"); val != "" {
 		cfg.TLS.CAFile = val
 	}
-	if val := os.Getenv("AGENT_CUSTOM_TAGS"); val != "" {
+	if val := os.Getenv("GOSIGHT_CUSTOM_TAGS"); val != "" {
 		// Comma-separated list of key=value pairs
 		tags := SplitCSV(val)
 		for _, tag := range tags {
 			parts := strings.SplitN(tag, "=", 2)
 			if len(parts) == 2 {
-				cfg.CustomTags[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+				cfg.Agent.CustomTags[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
 			}
 		}
 	}

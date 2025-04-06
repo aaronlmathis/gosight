@@ -385,8 +385,12 @@ func totalMetricCount(payloads []model.MetricPayload) int {
 }
 
 // QueryInstant fetches the latest data points for a given metric name from VictoriaMetrics
-func (v *VictoriaStore) QueryInstant(metric string) ([]MetricRow, error) {
-	url := fmt.Sprintf("http://localhost:8428/api/v1/query?query=%s", metric)
+func (v *VictoriaStore) QueryInstant(metric string, instance string) ([]MetricRow, error) {
+	query := metric
+	if instance != "" {
+		query = fmt.Sprintf("{__name__=\"%s\", instance=\"%s\"}", metric, instance)
+	}
+	url := fmt.Sprintf("http://localhost:8428/api/v1/query?query=%s", url.QueryEscape(query)) // URL encode the query
 
 	r, err := http.Get(url)
 	if err != nil {
@@ -439,7 +443,6 @@ func (v *VictoriaStore) QueryInstant(metric string) ([]MetricRow, error) {
 func (v *VictoriaStore) QueryRange(metric string, start, end time.Time) ([]model.Point, error) {
 	queryURL := fmt.Sprintf("%s/api/v1/query_range", v.url)
 
-	// Default range if missing
 	if start.IsZero() {
 		start = time.Now().Add(-5 * time.Minute)
 	}
@@ -447,7 +450,6 @@ func (v *VictoriaStore) QueryRange(metric string, start, end time.Time) ([]model
 		end = time.Now()
 	}
 
-	// Build query params
 	params := url.Values{}
 	params.Set("query", metric)
 	params.Set("start", start.Format(time.RFC3339))
@@ -455,6 +457,7 @@ func (v *VictoriaStore) QueryRange(metric string, start, end time.Time) ([]model
 	params.Set("step", "15s")
 
 	fullURL := fmt.Sprintf("%s?%s", queryURL, params.Encode())
+	utils.Debug("📡 QueryRange URL: %s", fullURL) // Log the URL
 
 	resp, err := http.Get(fullURL)
 	if err != nil {
@@ -466,46 +469,51 @@ func (v *VictoriaStore) QueryRange(metric string, start, end time.Time) ([]model
 	if err != nil {
 		return nil, fmt.Errorf("read failed: %w", err)
 	}
+	utils.Debug("📡 QueryRange Response Body: %s", string(body)) // Log the response body
 
 	var parsed struct {
 		Status string `json:"status"`
 		Data   struct {
 			ResultType string `json:"resultType"`
 			Result     []struct {
-				Values [][]interface{} `json:"values"`
+				Metric map[string]string `json:"metric"`
+				Values [][]interface{}   `json:"values"`
 			} `json:"result"`
 		} `json:"data"`
 	}
 
 	if err := json.Unmarshal(body, &parsed); err != nil {
-		return nil, fmt.Errorf("parse error: %w", err)
+		return nil, fmt.Errorf("parse error: %w, body: %s", err, string(body)) // Log parse error and body
 	}
-	if parsed.Status != "success" || len(parsed.Data.Result) == 0 {
-		return nil, nil // no data
+	if parsed.Status != "success" {
+		return nil, fmt.Errorf("VictoriaMetrics query failed: %s, body: %s", parsed.Status, string(body)) // Log query failure
 	}
 
 	var points []model.Point
-	for _, series := range parsed.Data.Result {
+	for _, series := range parsed.Data.Result { // Iterate through each time series
 		for _, value := range series.Values {
 			tRaw, ok1 := value[0].(float64)
 			vRaw, ok2 := value[1].(string)
 			if !ok1 || !ok2 {
+				utils.Debug("⚠️ Skipping invalid value in QueryRange: %v", value)
 				continue
 			}
 			ts := time.Unix(int64(tRaw), 0).UTC().Format(time.RFC3339)
 			val, err := strconv.ParseFloat(vRaw, 64)
 			if err != nil {
+				utils.Debug("⚠️ Error parsing value in QueryRange: %v, error: %v", vRaw, err)
 				continue
 			}
 			points = append(points, model.Point{Timestamp: ts, Value: val})
 		}
 	}
 
+	utils.Debug("📡 QueryRange Returning %d points", len(points)) // Log the number of points
 	return points, nil
 }
 
 func (v *VictoriaStore) QueryAll(metric string) ([]model.Point, error) {
-	start := time.Unix(0, 0)                // Unix epoch
 	end := time.Now().UTC()                 // current time
+	start := end.Add(-1 * time.Hour)        // Default to the last hour
 	return v.QueryRange(metric, start, end) // reuse existing method
 }

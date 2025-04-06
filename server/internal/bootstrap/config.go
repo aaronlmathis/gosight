@@ -40,8 +40,8 @@ func LoadServerConfig() *config.Config {
 	httpFlag := flag.String("http", "", "Overrid http servere listen address")
 	envFlag := flag.String("env", "", "Environment (dev / test / prod)")
 	logLevelFlag := flag.String("log-level", "", "Log level (debug, info, warn, error)")
-	logFileFlag := flag.String("log-file", "", "Path to log file")
-
+	appLogFileFlag := flag.String("applog", "", "Path to log file")
+	errorLogFileFlag := flag.String("errorlog", "", "Path to log file")
 	flag.Parse()
 
 	// Resolve config path
@@ -69,10 +69,13 @@ func LoadServerConfig() *config.Config {
 		cfg.Server.Environment = *envFlag
 	}
 	if *logLevelFlag != "" {
-		cfg.Server.LogLevel = *logLevelFlag
+		cfg.Logs.LogLevel = *logLevelFlag
 	}
-	if *logFileFlag != "" {
-		cfg.Server.LogFile = *logFileFlag
+	if *appLogFileFlag != "" {
+		cfg.Logs.AppLogFile = *appLogFileFlag
+	}
+	if *errorLogFileFlag != "" {
+		cfg.Logs.AppLogFile = *errorLogFileFlag
 	}
 	return cfg
 }

@@ -39,7 +39,7 @@ func main() {
 
 	// Bootstrap config loading (flags -> env -> file)
 	cfg := bootstrap.LoadAgentConfig()
-	fmt.Printf("🔧 About to init logger with level = %s\n", cfg.LogLevel)
+	fmt.Printf("🔧 About to init logger with level = %s\n", cfg.Logs.LogLevel)
 	bootstrap.SetupLogging(cfg)
 	utils.Debug("✅ Debug logging is active from main.go")
 	// Graceful shutdown context

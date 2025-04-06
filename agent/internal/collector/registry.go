@@ -40,10 +40,10 @@ type Registry struct {
 }
 
 // NewRegistry initializes and registers enabled collectors
-func NewRegistry(cfg *config.AgentConfig) *Registry {
+func NewRegistry(cfg *config.Config) *Registry {
 	reg := &Registry{Collectors: make(map[string]Collector)}
 
-	for _, name := range cfg.MetricsEnabled {
+	for _, name := range cfg.Agent.MetricsEnabled {
 		switch name {
 		case "cpu":
 			reg.Collectors["cpu"] = system.NewCPUCollector()

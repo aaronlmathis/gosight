@@ -50,25 +50,34 @@ var (
 	debugLog *log.Logger
 )
 
-func InitLogger(logFile string, level string) error {
-	var output io.Writer = os.Stdout
+func InitLogger(appLogFile, errorLogFile, logLevel string) error {
+	var errorOutput io.Writer = os.Stdout
+	var appOutput io.Writer = os.Stdout
 
 	// Try to open file if provided
-	if logFile != "" {
-		f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if errorLogFile != "" {
+		f, err := os.OpenFile(errorLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
 		}
-		output = f
+		errorOutput = f
 	}
 
-	infoLog = log.New(output, "[INFO] ", log.LstdFlags)
-	warnLog = log.New(output, "[WARN] ", log.LstdFlags)
-	errorLog = log.New(output, "[ERROR] ", log.LstdFlags)
-	debugLog = log.New(output, "[DEBUG] ", log.LstdFlags)
+	if appLogFile != "" {
+		f, err := os.OpenFile(appLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return err
+		}
+		appOutput = f
+	}
+
+	infoLog = log.New(appOutput, "[INFO] ", log.LstdFlags)
+	warnLog = log.New(errorOutput, "[WARN] ", log.LstdFlags)
+	errorLog = log.New(errorOutput, "[ERROR] ", log.LstdFlags)
+	debugLog = log.New(errorOutput, "[DEBUG] ", log.LstdFlags)
 
 	// Enable debug mode if requested
-	if strings.ToLower(level) == "debug" {
+	if strings.ToLower(logLevel) == "debug" {
 		debugEnabled = true
 	}
 	fmt.Printf("🧪 Log system initialized. Debug enabled: %v", debugEnabled)
