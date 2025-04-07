@@ -32,36 +32,28 @@ import (
 
 func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore store.MetricStore, staticDir, templateDir, env string) {
 
-	// Serve static assets
-	fs := http.FileServer(http.Dir(staticDir))
-	r.PathPrefix("/css/").Handler(fs)
-	r.PathPrefix("/js/").Handler(fs)
-	r.PathPrefix("/images/").Handler(fs)
-
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		RenderIndexPage(w, r, templateDir, env)
+		HandleIndex(w, r, templateDir, env)
 	})
 	r.HandleFunc("/agents", func(w http.ResponseWriter, r *http.Request) {
 		RenderAgentsPage(w, r, templateDir, env)
 	})
-	r.HandleFunc("/containers", func(w http.ResponseWriter, r *http.Request) {
-		RenderContainersPage(w, r, templateDir, env)
+	r.HandleFunc("/endpoints", func(w http.ResponseWriter, r *http.Request) {
+		HandleEndpoints(w, r, templateDir)
 	})
 
-	r.Handle("/api/containers", &ContainerHandler{Store: metricStore})
-
+	r.Handle("/api/endpoints/containers", &ContainerHandler{Store: metricStore})
+	r.Handle("/api/endpoints/hosts", &HostsHandler{Store: metricStore})
 	r.HandleFunc("/api/agents", HandleAgentsAPI).Methods("GET")
 
 	meta := NewMetricMetaHandler(metricIndex, metricStore)
-
+	r.HandleFunc("/api", meta.GetNamespaces).Methods("GET")
 	r.HandleFunc("/api/{namespace}/{sub}/{metric}/latest", meta.GetLatestValue).Methods("GET")
 	r.HandleFunc("/api/{namespace}/{sub}/{metric}/data", meta.GetMetricData).Methods("GET")
 	r.HandleFunc("/api/{namespace}/{sub}/dimensions", meta.GetDimensions).Methods("GET")
 	r.HandleFunc("/api/{namespace}/{sub}", meta.GetMetricNames).Methods("GET")
 	r.HandleFunc("/api/{namespace}", meta.GetSubNamespaces).Methods("GET")
 	r.HandleFunc("/api/query", meta.HandleAPIQuery).Methods("GET")
-
-	r.HandleFunc("/api", meta.GetNamespaces).Methods("GET")
 
 	// ...
 }

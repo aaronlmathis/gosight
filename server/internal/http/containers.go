@@ -27,11 +27,11 @@ package httpserver
 
 import (
 	"fmt"
+	"html/template"
 	"net/http"
 	"path/filepath"
 	"sort"
 	"strings"
-	"text/template"
 
 	"github.com/aaronlmathis/gosight/server/internal/store"
 	"github.com/aaronlmathis/gosight/shared/utils"
@@ -173,4 +173,21 @@ func RenderContainersPage(w http.ResponseWriter, r *http.Request, templateDir, e
 	}
 
 	_ = tmpl.Execute(w, data)
+}
+
+func HandleEndpoints(w http.ResponseWriter, r *http.Request, templateDir string) {
+	containerTemplate := filepath.Join(templateDir, "endpoints.html")
+	layoutTemplate := filepath.Join(templateDir, "layout.html")
+	tmpl, err := template.ParseFiles(containerTemplate, layoutTemplate)
+
+	if err != nil {
+		http.Error(w, "Template parsing error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// You can pass real data here if needed
+	err = tmpl.ExecuteTemplate(w, "layout.html", nil)
+	if err != nil {
+		http.Error(w, "Template execution error: "+err.Error(), http.StatusInternalServerError)
+	}
 }

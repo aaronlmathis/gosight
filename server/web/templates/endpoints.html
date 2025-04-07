@@ -1,0 +1,93 @@
+{{ define "title" }}Endpoints Dashboard{{ end }}
+
+{{ define "content" }}
+
+<main class="pt-16 px-6 pb-10">
+  <div class="flex justify-between items-center mb-4">
+    <div>
+      <h1 class="text-2xl font-bold">Endpoints</h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400">Live endpoint metrics across agents</p>
+    </div>
+  </div>
+
+  <!-- Host Endpoints Section -->
+  <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4 mb-8">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-semibold">Host Endpoints</h2>
+      <span class="text-sm text-gray-500 dark:text-gray-400" id="endpoint-count">-- total</span>
+    </div>
+
+    <div class="flex flex-wrap gap-4 mb-4 text-sm">
+      <input id="filter-hostname" type="text" placeholder="Filter by Hostname" class="px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+      <input id="filter-ip" type="text" placeholder="Filter by IP" class="px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+      <input id="filter-os" type="text" placeholder="Filter by OS" class="px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+      <input id="filter-arch" type="text" placeholder="Filter by Arch" class="px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+      <select id="filter-host-status" class="px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+        <option value="">All Statuses</option>
+        <option value="online">Online</option>
+        <option value="offline">Offline</option>
+      </select>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm table-auto border-collapse">
+        <thead class="bg-gray-100 dark:bg-gray-700 text-left">
+          <tr>
+            <th class="px-4 py-2">Hostname</th>
+            <th class="px-4 py-2">IP Address</th>
+            <th class="px-4 py-2">OS</th>
+            <th class="px-4 py-2">Arch</th>
+            <th class="px-4 py-2">Status</th>
+          </tr>
+        </thead>
+        <tbody id="endpoint-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Container Metrics Section -->
+  <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-semibold">Container Endpoints</h2>
+      <span class="text-sm text-gray-500 dark:text-gray-400" id="endpoint-count">-- total</span>
+    </div>
+    <div class="flex flex-wrap gap-4 mb-4">
+      <select id="filter-container-status" class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+        <option value="">All Statuses</option>
+        <option value="running">Running</option>
+        <option value="stopped">Stopped</option>
+      </select>
+      <select id="filter-runtime" class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+        <option value="">All Types</option>
+        <option value="podman">Podman</option>
+        <option value="docker">Docker</option>
+      </select>
+      <input id="filter-host" type="text" placeholder="Filter by Host" class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm table-auto border-collapse">
+        <thead class="bg-gray-100 dark:bg-gray-700 text-left">
+          <tr>
+            <th class="px-4 py-2">Name</th>
+            <th class="px-4 py-2">Host</th>
+
+            <th class="px-4 py-2">Image</th>
+            <th class="px-4 py-2">Status</th>
+            <th class="px-4 py-2">CPU %</th>
+            <th class="px-4 py-2">Mem</th>
+            <th class="px-4 py-2">RX</th>
+            <th class="px-4 py-2">TX</th>
+            <th class="px-4 py-2">Uptime</th>
+          </tr>
+        </thead>
+        <tbody id="container-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+{{ end }}
+
+{{ define "scripts" }}
+<script type="module" src="/js/endpoints.js" defer></script>
+{{ end }}

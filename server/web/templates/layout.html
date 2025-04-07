@@ -1,0 +1,66 @@
+<!-- layout.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>GoSight Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/output.css" />
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white font-sans antialiased">
+
+  <div class="flex min-h-screen">
+    <!-- Sidebar (left nav) -->
+    <aside class="w-64 bg-gray-900 text-gray-100 p-6 flex flex-col justify-between border-r border-gray-800">
+        <div>
+            <div class="flex items-center justify-between mb-10">
+              <h1 class="text-xl font-bold text-blue-400">GoSight</h1>
+              <span class="text-xs bg-gray-800 text-gray-300 font-semibold px-2 py-1 rounded">DEV</span>
+            </div>
+            <nav class="space-x-1 space-y-1">
+                <a href="/" class="block px-3 py-2 rounded hover:bg-gray-800">Dashboard</a>
+                <a href="/metrics" class="block px-3 py-2 rounded hover:bg-gray-800">Metrics</a>
+                <a href="/agents" class="block px-3 py-2 rounded hover:bg-gray-800">Agents</a>
+                <a href="/endpoints" class="block px-3 py-2 rounded bg-gray-800">Endpoints</a>
+                <a href="/logs" class="block px-3 py-2 rounded hover:bg-gray-800">Logs</a>
+                <a href="/config" class="block px-3 py-2 rounded hover:bg-gray-800">Config</a>
+            </nav>
+
+
+
+    </div>
+    <div class="text-gray-500 text-sm">
+        <p>Version: 1.0.0</p>
+
+    </div>
+    </aside>
+
+    <!-- Main content (right side) -->
+    <div class="flex-1 flex flex-col">
+      <!-- Top Nav -->
+      <header class="bg-white dark:bg-gray-800 shadow h-14 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700">
+        <div class="text-gray-600 dark:text-gray-300 text-sm">
+          {{ block "title" . }}Dashboard{{ end }}
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="text-sm text-gray-500 dark:text-gray-300">
+            Last updated: <span id="last-updated">--</span>
+          </div>
+          <button id="darkToggle"
+            class="text-sm text-gray-600 dark:text-gray-300 border px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+            Toggle Dark Mode
+          </button>
+        </div>
+      </header>
+      <!-- Main Content -->
+      <main class="flex-1 overflow-y-auto p-6">
+        {{ block "content" . }}{{ end }}
+      </main>
+    </div>
+  </div>
+
+  {{ block "scripts" . }}
+
+{{ end }}
+</body>
+</html>

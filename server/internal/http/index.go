@@ -48,3 +48,31 @@ func RenderIndexPage(w http.ResponseWriter, r *http.Request, templateDir, env st
 
 	tmpl.Execute(w, data)
 }
+
+func HandleIndex(w http.ResponseWriter, r *http.Request, templateDir, env string) {
+	layout := filepath.Join(templateDir, "layout.html")
+	page := filepath.Join(templateDir, "index.html")
+	tmpl, err := template.ParseFiles(layout, page)
+
+	if err != nil {
+		http.Error(w, "Template parsing error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = tmpl.ExecuteTemplate(w, "layout.html", nil)
+	if err != nil {
+		http.Error(w, "Template execution error: "+err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func staticWithProperMIMEs(fs http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch filepath.Ext(r.URL.Path) {
+		case ".js":
+			w.Header().Set("Content-Type", "application/javascript")
+		case ".css":
+			w.Header().Set("Content-Type", "text/css")
+		}
+		fs.ServeHTTP(w, r)
+	})
+}

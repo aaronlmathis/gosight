@@ -1,7 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GoSight Dashboard</title>
+  <link href="/css/output.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/js/init.js" type="module" defer></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased">
 
-{{ define "title" }}Dashboard{{ end }}
+  <div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-gray-900 text-gray-100 p-6 flex flex-col justify-between border-r border-gray-800">
+      <div>
+        <div class="flex items-center justify-between mb-10">
+          <h1 class="text-xl font-bold text-blue-400">GoSight</h1>
+          <span class="text-xs bg-gray-800 text-gray-300 font-semibold px-2 py-1 rounded">DEV</span>
+        </div>
+        <nav class="space-y-1">
+          <a href="/" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Dashboard</a>
+          <a href="#" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Metrics</a>
+          
+          <a href="/agents" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Agents</a>
+          <a href="/containers" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Containers</a>
+          <a href="#" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Logs</a>
+          <a href="#" class="block px-3 py-2 rounded-md hover:bg-gray-800 transition">Config</a>
+        </nav>
+      </div>
+    </aside>
 
-{{ define "content" }}
     <!-- Main content -->
     <main class="flex-1 p-8">
       <!-- Header -->
@@ -73,8 +101,7 @@
 
       </section>
     </main>
-    {{ end }}
-    {{ define "scripts" }}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="/js/ui.js" type="module" defer></script>
-    {{ end }}
+  </div>
+
+</body>
+</html>

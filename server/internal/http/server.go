@@ -25,7 +25,9 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package httpserver
 
 import (
+	"fmt"
 	"net/http"
+	"path/filepath"
 
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/store"
@@ -40,9 +42,54 @@ func StartHTTPServer(cfg *config.Config, tracker *store.AgentTracker, metricStor
 	apiStore := &APIMetricStore{Store: metricStore}
 	SetupRoutes(router, metricIndex, apiStore, cfg.Web.StaticDir, cfg.Web.TemplateDir, cfg.Server.Environment)
 
+	// Static file server
+	staticDir := http.Dir(cfg.Web.StaticDir)
+	fs := http.FileServer(staticDir)
+
+	router.PathPrefix("/js/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Set MIME type for all .js files
+		switch filepath.Ext(r.URL.Path) {
+		case ".js":
+			w.Header().Set("Content-Type", "application/javascript")
+		case ".css":
+			w.Header().Set("Content-Type", "text/css")
+		}
+
+		// Full path to the file on disk
+		fullPath := filepath.Join(cfg.Web.StaticDir, r.URL.Path)
+
+		// Serve it
+		http.ServeFile(w, r, fullPath)
+	})
+
+	router.PathPrefix("/css/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Set MIME type for all .js files
+		switch filepath.Ext(r.URL.Path) {
+		case ".js":
+			w.Header().Set("Content-Type", "application/javascript")
+		case ".css":
+			w.Header().Set("Content-Type", "text/css")
+		}
+
+		// Full path to the file on disk
+		fullPath := filepath.Join(cfg.Web.StaticDir, r.URL.Path)
+
+		// Serve it
+		http.ServeFile(w, r, fullPath)
+	})
+
+	router.PathPrefix("/images/").Handler(http.StripPrefix("/images/", fs))
+
+	// Optional request logger
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Printf("📡 %s %s\n", r.Method, r.URL.Path)
+			next.ServeHTTP(w, r)
+		})
+	})
+
 	utils.Info("🌐 HTTP server running at %s", cfg.Server.HTTPAddr)
 	if err := http.ListenAndServe(cfg.Server.HTTPAddr, router); err != nil {
 		utils.Error("HTTP server failed: %v", err)
 	}
-
 }
