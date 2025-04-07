@@ -41,7 +41,9 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 	r.HandleFunc("/endpoints", func(w http.ResponseWriter, r *http.Request) {
 		HandleEndpoints(w, r, templateDir)
 	})
-
+	r.HandleFunc("/mockup", func(w http.ResponseWriter, r *http.Request) {
+		RenderMockupPage(w, r, templateDir)
+	})
 	r.Handle("/api/endpoints/containers", &ContainerHandler{Store: metricStore})
 	r.Handle("/api/endpoints/hosts", &HostsHandler{Store: metricStore})
 	r.HandleFunc("/api/agents", HandleAgentsAPI).Methods("GET")

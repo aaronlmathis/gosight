@@ -53,6 +53,8 @@ func NewRegistry(cfg *config.Config) *Registry {
 			reg.Collectors["disk"] = system.NewDiskCollector()
 		case "host":
 			reg.Collectors["host"] = system.NewHostCollector()
+		case "net":
+			reg.Collectors["net"] = system.NewNetworkCollector()
 		case "podman":
 			reg.Collectors["podman"] = container.NewPodmanCollectorWithSocket(cfg.Podman.Socket)
 		default:
