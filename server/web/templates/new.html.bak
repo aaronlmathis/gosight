@@ -1,79 +1,116 @@
 {{ define "title" }}Dashboard{{ end }} {{ define "content" }}
 <section
-  class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm 2xl:col-span-2 dark:border-gray-700 sm:p-6 dark:bg-gray-800">
-  <h2
-    class="text-xl font-semibold text-gray-800 dark:text-white mb-4 sticky top-0 bg-white dark:bg-gray-800 z-10 pb-2 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+  class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm 2xl:col-span-2 dark:border-gray-700 sm:p-6 dark:bg-gray-800"
+>
+  <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">
     Host: <span class="text-blue-500">hostname123</span>
   </h2>
-
-
 
   <!-- Flowbite Tabs -->
   <ul
     class="flex flex-wrap text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400"
-    id="dashboardTabs" data-tabs-toggle="#dashboardTabContent" role="tablist">
+    id="dashboardTabs"
+    data-tabs-toggle="#dashboardTabContent"
+    role="tablist"
+  >
     <li class="mr-2" role="presentation">
-      <button class="inline-block p-4 rounded-t-lg border-b-2 active" id="overview-tab" data-tabs-target="#overview"
-        type="button" role="tab" aria-controls="overview" aria-selected="true">
+      <button
+        class="inline-block p-4 rounded-t-lg border-b-2 active"
+        id="overview-tab"
+        data-tabs-target="#overview"
+        type="button"
+        role="tab"
+        aria-controls="overview"
+        aria-selected="true"
+      >
         Overview
       </button>
     </li>
     <li class="mr-2" role="presentation">
-      <button class="inline-block p-4 rounded-t-lg border-b-2" id="cpu-tab" data-tabs-target="#cpu" type="button"
-        role="tab" aria-controls="cpu" aria-selected="false">
+      <button
+        class="inline-block p-4 rounded-t-lg border-b-2"
+        id="cpu-tab"
+        data-tabs-target="#cpu"
+        type="button"
+        role="tab"
+        aria-controls="cpu"
+        aria-selected="false"
+      >
         CPU
       </button>
     </li>
     <li class="mr-2" role="presentation">
-      <button class="inline-block p-4 rounded-t-lg border-b-2" id="memory-tab" data-tabs-target="#memory" type="button"
-        role="tab" aria-controls="memory" aria-selected="false">
+      <button
+        class="inline-block p-4 rounded-t-lg border-b-2"
+        id="memory-tab"
+        data-tabs-target="#memory"
+        type="button"
+        role="tab"
+        aria-controls="memory"
+        aria-selected="false"
+      >
         Memory
       </button>
     </li>
     <li class="mr-2" role="presentation">
-      <button class="inline-block p-4 rounded-t-lg border-b-2" id="disk-tab" data-tabs-target="#disk" type="button"
-        role="tab" aria-controls="disk" aria-selected="false">
+      <button
+        class="inline-block p-4 rounded-t-lg border-b-2"
+        id="disk-tab"
+        data-tabs-target="#disk"
+        type="button"
+        role="tab"
+        aria-controls="disk"
+        aria-selected="false"
+      >
         Disk
       </button>
     </li>
     <li class="mr-2" role="presentation">
-      <button class="inline-block p-4 rounded-t-lg border-b-2" id="network-tab" data-tabs-target="#network"
-        type="button" role="tab" aria-controls="network" aria-selected="false">
+      <button
+        class="inline-block p-4 rounded-t-lg border-b-2"
+        id="network-tab"
+        data-tabs-target="#network"
+        type="button"
+        role="tab"
+        aria-controls="network"
+        aria-selected="false"
+      >
         Network
       </button>
     </li>
     <li class="mr-2" role="presentation">
-      <button class="inline-block p-4 rounded-t-lg border-b-2" id="host-tab" data-tabs-target="#host" type="button"
-        role="tab" aria-controls="host" aria-selected="false">
+      <button
+        class="inline-block p-4 rounded-t-lg border-b-2"
+        id="host-tab"
+        data-tabs-target="#host"
+        type="button"
+        role="tab"
+        aria-controls="host"
+        aria-selected="false"
+      >
         Host Info
       </button>
     </li>
   </ul>
 
   <div id="dashboardTabContent">
-    {{ template "overview-tab" . }}
-    {{ template "cpu-tab" . }}
-    {{ template "memory-tab" . }}
-    {{ template "disk-tab" . }}
-    {{ template "network-tab" . }}
+    {{ template "overview-tab" . }} {{ template "cpu-tab" . }}{{ template
+    "memory-tab" . }} {{ template "disk-tab" . }} {{ template "network-tab" . }}
     {{ template "host-tab" . }}
   </div>
 </section>
-
-
 {{ end }} {{ define "overview-tab" }}
-<div class="p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+<div
+  class="p-4 rounded-lg bg-gray-50 dark:bg-gray-800"
+  id="overview"
+  role="tabpanel"
+  aria-labelledby="overview-tab"
+>
   <!-- Metrics Row: CPU, Memory, Disk (1 row of 3) -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
     <div
-      class="relative p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between h-full">
-      <!-- Icon -->
-      <div class="absolute top-4 right-4 text-blue-400">
-        <!-- Heroicon: Chip / CPU -->
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v1M15 4v1M9 19v1M15 19v1M4 9h1M4 15h1M19 9h1M19 15h1M7 7h10v10H7V7z" />
-        </svg>
-      </div>
+      class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full"
+    >
       <p class="text-sm text-gray-500 dark:text-gray-400">CPU Usage</p>
       <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
         23%
@@ -84,16 +121,9 @@
       </div>
     </div>
 
-    <div class="relative p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg
-    shadow-sm hover:shadow-md flex flex-col justify-between h-full">
-      <!-- Icon -->
-      <div class="absolute top-4 right-4 text-green-400">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16M8 6v12M16 6v12" />
-        </svg>
-      </div>
-
-      <!-- Content -->
+    <div
+      class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full"
+    >
       <p class="text-sm text-gray-500 dark:text-gray-400">Memory Used</p>
       <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
         12.4 GB
@@ -105,14 +135,8 @@
     </div>
 
     <div
-      class="relative p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md flex flex-col justify-between h-full">
-      <!-- Icon -->
-      <div class="absolute top-4 right-4 text-yellow-400">
-        <!-- Heroicon: Chip (or use Archive icon for storage) -->
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4M20 12V6a2 2 0 00-2-2H6a2 2 0 00-2 2v6m16 0v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6" />
-        </svg>
-      </div>
+      class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full"
+    >
       <p class="text-sm text-gray-500 dark:text-gray-400">Disk Used</p>
       <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
         320 GB
@@ -125,14 +149,16 @@
   </div>
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
     <div
-      class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full">
+      class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full"
+    >
       <p class="text-sm text-gray-500 dark:text-gray-400">Containers</p>
       <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">6</p>
       <p class="text-xs text-gray-400 dark:text-gray-500">count</p>
     </div>
 
     <div
-      class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full">
+      class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full"
+    >
       <p class="text-sm text-gray-500 dark:text-gray-400">Uptime</p>
       <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
         42d 4h
@@ -141,7 +167,8 @@
     </div>
 
     <div
-      class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full">
+      class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full"
+    >
       <p class="text-sm text-gray-500 dark:text-gray-400">Processes</p>
       <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
         175
@@ -151,26 +178,40 @@
   </div>
 
   <div class="mt-8">
-    <div class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+    <div
+      class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm"
+    >
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-lg font-semibold">Container Endpoints</h2>
-        <span class="text-sm text-gray-500 dark:text-gray-400" id="endpoint-count">-- total</span>
+        <span
+          class="text-sm text-gray-500 dark:text-gray-400"
+          id="endpoint-count"
+          >-- total</span
+        >
       </div>
       <div class="flex flex-wrap gap-4 mb-4">
-        <select id="filter-container-status"
-          class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+        <select
+          id="filter-container-status"
+          class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700"
+        >
           <option value="">All Statuses</option>
           <option value="running">Running</option>
           <option value="stopped">Stopped</option>
         </select>
-        <select id="filter-runtime"
-          class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+        <select
+          id="filter-runtime"
+          class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700"
+        >
           <option value="">All Types</option>
           <option value="podman">Podman</option>
           <option value="docker">Docker</option>
         </select>
-        <input id="filter-host" type="text" placeholder="Filter by Host"
-          class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
+        <input
+          id="filter-host"
+          type="text"
+          placeholder="Filter by Host"
+          class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700"
+        />
       </div>
 
       <div class="overflow-x-auto">
@@ -189,7 +230,10 @@
               <th class="px-4 py-2">Uptime</th>
             </tr>
           </thead>
-          <tbody id="container-table-body" class="divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody
+            id="container-table-body"
+            class="divide-y divide-gray-200 dark:divide-gray-700"
+          >
             <tr>
               <td class="px-4 py-2">Kassi-Webserver</td>
               <td class="px-4 py-2">DeepThought</td>
@@ -197,7 +241,8 @@
               <td class="px-4 py-2">docker.io/library/nginx:latest</td>
               <td class="px-4 py-2">
                 <span
-                  class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">
+                  class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100"
+                >
                   stopped
                 </span>
               </td>
@@ -214,7 +259,8 @@
               <td class="px-4 py-2">docker.io/library/nginx:latest</td>
               <td class="px-4 py-2">
                 <span
-                  class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">
+                  class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100"
+                >
                   stopped
                 </span>
               </td>
@@ -231,7 +277,8 @@
               <td class="px-4 py-2">docker.io/library/nginx:latest</td>
               <td class="px-4 py-2">
                 <span
-                  class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">
+                  class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100"
+                >
                   stopped
                 </span>
               </td>
@@ -248,7 +295,8 @@
               <td class="px-4 py-2">docker.io/library/nginx:latest</td>
               <td class="px-4 py-2">
                 <span
-                  class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">
+                  class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100"
+                >
                   stopped
                 </span>
               </td>
@@ -265,7 +313,8 @@
               <td class="px-4 py-2">docker.io/library/nginx:latest</td>
               <td class="px-4 py-2">
                 <span
-                  class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">
+                  class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100"
+                >
                   stopped
                 </span>
               </td>
@@ -282,7 +331,8 @@
               <td class="px-4 py-2">docker.io/library/nginx:latest</td>
               <td class="px-4 py-2">
                 <span
-                  class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">
+                  class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100"
+                >
                   stopped
                 </span>
               </td>
@@ -299,7 +349,8 @@
               <td class="px-4 py-2">docker.io/library/nginx:latest</td>
               <td class="px-4 py-2">
                 <span
-                  class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
+                  class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100"
+                >
                   running
                 </span>
               </td>
@@ -319,7 +370,12 @@
   <!-- You can include that portion here if needed -->
 </div>
 {{ end }} {{ define "cpu-tab" }}
-<div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="cpu" role="tabpanel" aria-labelledby="cpu-tab">
+<div
+  class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800"
+  id="cpu"
+  role="tabpanel"
+  aria-labelledby="cpu-tab"
+>
   <div class="space-y-6">
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
       <h3 class="text-xl font-semibold text-gray-800 dark:text-white">
@@ -334,35 +390,47 @@
     </div>
 
     <div
-      class="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm h-48">
-      <canvas id="cpuUsageChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+      class="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm h-48"
+    >
+      <canvas
+        id="cpuUsageChart"
+        class="absolute top-0 left-0 w-full h-full"
+      ></canvas>
     </div>
 
     <div class="grid gap-4 lg:grid-cols-3 items-start">
       <!-- 2x2 metric cards -->
       <div class="lg:col-span-2 grid gap-4 md:grid-cols-2">
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+        <div
+          class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm"
+        >
           <p class="text-sm text-gray-500 dark:text-gray-400">Clock Speed</p>
           <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
             3400
           </p>
           <p class="text-xs text-gray-400 dark:text-gray-500">MHz</p>
         </div>
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+        <div
+          class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm"
+        >
           <p class="text-sm text-gray-500 dark:text-gray-400">Logical Cores</p>
           <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
             16
           </p>
           <p class="text-xs text-gray-400 dark:text-gray-500">count</p>
         </div>
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+        <div
+          class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm"
+        >
           <p class="text-sm text-gray-500 dark:text-gray-400">Physical Cores</p>
           <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
             8
           </p>
           <p class="text-xs text-gray-400 dark:text-gray-500">count</p>
         </div>
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+        <div
+          class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm"
+        >
           <p class="text-sm text-gray-500 dark:text-gray-400">User Time</p>
           <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
             13400
@@ -373,7 +441,8 @@
 
       <!-- Donut Chart -->
       <div
-        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm flex flex-col items-center h-full">
+        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm flex flex-col items-center h-full"
+      >
         <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
           CPU Time Distribution
         </h4>
@@ -383,7 +452,12 @@
   </div>
 </div>
 {{ end }}{{ define "memory-tab" }}
-<div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="memory" role="tabpanel" aria-labelledby="memory-tab">
+<div
+  class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800"
+  id="memory"
+  role="tabpanel"
+  aria-labelledby="memory-tab"
+>
   <div class="space-y-6">
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
       <h3 class="text-xl font-semibold text-gray-800 dark:text-white">
@@ -398,34 +472,46 @@
     </div>
 
     <div
-      class="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm h-48">
-      <canvas id="memoryUsageChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+      class="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm h-48"
+    >
+      <canvas
+        id="memoryUsageChart"
+        class="absolute top-0 left-0 w-full h-full"
+      ></canvas>
     </div>
 
     <div class="grid gap-4 lg:grid-cols-3 items-start">
       <div class="lg:col-span-2 grid gap-4 md:grid-cols-2">
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+        <div
+          class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm"
+        >
           <p class="text-sm text-gray-500 dark:text-gray-400">Used Memory</p>
           <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
             12.3 GB
           </p>
           <p class="text-xs text-gray-400 dark:text-gray-500">Gigabytes</p>
         </div>
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+        <div
+          class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm"
+        >
           <p class="text-sm text-gray-500 dark:text-gray-400">Total Memory</p>
           <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
             32.0 GB
           </p>
           <p class="text-xs text-gray-400 dark:text-gray-500">Gigabytes</p>
         </div>
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+        <div
+          class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm"
+        >
           <p class="text-sm text-gray-500 dark:text-gray-400">Swap Used</p>
           <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
             1.8 GB
           </p>
           <p class="text-xs text-gray-400 dark:text-gray-500">Gigabytes</p>
         </div>
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+        <div
+          class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm"
+        >
           <p class="text-sm text-gray-500 dark:text-gray-400">Free Memory</p>
           <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
             17.9 GB
@@ -435,26 +521,44 @@
       </div>
 
       <div
-        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm flex flex-col items-center h-full">
+        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm flex flex-col items-center h-full"
+      >
         <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
           Memory Breakdown
         </h4>
-        <canvas id="memoryDonutChart" class="w-full h-48 max-w-[240px]"></canvas>
+        <canvas
+          id="memoryDonutChart"
+          class="w-full h-48 max-w-[240px]"
+        ></canvas>
       </div>
     </div>
   </div>
 </div>
 {{ end }} {{ define "disk-tab" }}
-<div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="disk" role="tabpanel" aria-labelledby="disk-tab">
+<div
+  class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800"
+  id="disk"
+  role="tabpanel"
+  aria-labelledby="disk-tab"
+>
   <p class="text-gray-600 dark:text-gray-300">Disk tab coming soon.</p>
 </div>
 {{ end }} {{ define "network-tab" }}
-<div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="network" role="tabpanel"
-  aria-labelledby="network-tab">
+<div
+  class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800"
+  id="network"
+  role="tabpanel"
+  aria-labelledby="network-tab"
+>
   <p class="text-gray-600 dark:text-gray-300">Network tab coming soon.</p>
 </div>
 {{ end }} {{ define "host-tab" }}
-<div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="host" role="tabpanel" aria-labelledby="host-tab">
+<div
+  class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800"
+  id="host"
+  role="tabpanel"
+  aria-labelledby="host-tab"
+>
   <p class="text-gray-600 dark:text-gray-300">Host Info tab coming soon.</p>
 </div>
 {{ end }} {{ define "scripts" }}
