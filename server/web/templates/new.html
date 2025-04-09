@@ -28,9 +28,9 @@
       </button>
     </li>
     <li class="mr-2" role="presentation">
-      <button class="inline-block p-4 rounded-t-lg border-b-2" id="cpu-tab" data-tabs-target="#cpu" type="button"
-        role="tab" aria-controls="cpu" aria-selected="false">
-        CPU
+      <button class="inline-block p-4 rounded-t-lg border-b-2" id="cpu-tab" data-tabs-target="#compute" type="button"
+        role="tab" aria-controls="compute" aria-selected="false">
+        Compute
       </button>
     </li>
     <li class="mr-2" role="presentation">
@@ -72,14 +72,302 @@
   </ul>
 
   <div id="dashboardTabContent">
-    {{ template "overview-tab" . }} {{ template "cpu-tab" . }} {{ template
-    "memory-tab" . }} {{ template "disk-tab" . }} {{ template "network-tab" .
-    }} {{ template "host-tab" . }}{{ template "activity-tab" . }}{{ template "console-tab" . }}
+    {{ template "overview-tab" . }} {{ template "compute-tab" . }} {{ template
+    "memory-tab" . }} {{ template "disk-tab" . }} {{ template "network-tab" . }}
+    {{ template "host-tab" . }}{{ template "activity-tab" . }}{{ template
+    "console-tab" . }}
   </div>
 </section>
 
+{{ end }} {{ define "compute-tab" }}
+<div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="compute" role="tabpanel"
+  aria-labelledby="compute-tab">
+  <div class="space-y-8">
+    <!-- Section Header -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="flex flex-col gap-4">
+        <!-- Section: CPU Usage Chart -->
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            CPU Usage Over Time
+          </h3>
+          <div class="relative h-48 w-full">
+            <canvas id="cpuUsageChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+          </div>
+        </div>
 
+        <!-- Section: CPU Load Chart -->
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            CPU Usage Over Time
+          </h3>
+          <div class="relative h-48 w-full">
+            <canvas id="cpuLoadChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <div class="flex justify-between items-center mb-4">
+          <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">
+            CPU Time Breakdown
+          </h4>
+          <select id="cpu-time-unit"
+            class="text-xs border dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-2 py-1 rounded">
+            <option value="ticks">Ticks</option>
+            <option value="seconds">Seconds</option>
+          </select>
+        </div>
+        <!-- Force a clean height for canvas -->
+        <div class="w-full h-64">
+          <canvas id="cpuDonutChart" class="w-full h-64"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid gap-4 lg:grid-cols-3">
+      <!-- CPU Info -->
+      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">
+          CPU Information
+        </h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-sm text-gray-400">
+          <div>Model: Intel(R) Xeon(R) CPU E5-2676 v3</div>
+          <div>Vendor ID: GenuineIntel</div>
+          <div>Cores: 8</div>
+          <div>Threads: 16</div>
+          <div>Base Clock: 2.40 GHz</div>
+          <div>Cache: 25600 KB</div>
+          <div>Family: 6</div>
+          <div>Model #: 63</div>
+          <div>Stepping: 2</div>
+          <div>Microcode: 0x3c</div>
+        </div>
+      </div>
+
+      <!-- CPU Times -->
+      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-s">
+        <div class="text-base font-semibold text-gray-200 mb-3">
+          CPU Time Counters
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 text-sm text-gray-400">
+          <div>User: 12458.2s</div>
+          <div>System: 9342.8s</div>
+          <div>Idle: 98234.5s</div>
+          <div>Nice: 15.9s</div>
+          <div>Iowait: 123.4s</div>
+          <div>IRQ: 4.0s</div>
+          <div>SoftIRQ: 8.6s</div>
+          <div>Steal: 0.0s</div>
+          <div>Guest: 0.0s</div>
+          <div>GuestNice: 0.0s</div>
+        </div>
+      </div>
+
+      <!-- CPU Kernel Stats -->
+      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-s">
+        <div class="text-base font-semibold text-gray-200 mb-3">
+          CPU Statistics
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm text-gray-400">
+          <div>Context Switches: 1,324,556</div>
+          <div>Interrupts: 87,342</div>
+          <div>Soft Interrupts: 15,239</div>
+          <div>Syscalls: N/A</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section: Memory Usage Chart -->
+  <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+      Memory Usage Over Time
+    </h3>
+    <div class="relative h-48 w-full">
+      <canvas id="memoryUsageChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+    </div>
+  </div>
+
+  <!-- Section: Memory Donut + Memory/Swap Stats -->
+  <div class="grid gap-4 lg:grid-cols-3">
+    <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+      <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+        Memory Breakdown
+      </h4>
+      <div class="relative h-48 w-full">
+        <canvas id="memoryDonutChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+      </div>
+    </div>
+
+    <div class="lg:col-span-2 grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Total Memory</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">
+          32.0
+        </p>
+        <p class="https://*.mrisoftware.com">GB</p>
+      </div>
+      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Used Memory</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">
+          12.4
+        </p>
+        <p class="https://*.mrisoftware.com">GB</p>
+      </div>
+      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Free Memory</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">
+          17.9
+        </p>
+        <p class="https://*.mrisoftware.com">GB</p>
+      </div>
+      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Total Swap</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">
+          4.0
+        </p>
+        <p class="https://*.mrisoftware.com">GB</p>
+      </div>
+      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Used Swap</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">
+          1.8
+        </p>
+        <p class="https://*.mrisoftware.com">GB</p>
+      </div>
+      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Free Swap</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">
+          2.2
+        </p>
+        <p class="https://*.mrisoftware.com">GB</p>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+{{ end }} {{ define "cpu-tab" }}
+<div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="cpu" role="tabpanel" aria-labelledby="cpu-tab">
+  <div class="space-y-6">
+    <!-- CPU Usage Line Chart -->
+    <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+      <div class="flex justify-between items-center mb-2">
+        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+          CPU Usage Over Time
+        </h3>
+        <span class="text-xs text-gray-500 dark:text-gray-400">Auto-refreshing every 2s</span>
+      </div>
+      <div class="relative h-48 w-full">
+        <canvas id="cpuUsageChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+      </div>
+    </div>
+
+    <!-- Donut + Core Info -->
+    <div class="grid gap-4 lg:grid-cols-3">
+      <!-- Donut -->
+      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+        <div class="flex justify-between items-center mb-2">
+          <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">
+            CPU Time Breakdown
+          </h4>
+          <select id="cpu-time-unit"
+            class="text-xs border dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-2 py-1 rounded">
+            <option value="ticks">Ticks</option>
+            <option value="seconds">Seconds</option>
+          </select>
+        </div>
+        <div class="relative h-48 w-full">
+          <canvas id="cpuDonutChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+        </div>
+      </div>
+
+      <!-- Stat Cards -->
+      <div class="lg:col-span-2 grid grid-cols-2 md:grid-cols-3 gap-4 min-h-[92px] flex flex-col justify-center">
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+          <p class="text-sm text-gray-500 dark:text-gray-400">Clock Speed</p>
+          <p class="text-xl font-bold text-blue-600 dark:text-blue-400">
+            3400
+          </p>
+          <p class="text-xs text-gray-400 dark:text-gray-500">MHz</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            Logical Cores
+          </p>
+          <p class="text-xl font-bold text-blue-600 dark:text-blue-400">16</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500">count</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            Physical Cores
+          </p>
+          <p class="text-xl font-bold text-blue-600 dark:text-blue-400">8</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500">count</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CPU Time Grid -->
+    <div class="grid md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
+      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">User Time</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">
+          13400
+        </p>
+        <p class="text-xs text-gray-400 dark:text-gray-500">ticks</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">System Time</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">7200</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500">ticks</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Idle Time</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">
+          28000
+        </p>
+        <p class="text-xs text-gray-400 dark:text-gray-500">ticks</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">I/O Wait</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">1800</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500">ticks</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">SoftIRQ</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">1300</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500">ticks</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">IRQ</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">400</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500">ticks</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Steal</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">250</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500">ticks</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Nice</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">900</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500">ticks</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Guest</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">150</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500">ticks</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Guest Nice</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">75</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500">ticks</p>
+      </div>
+    </div>
+  </div>
+</div>
 {{ end }} {{ define "overview-tab" }}
+
 <div class="p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="overview" role="tabpanel" aria-labelledby="overview-tab">
   <!-- Metrics Row: CPU, Memory, Disk (1 row of 3) -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -104,7 +392,7 @@
     </div>
 
     <div
-      class="relative p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md flex flex-col justify-between h-full">
+      class="relative p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md flex flex-col justify-between h-full">
       <!-- Icon -->
       <div class="absolute top-4 right-4 text-green-400">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -125,7 +413,7 @@
     </div>
 
     <div
-      class="relative p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md flex flex-col justify-between h-full">
+      class="relative p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md flex flex-col justify-between h-full">
       <!-- Icon -->
       <div class="absolute top-4 right-4 text-yellow-400">
         <!-- Heroicon: Chip (or use Archive icon for storage) -->
@@ -155,7 +443,6 @@
         <li>✅ Pod restarted successfully</li>
         <li>ℹ️ Sync completed at 12:42 PM</li>
       </ul>
-
     </div>
 
     <div
@@ -341,12 +628,9 @@
       </div>
     </div>
   </div>
-
-  <!-- Container Table (same layout as before) -->
-  <!-- You can include that portion here if needed -->
 </div>
 
-{{ end }} {{ define "cpu-tab" }}
+{{ end }} {{ define "cpu-tabold" }}
 <div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="cpu" role="tabpanel" aria-labelledby="cpu-tab">
   <div class="space-y-6">
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
@@ -362,21 +646,21 @@
     </div>
 
     <div
-      class="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm h-48">
+      class="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm h-48">
       <canvas id="cpuUsageChart" class="absolute top-0 left-0 w-full h-full"></canvas>
     </div>
 
     <div class="grid gap-4 lg:grid-cols-3 items-start">
       <!-- 2x2 metric cards -->
       <div class="lg:col-span-2 grid gap-4 md:grid-cols-2">
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
           <p class="text-sm text-gray-500 dark:text-gray-400">Clock Speed</p>
           <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
             3400
           </p>
           <p class="text-xs text-gray-400 dark:text-gray-500">MHz</p>
         </div>
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
           <p class="text-sm text-gray-500 dark:text-gray-400">
             Logical Cores
           </p>
@@ -385,7 +669,7 @@
           </p>
           <p class="text-xs text-gray-400 dark:text-gray-500">count</p>
         </div>
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
           <p class="text-sm text-gray-500 dark:text-gray-400">
             Physical Cores
           </p>
@@ -394,7 +678,7 @@
           </p>
           <p class="text-xs text-gray-400 dark:text-gray-500">count</p>
         </div>
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
           <p class="text-sm text-gray-500 dark:text-gray-400">User Time</p>
           <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
             13400
@@ -405,7 +689,7 @@
 
       <!-- Donut Chart -->
       <div
-        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm flex flex-col items-center h-full">
+        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm flex flex-col items-center h-full">
         <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
           CPU Time Distribution
         </h4>
@@ -430,34 +714,34 @@
     </div>
 
     <div
-      class="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm h-48">
+      class="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm h-48">
       <canvas id="memoryUsageChart" class="absolute top-0 left-0 w-full h-full"></canvas>
     </div>
 
     <div class="grid gap-4 lg:grid-cols-3 items-start">
       <div class="lg:col-span-2 grid gap-4 md:grid-cols-2">
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
           <p class="text-sm text-gray-500 dark:text-gray-400">Used Memory</p>
           <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
             12.3 GB
           </p>
           <p class="text-xs text-gray-400 dark:text-gray-500">Gigabytes</p>
         </div>
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
           <p class="text-sm text-gray-500 dark:text-gray-400">Total Memory</p>
           <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
             32.0 GB
           </p>
           <p class="text-xs text-gray-400 dark:text-gray-500">Gigabytes</p>
         </div>
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
           <p class="text-sm text-gray-500 dark:text-gray-400">Swap Used</p>
           <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
             1.8 GB
           </p>
           <p class="text-xs text-gray-400 dark:text-gray-500">Gigabytes</p>
         </div>
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
           <p class="text-sm text-gray-500 dark:text-gray-400">Free Memory</p>
           <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
             17.9 GB
@@ -467,7 +751,7 @@
       </div>
 
       <div
-        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm flex flex-col items-center h-full">
+        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm flex flex-col items-center h-full">
         <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
           Memory Breakdown
         </h4>
@@ -486,7 +770,9 @@
   <div class="space-y-6">
     <!-- Section Header -->
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-      <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Network Overview</h3>
+      <h3 class="text-xl font-semibold text-gray-800 dark:text-white">
+        Network Overview
+      </h3>
       <select id="interface-select"
         class="text-sm mt-4 lg:mt-0 border rounded px-3 py-1 dark:bg-gray-900 border-gray-300 dark:border-gray-700">
         <option value="eth0">eth0</option>
@@ -497,129 +783,136 @@
 
     <!-- Live Delta Row -->
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
-      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
-        <p class="text-sm text-gray-500 dark:text-gray-400">Current Bandwidth</p>
+      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          Current Bandwidth
+        </p>
         <p class="text-xl font-bold text-blue-600 dark:text-blue-400 mt-1">
           ↑ 12.4 Mbps / ↓ 10.2 Mbps
         </p>
-        <p class="text-xs text-gray-400 dark:text-gray-500">eth0 — 1m average</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500">
+          eth0 — 1m average
+        </p>
       </div>
-      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
         <p class="text-sm text-gray-500 dark:text-gray-400">Peak Bandwidth</p>
         <p class="text-xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">
           ↑ 21.6 Mbps / ↓ 18.3 Mbps
         </p>
-        <p class="text-xs text-gray-400 dark:text-gray-500">Observed in last 10m</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500">
+          Observed in last 10m
+        </p>
       </div>
     </div>
 
     <!-- Bandwidth Chart -->
-    <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm h-64">
+    <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm h-64">
       <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">
         Bandwidth Over Time (Mbps)
       </h4>
       <canvas id="networkChart" class="w-full h-full"></canvas>
     </div>
-<!-- Toggle Chart Unit -->
-<div class="flex items-center justify-between mt-8 mb-4">
-  <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">
-    Interface Breakdown
-  </h4>
-  <div class="flex items-center space-x-4">
-    <label class="text-sm text-gray-600 dark:text-gray-400">Chart Unit:</label>
-    <select
-      id="chart-unit"
-      class="text-sm border rounded px-2 py-1 dark:bg-gray-900 border-gray-300 dark:border-gray-700"
-    >
-      <option value="mbps">Mbps</option>
-      <option value="kbps">KBps</option>
-      <option value="bytes">Bytes/sec</option>
-    </select>
-  </div>
-</div>
-    <!-- Packet + Error Stats -->
-    <div class="grid gap-4 lg:grid-cols-4">
-      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
-        <p class="text-sm text-gray-500 dark:text-gray-400">Packets Sent</p>
-        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">18,430</p>
-        <p class="text-xs text-gray-400 dark:text-gray-500">system.network.packets_sent</p>
-      </div>
-      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
-        <p class="text-sm text-gray-500 dark:text-gray-400">Packets Received</p>
-        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">21,917</p>
-        <p class="text-xs text-gray-400 dark:text-gray-500">system.network.packets_recv</p>
-      </div>
-      <div class="bg-white dark:bg-gray-900 border border-red-300 dark:border-red-500 rounded-xl p-4 shadow-sm">
-        <p class="text-sm text-gray-500 dark:text-gray-400">Input Errors</p>
-        <p class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">5</p>
-        <p class="text-xs text-gray-400 dark:text-gray-500">system.network.err_in</p>
-      </div>
-      <div class="bg-white dark:bg-gray-900 border border-red-300 dark:border-red-500 rounded-xl p-4 shadow-sm">
-        <p class="text-sm text-gray-500 dark:text-gray-400">Output Errors</p>
-        <p class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">2</p>
-        <p class="text-xs text-gray-400 dark:text-gray-500">system.network.err_out</p>
+    <!-- Toggle Chart Unit -->
+    <div class="flex items-center justify-between mt-8 mb-4">
+      <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">
+        Interface Breakdown
+      </h4>
+      <div class="flex items-center space-x-4">
+        <label class="text-sm text-gray-600 dark:text-gray-400">Chart Unit:</label>
+        <select id="chart-unit"
+          class="text-sm border rounded px-2 py-1 dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+          <option value="mbps">Mbps</option>
+          <option value="kbps">KBps</option>
+          <option value="bytes">Bytes/sec</option>
+        </select>
       </div>
     </div>
-<!-- Interface Table Controls -->
-<div class="flex justify-between items-center mb-3">
-  <input
-    type="text"
-    id="filter-interface"
-    placeholder="Filter interfaces…"
-    class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700"
-  />
-  <button
-    id="export-csv"
-    class="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-  >
-    ⬇ Export CSV
-  </button>
-</div>
+    <!-- Packet + Error Stats -->
+    <div class="grid gap-4 lg:grid-cols-4">
+      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Packets Sent</p>
+        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+          18,430
+        </p>
+        <p class="text-xs text-gray-400 dark:text-gray-500">
+          system.network.packets_sent
+        </p>
+      </div>
+      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          Packets Received
+        </p>
+        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+          21,917
+        </p>
+        <p class="text-xs text-gray-400 dark:text-gray-500">
+          system.network.packets_recv
+        </p>
+      </div>
+      <div class="bg-white dark:bg-gray-900 border border-red-300 dark:border-red-500 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Input Errors</p>
+        <p class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
+          5
+        </p>
+        <p class="text-xs text-gray-400 dark:text-gray-500">
+          system.network.err_in
+        </p>
+      </div>
+      <div class="bg-white dark:bg-gray-900 border border-red-300 dark:border-red-500 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Output Errors</p>
+        <p class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
+          2
+        </p>
+        <p class="text-xs text-gray-400 dark:text-gray-500">
+          system.network.err_out
+        </p>
+      </div>
+    </div>
+    <!-- Interface Table Controls -->
+    <div class="flex justify-between items-center mb-3">
+      <input type="text" id="filter-interface" placeholder="Filter interfaces…"
+        class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
+      <button id="export-csv" class="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+        ⬇ Export CSV
+      </button>
+    </div>
 
-<!-- Table -->
-<div class="overflow-x-auto">
-  <table
-    id="interface-table"
-    class="min-w-full text-sm table-auto border-collapse"
-  >
-    <thead class="bg-gray-100 dark:bg-gray-700 text-left cursor-pointer">
-      <tr>
-        <th class="px-4 py-2">Interface</th>
-        <th class="px-4 py-2">Upload</th>
-        <th class="px-4 py-2">Download</th>
-        <th class="px-4 py-2">Packets Sent</th>
-        <th class="px-4 py-2">Packets Received</th>
-        <th class="px-4 py-2">Errors In</th>
-        <th class="px-4 py-2">Errors Out</th>
-      </tr>
-    </thead>
-    <tbody
-      id="interface-table-body"
-      class="divide-y divide-gray-200 dark:divide-gray-700"
-    >
-      <tr>
-        <td class="px-4 py-2 font-medium text-blue-500">eth0</td>
-        <td class="px-4 py-2">1.8 GB</td>
-        <td class="px-4 py-2">2.3 GB</td>
-        <td class="px-4 py-2">18,430</td>
-        <td class="px-4 py-2">21,917</td>
-        <td class="px-4 py-2 text-red-600 dark:text-red-400">5</td>
-        <td class="px-4 py-2 text-red-600 dark:text-red-400">2</td>
-      </tr>
-      <tr>
-        <td class="px-4 py-2 font-medium text-blue-500">wlan0</td>
-        <td class="px-4 py-2">745 MB</td>
-        <td class="px-4 py-2">1.1 GB</td>
-        <td class="px-4 py-2">7,893</td>
-        <td class="px-4 py-2">8,120</td>
-        <td class="px-4 py-2 text-green-600 dark:text-green-400">0</td>
-        <td class="px-4 py-2 text-green-600 dark:text-green-400">0</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
-  
+    <!-- Table -->
+    <div class="overflow-x-auto">
+      <table id="interface-table" class="min-w-full text-sm table-auto border-collapse">
+        <thead class="bg-gray-100 dark:bg-gray-700 text-left cursor-pointer">
+          <tr>
+            <th class="px-4 py-2">Interface</th>
+            <th class="px-4 py-2">Upload</th>
+            <th class="px-4 py-2">Download</th>
+            <th class="px-4 py-2">Packets Sent</th>
+            <th class="px-4 py-2">Packets Received</th>
+            <th class="px-4 py-2">Errors In</th>
+            <th class="px-4 py-2">Errors Out</th>
+          </tr>
+        </thead>
+        <tbody id="interface-table-body" class="divide-y divide-gray-200 dark:divide-gray-700">
+          <tr>
+            <td class="px-4 py-2 font-medium text-blue-500">eth0</td>
+            <td class="px-4 py-2">1.8 GB</td>
+            <td class="px-4 py-2">2.3 GB</td>
+            <td class="px-4 py-2">18,430</td>
+            <td class="px-4 py-2">21,917</td>
+            <td class="px-4 py-2 text-red-600 dark:text-red-400">5</td>
+            <td class="px-4 py-2 text-red-600 dark:text-red-400">2</td>
+          </tr>
+          <tr>
+            <td class="px-4 py-2 font-medium text-blue-500">wlan0</td>
+            <td class="px-4 py-2">745 MB</td>
+            <td class="px-4 py-2">1.1 GB</td>
+            <td class="px-4 py-2">7,893</td>
+            <td class="px-4 py-2">8,120</td>
+            <td class="px-4 py-2 text-green-600 dark:text-green-400">0</td>
+            <td class="px-4 py-2 text-green-600 dark:text-green-400">0</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -672,24 +965,20 @@
 {{ end }}{{ define "console-tab" }}
 <!-- Console Tab Panel -->
 <div class="hidden p-4 bg-gray-50 dark:bg-gray-800" id="console" role="tabpanel" aria-labelledby="console-tab">
-  <div class="bg-black text-green-400 font-mono text-sm leading-relaxed whitespace-pre-wrap
-           border border-gray-700 dark:border-gray-600 shadow-inner p-4 overflow-y-auto h-96
-           rounded-md">
+  <div
+    class="bg-black text-green-400 font-mono text-sm leading-relaxed whitespace-pre-wrap border border-gray-700 dark:border-gray-600 shadow-inner p-4 overflow-y-auto h-96 rounded-md">
     top - 14:22:42 up 3 days, 4:17, 2 users, load average: 0.36, 0.28, 0.25
-    Tasks: 223 total, 1 running, 222 sleeping, 0 stopped, 0 zombie
-    %Cpu(s): 3.3 us, 1.1 sy, 0.0 ni, 94.8 id, 0.3 wa, 0.0 hi, 0.5 si, 0.0 st
-
-    KiB Mem : 32782644 total, 12345678 used, 20436966 free, 2345676 buffers
+    Tasks: 223 total, 1 running, 222 sleeping, 0 stopped, 0 zombie %Cpu(s):
+    3.3 us, 1.1 sy, 0.0 ni, 94.8 id, 0.3 wa, 0.0 hi, 0.5 si, 0.0 st KiB Mem :
+    32782644 total, 12345678 used, 20436966 free, 2345676 buffers
 
     <span class="text-blue-400">user</span>@<span class="text-purple-400">hostname123</span>:<span
-      class="text-red-400">~</span>$ <span id="console-input" class="text-cyan-400 animate-pulse">_</span>
+      class="text-red-400">~</span>$
+    <span id="console-input" class="text-cyan-400 animate-pulse">_</span>
   </div>
 </div>
 
-{{ end }}
-{{ define "scripts" }}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://unpkg.com/flowbite@1.7.0/dist/flowbite.min.js"></script>
+{{ end }} {{ define "page-scripts" }}
 
 <script>
   const charts = {};
@@ -778,33 +1067,117 @@
         },
       }
     );
-
-    charts.cpuDonutChart = new Chart(
-      document.getElementById("cpuDonutChart"),
+    charts.cpuLoadChart = new Chart(
+      document.getElementById("cpuLoadChart"),
       {
-        type: "doughnut",
+        type: "line",
         data: {
-          labels: ["User", "System", "Idle", "Nice"],
+          labels: [
+            "10m", "9m", "8m", "7m", "6m",
+            "5m", "4m", "3m", "2m", "1m"
+          ],
           datasets: [
             {
-              label: "CPU Time",
-              data: [13400, 7300, 28000, 1200],
-              backgroundColor: ["#3b82f6", "#10b981", "#9ca3af", "#fbbf24"],
-              borderWidth: 1,
+              label: "CPU Load Avg",
+              data: [0.45, 0.50, 0.65, 0.60, 0.75, 0.90, 1.00, 0.80, 0.70, 0.60],
+              borderColor: "#10b981", // teal-500
+              backgroundColor: "rgba(16, 185, 129, 0.1)",
+              fill: true,
+              tension: 0.3,
+              pointRadius: 2,
             },
           ],
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              suggestedMax: 2.0, // assuming 1 core or more
+              title: {
+                display: true,
+                text: "Load",
+                color: "#6B7280",
+              },
+              ticks: {
+                color: "#6B7280",
+              },
+            },
+            x: {
+              ticks: {
+                color: "#6B7280",
+              },
+            },
+          },
           plugins: {
             legend: {
-              position: "bottom",
               labels: { color: "#4B5563" },
+            },
+            tooltip: {
+              callbacks: {
+                label: function (ctx) {
+                  return `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}`;
+                },
+              },
+            },
+          },
+          animations: {
+            tension: {
+              duration: 1000,
+              easing: "easeInOutQuart",
+              from: 0.3,
+              to: 0,
+              loop: false,
             },
           },
         },
       }
     );
+
+
+    charts.cpuDonutChart = new Chart(document.getElementById("cpuDonutChart"), {
+      type: "doughnut",
+      data: {
+        labels: ["User", "System", "Idle", "Nice"],
+        datasets: [
+          {
+            data: [20, 10, 60, 10],
+            backgroundColor: [
+              "#3b82f6", // User - blue-500
+              "#10b981", // System - green-500
+              "#9ca3af", // Idle - gray-400
+              "#f59e0b", // Nice - amber-500
+            ],
+            borderWidth: 2,
+            borderColor: "#ffffff",
+            hoverOffset: 10,
+          },
+        ],
+      },
+      options: {
+        cutout: "70%",
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              color: "#6B7280", // gray-500
+              boxWidth: 14,
+              font: { size: 12, weight: "500" },
+            },
+          },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                return `${ctx.label}: ${ctx.parsed}%`;
+              },
+            },
+          },
+        },
+      },
+    });
     setInterval(() => {
       if (!charts.cpuUsageChart) return;
 
@@ -824,6 +1197,26 @@
       }
 
       charts.cpuUsageChart.update();
+    }, 2000);
+    setInterval(() => {
+      if (!charts.cpuLoadChart) return;
+
+      // Simulate a new CPU load average between 0.4 and 2.0
+      const nextVal = (Math.random() * 1.6 + 0.4).toFixed(2);
+      const nextLabel = `${charts.cpuLoadChart.data.labels.length + 1}m`;
+
+      console.log(`📈 Adding new CPU Load point: ${nextVal} at ${nextLabel}`);
+
+      charts.cpuLoadChart.data.datasets[0].data.push(parseFloat(nextVal));
+      charts.cpuLoadChart.data.labels.push(nextLabel);
+
+      // Keep last 60 points
+      if (charts.cpuLoadChart.data.labels.length > 60) {
+        charts.cpuLoadChart.data.datasets[0].data.shift();
+        charts.cpuLoadChart.data.labels.shift();
+      }
+
+      charts.cpuLoadChart.update();
     }, 2000);
   };
 
@@ -1184,17 +1577,20 @@
             labels: { color: "#4B5563" },
           },
           tooltip: {
-  callbacks: {
-    title: (ctx) => {
-      const index = ctx[0].dataIndex;
-      const now = new Date();
-      const minutesAgo = 10 - index;
-      const ts = new Date(now.getTime() - minutesAgo * 60 * 1000);
-      return ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    },
-    label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y} Mbps`,
-  },
-},
+            callbacks: {
+              title: (ctx) => {
+                const index = ctx[0].dataIndex;
+                const now = new Date();
+                const minutesAgo = 10 - index;
+                const ts = new Date(now.getTime() - minutesAgo * 60 * 1000);
+                return ts.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+              },
+              label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y} Mbps`,
+            },
+          },
         },
       },
     });
@@ -1224,8 +1620,8 @@
         unit === "mbps"
           ? val
           : unit === "kbps"
-          ? (val * 1000).toFixed(1)
-          : (val * 1000000).toFixed(0)
+            ? (val * 1000).toFixed(1)
+            : (val * 1000000).toFixed(0)
       );
     });
     chart.options.scales.y.ticks.callback = (val) => `${val} ${labels[unit]}`;
@@ -1233,15 +1629,17 @@
   });
 
   // Table filter logic
-  document.getElementById("filter-interface").addEventListener("input", (e) => {
-    const filter = e.target.value.toLowerCase();
-    const rows = document.querySelectorAll("#interface-table-body tr");
-    rows.forEach((row) => {
-      row.style.display = row.innerText.toLowerCase().includes(filter)
-        ? ""
-        : "none";
+  document
+    .getElementById("filter-interface")
+    .addEventListener("input", (e) => {
+      const filter = e.target.value.toLowerCase();
+      const rows = document.querySelectorAll("#interface-table-body tr");
+      rows.forEach((row) => {
+        row.style.display = row.innerText.toLowerCase().includes(filter)
+          ? ""
+          : "none";
+      });
     });
-  });
 
   // Export CSV logic
   document.getElementById("export-csv").addEventListener("click", () => {

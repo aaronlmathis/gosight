@@ -1,0 +1,1680 @@
+{{ define "title" }}Dashboard{{ end }} {{ define "content" }}
+
+<section class="flex-1  bg-white  2xl:col-span-2  dark:bg-gray-800">
+    <!--//<div class="sticky top-0 z-10 bg-white dark:bg-gray-800 shadow-xs">-->
+    <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 bg-white dark:bg-gray-800 pt-2 z-10">
+        Host: <span class="text-blue-500">hostname123</span>
+    </h2>
+    <div class="flex items-center justify-between text-sm mb-4">
+        <div class="flex items-center space-x-3">
+            <span class="text-green-500 font-medium">● Online</span>
+            <span class="text-gray-500 dark:text-gray-400">Last report: 3m ago</span>
+            <span
+                class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">prod</span>
+            <span
+                class="bg-gray-100 text-gray-800 text-xs font-semibold px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-white">k8s</span>
+        </div>
+        <button class="text-sm text-blue-500 hover:underline">↻ Refresh</button>
+    </div>
+    <!-- Host Summary Inline Row (Responsive) -->
+    <div class="flex flex-wrap items-center gap-2 mt-2 text-sm text-gray-700 dark:text-gray-300">
+
+        <!-- Uptime -->
+        <div
+            class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+            <i class="fa-solid fa-clock text-blue-500 text-xs"></i>
+            <span class="font-medium">Uptime:</span>
+            <span>5d 14h 22m</span>
+        </div>
+
+        <!-- Processes -->
+        <div
+            class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+            <i class="fa-solid fa-microchip text-green-500 text-xs"></i>
+            <span class="font-medium">Procs:</span>
+            <span>182</span>
+        </div>
+
+        <!-- Logged-in Users -->
+        <div
+            class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+            <i class="fa-solid fa-user-group text-yellow-500 text-xs"></i>
+            <span class="font-medium">Users:</span>
+            <span>3</span>
+        </div>
+
+        <!-- OS Info -->
+        <div
+            class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+            <i class="fa-solid fa-server text-purple-500 text-xs"></i>
+            <span class="font-medium">OS:</span>
+            <span>Ubuntu 22.04</span>
+        </div>
+
+    </div>
+
+    <!-- Flowbite Tabs -->
+    <ul class="flex flex-wrap text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400"
+        id="dashboardTabs" data-tabs-toggle="#dashboardTabContent" role="tablist">
+        <li class="mr-2" role="presentation">
+            <button class="inline-block p-4 rounded-t-lg border-b-2 active" id="overview-tab"
+                data-tabs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">
+                Overview
+            </button>
+        </li>
+        <li class="mr-2" role="presentation">
+            <button class="inline-block p-4 rounded-t-lg border-b-2" id="cpu-tab" data-tabs-target="#compute"
+                type="button" role="tab" aria-controls="compute" aria-selected="false">
+                Compute
+            </button>
+        </li>
+
+        <li class="mr-2" role="presentation">
+            <button class="inline-block p-4 rounded-t-lg border-b-2" id="disk-tab" data-tabs-target="#disk"
+                type="button" role="tab" aria-controls="disk" aria-selected="false">
+                Disk
+            </button>
+        </li>
+        <li class="mr-2" role="presentation">
+            <button class="inline-block p-4 rounded-t-lg border-b-2" id="network-tab" data-tabs-target="#network"
+                type="button" role="tab" aria-controls="network" aria-selected="false">
+                Network
+            </button>
+        </li>
+
+        <li class="mr-2" role="presentation">
+            <button class="inline-block p-4 rounded-t-lg border-b-2" id="activity-tab" data-tabs-target="#activity"
+                type="button" role="tab" aria-controls="activity" aria-selected="false">
+                Activity
+            </button>
+        </li>
+        <li class="mr-2" role="presentation">
+            <button class="inline-block p-4 rounded-t-lg border-b-2" id="console-tab" data-tabs-target="#console"
+                type="button" role="tab" aria-controls="console" aria-selected="false">
+                Console
+            </button>
+        </li>
+    </ul>
+
+    <div id="dashboardTabContent">
+        {{ template "overview-tab" . }} {{ template "compute-tab" . }} {{ template "disk-tab" . }} {{ template
+        "network-tab" . }}
+        {{ template "activity-tab" . }}{{ template
+        "console-tab" . }}
+    </div>
+</section>
+
+{{ end }} {{ define "compute-tab" }}
+<div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="compute" role="tabpanel"
+    aria-labelledby="compute-tab">
+    <div class="space-y-8">
+        <!-- Section Header -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-4">
+                <!-- Section: CPU Usage Chart -->
+                <div
+                    class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        CPU Usage Over Time
+                    </h3>
+                    <div class="relative h-48 w-full">
+                        <canvas id="cpuUsageChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+                    </div>
+                </div>
+
+                <!-- Section: CPU Load Chart -->
+                <div
+                    class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        CPU Usage Over Time
+                    </h3>
+                    <div class="relative h-48 w-full">
+                        <canvas id="cpuLoadChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                <div class="flex flex-col h-full">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                            CPU Time Breakdown
+                        </h4>
+                        <select id="cpu-time-unit"
+                            class="text-xs border dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-2 py-1 rounded">
+                            <option value="ticks">Ticks</option>
+                            <option value="seconds">Seconds</option>
+                        </select>
+                    </div>
+
+                    <div class="flex-1 relative">
+                        <canvas id="cpuDonutChart" class="absolute inset-0 w-full h-full"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid gap-4 lg:grid-cols-3 mb-6">
+            <!-- CPU Info -->
+            <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">CPU Information</h4>
+                <dl class="text-sm text-gray-600 dark:text-gray-400 grid grid-cols-2 gap-y-2">
+                    <dt class="font-medium">Model</dt>
+                    <dd class="text-right">Xeon E5-2676 v3</dd>
+                    <dt class="font-medium">Vendor</dt>
+                    <dd class="text-right">GenuineIntel</dd>
+                    <dt class="font-medium">Cores</dt>
+                    <dd class="text-right">8</dd>
+                    <dt class="font-medium">Threads</dt>
+                    <dd class="text-right">16</dd>
+                    <dt class="font-medium">Base Clock</dt>
+                    <dd class="text-right">2.40 GHz</dd>
+                    <dt class="font-medium">Cache</dt>
+                    <dd class="text-right">25600 KB</dd>
+                    <dt class="font-medium">Family</dt>
+                    <dd class="text-right">6</dd>
+                    <dt class="font-medium">Model #</dt>
+                    <dd class="text-right">63</dd>
+                    <dt class="font-medium">Stepping</dt>
+                    <dd class="text-right">2</dd>
+                    <dt class="font-medium">Microcode</dt>
+                    <dd class="text-right">0x3c</dd>
+                </dl>
+            </div>
+
+            <!-- CPU Time Counters -->
+            <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">CPU Time Counters</h4>
+                <dl class="text-sm text-gray-600 dark:text-gray-400 grid grid-cols-2 gap-y-2">
+                    <dt class="font-medium">User</dt>
+                    <dd class="text-right">12458.2s</dd>
+                    <dt class="font-medium">System</dt>
+                    <dd class="text-right">9342.8s</dd>
+                    <dt class="font-medium">Idle</dt>
+                    <dd class="text-right">98234.5s</dd>
+                    <dt class="font-medium">Nice</dt>
+                    <dd class="text-right">15.9s</dd>
+                    <dt class="font-medium">Iowait</dt>
+                    <dd class="text-right">123.4s</dd>
+                    <dt class="font-medium">IRQ</dt>
+                    <dd class="text-right">4.0s</dd>
+                    <dt class="font-medium">SoftIRQ</dt>
+                    <dd class="text-right">8.6s</dd>
+                    <dt class="font-medium">Steal</dt>
+                    <dd class="text-right">0.0s</dd>
+                    <dt class="font-medium">Guest</dt>
+                    <dd class="text-right">0.0s</dd>
+                    <dt class="font-medium">GuestNice</dt>
+                    <dd class="text-right">0.0s</dd>
+                </dl>
+            </div>
+
+            <!-- CPU Stats -->
+            <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">CPU Statistics</h4>
+                <dl class="text-sm text-gray-600 dark:text-gray-400 grid grid-cols-2 gap-y-2">
+                    <dt class="font-medium">Context Switches</dt>
+                    <dd class="text-right">1,324,556</dd>
+                    <dt class="font-medium">Interrupts</dt>
+                    <dd class="text-right">87,342</dd>
+                    <dt class="font-medium">Soft Interrupts</dt>
+                    <dd class="text-right">15,239</dd>
+                    <dt class="font-medium">Syscalls</dt>
+                    <dd class="text-right">N/A</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Memory Usage Over Time
+            </h3>
+            <div class="relative h-48 w-full">
+                <canvas id="memoryUsageChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+            </div>
+        </div>
+        <!-- Section: Memory Usage Chart -->
+        <!-- Section: Memory Donut + Memory/Swap Stats -->
+        <div class="grid gap-4 lg:grid-cols-2">
+            <!-- Left: Donut Chart -->
+            <div
+                class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm flex">
+                <!-- Donut chart -->
+                <div class="flex-1 h-60 relative">
+                    <canvas id="memoryDonutChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+                </div>
+
+                <!-- Legend -->
+                <div
+                    class="flex flex-col justify-center items-start pl-6 space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-3 h-3 bg-green-500 rounded-full"></span>
+                        <span>Used</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="w-3 h-3 bg-blue-500 rounded-full"></span>
+                        <span>Free</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="w-3 h-3 bg-orange-400 rounded-full"></span>
+                        <span>Buffers</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="w-3 h-3 bg-red-400 rounded-full"></span>
+                        <span>Cache</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: 3 rows x 2 columns -->
+            <div class="grid grid-cols-3 gap-4">
+                <div
+                    class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Total Memory</p>
+                    <p class="text-xl font-bold text-blue-600 dark:text-blue-400">32.0</p>
+                    <p>GB</p>
+                </div>
+                <div
+                    class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Used Memory</p>
+                    <p class="text-xl font-bold text-blue-600 dark:text-blue-400">12.4</p>
+                    <p>GB</p>
+                </div>
+                <div
+                    class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Free Memory</p>
+                    <p class="text-xl font-bold text-blue-600 dark:text-blue-400">17.9</p>
+                    <p>GB</p>
+                </div>
+                <div
+                    class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Total Swap</p>
+                    <p class="text-xl font-bold text-blue-600 dark:text-blue-400">4.0</p>
+                    <p>GB</p>
+                </div>
+                <div
+                    class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Used Swap</p>
+                    <p class="text-xl font-bold text-blue-600 dark:text-blue-400">1.8</p>
+                    <p>GB</p>
+                </div>
+                <div
+                    class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Free Swap</p>
+                    <p class="text-xl font-bold text-blue-600 dark:text-blue-400">2.2</p>
+                    <p>GB</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ end }}
+{{ define "overview-tab" }}
+
+<div class="p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+    <!-- Metrics Row: CPU, Memory, Disk (1 row of 3) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div
+            class="relative p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between h-full">
+            <!-- Icon -->
+            <div class="absolute top-4 right-4 text-blue-400">
+                <!-- Heroicon: Chip / CPU -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 4v1M15 4v1M9 19v1M15 19v1M4 9h1M4 15h1M19 9h1M19 15h1M7 7h10v10H7V7z" />
+                </svg>
+            </div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">CPU Usage</p>
+            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+                23%
+            </p>
+            <p class="text-xs text-gray-400 dark:text-gray-500">percent</p>
+            <div class="mt-2">
+                <canvas id="miniCpuChart" class="w-full h-20"></canvas>
+            </div>
+        </div>
+
+        <div
+            class="relative p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md flex flex-col justify-between h-full">
+            <!-- Icon -->
+            <div class="absolute top-4 right-4 text-green-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 6h16M4 10h16M4 14h16M4 18h16M8 6v12M16 6v12" />
+                </svg>
+            </div>
+
+            <!-- Content -->
+            <p class="text-sm text-gray-500 dark:text-gray-400">Memory Used</p>
+            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+                12.4 GB
+            </p>
+            <p class="text-xs text-gray-400 dark:text-gray-500">GB</p>
+            <div class="mt-2">
+                <canvas id="miniMemoryChart" class="w-full h-20"></canvas>
+            </div>
+        </div>
+
+        <div
+            class="relative p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md flex flex-col justify-between h-full">
+            <!-- Icon -->
+            <div class="absolute top-4 right-4 text-yellow-400">
+                <!-- Heroicon: Chip (or use Archive icon for storage) -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M20 12H4M20 12V6a2 2 0 00-2-2H6a2 2 0 00-2 2v6m16 0v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6" />
+                </svg>
+            </div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Disk Used</p>
+            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+                320 GB
+            </p>
+            <p class="text-xs text-gray-400 dark:text-gray-500">GB</p>
+            <div class="mt-2">
+                <canvas id="miniDiskChart" class="w-full h-20"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div
+            class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full">
+            <h3 class="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
+                Recent Events
+            </h3>
+            <ul class="text-xs space-y-1">
+                <li>⚠️ High memory usage exceeded 90%</li>
+                <li>✅ Pod restarted successfully</li>
+                <li>ℹ️ Sync completed at 12:42 PM</li>
+            </ul>
+        </div>
+
+        <div
+            class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Uptime</p>
+            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+                42d 4h
+            </p>
+            <p class="text-xs text-gray-400 dark:text-gray-500">duration</p>
+        </div>
+
+        <div
+            class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Processes</p>
+            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+                175
+            </p>
+            <p class="text-xs text-gray-400 dark:text-gray-500">count</p>
+        </div>
+    </div>
+
+    <div class="mt-8">
+        <div
+            class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold">Container Endpoints</h2>
+                <span class="text-sm text-gray-500 dark:text-gray-400" id="endpoint-count">-- total</span>
+            </div>
+            <div class="flex flex-wrap gap-4 mb-4">
+                <select id="filter-container-status"
+                    class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+                    <option value="">All Statuses</option>
+                    <option value="running">Running</option>
+                    <option value="stopped">Stopped</option>
+                </select>
+                <select id="filter-runtime"
+                    class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+                    <option value="">All Types</option>
+                    <option value="podman">Podman</option>
+                    <option value="docker">Docker</option>
+                </select>
+                <input id="filter-host" type="text" placeholder="Filter by Host"
+                    class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm table-auto border-collapse">
+                    <thead class="bg-gray-100 dark:bg-gray-700 text-left">
+                        <tr>
+                            <th class="px-4 py-2">Name</th>
+                            <th class="px-4 py-2">Host</th>
+
+                            <th class="px-4 py-2">Image</th>
+                            <th class="px-4 py-2">Status</th>
+                            <th class="px-4 py-2">CPU %</th>
+                            <th class="px-4 py-2">Mem</th>
+                            <th class="px-4 py-2">RX</th>
+                            <th class="px-4 py-2">TX</th>
+                            <th class="px-4 py-2">Uptime</th>
+                        </tr>
+                    </thead>
+                    <tbody id="container-table-body" class="divide-y divide-gray-200 dark:divide-gray-700">
+                        <tr>
+                            <td class="px-4 py-2">Kassi-Webserver</td>
+                            <td class="px-4 py-2">DeepThought</td>
+
+                            <td class="px-4 py-2">docker.io/library/nginx:latest</td>
+                            <td class="px-4 py-2">
+                                <span
+                                    class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">
+                                    stopped
+                                </span>
+                            </td>
+                            <td class="px-4 py-2">0.0%</td>
+                            <td class="px-4 py-2">—</td>
+                            <td class="px-4 py-2">—</td>
+                            <td class="px-4 py-2">—</td>
+                            <td class="px-4 py-2" title="">194h 42m</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-2">Test-NGINX</td>
+                            <td class="px-4 py-2">DeepThought</td>
+
+                            <td class="px-4 py-2">docker.io/library/nginx:latest</td>
+                            <td class="px-4 py-2">
+                                <span
+                                    class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">
+                                    stopped
+                                </span>
+                            </td>
+                            <td class="px-4 py-2">0.0%</td>
+                            <td class="px-4 py-2">—</td>
+                            <td class="px-4 py-2">—</td>
+                            <td class="px-4 py-2">—</td>
+                            <td class="px-4 py-2" title="">45h 2m</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-2">web-server</td>
+                            <td class="px-4 py-2">DeepThought</td>
+
+                            <td class="px-4 py-2">docker.io/library/nginx:latest</td>
+                            <td class="px-4 py-2">
+                                <span
+                                    class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">
+                                    stopped
+                                </span>
+                            </td>
+                            <td class="px-4 py-2">0.0%</td>
+                            <td class="px-4 py-2">—</td>
+                            <td class="px-4 py-2">—</td>
+                            <td class="px-4 py-2">—</td>
+                            <td class="px-4 py-2" title="">197h 33m</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-2">web-server1</td>
+                            <td class="px-4 py-2">DeepThought</td>
+
+                            <td class="px-4 py-2">docker.io/library/nginx:latest</td>
+                            <td class="px-4 py-2">
+                                <span
+                                    class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">
+                                    stopped
+                                </span>
+                            </td>
+                            <td class="px-4 py-2">0.0%</td>
+                            <td class="px-4 py-2">—</td>
+                            <td class="px-4 py-2">—</td>
+                            <td class="px-4 py-2">—</td>
+                            <td class="px-4 py-2" title="">197h 31m</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-2">web-server2</td>
+                            <td class="px-4 py-2">DeepThought</td>
+
+                            <td class="px-4 py-2">docker.io/library/nginx:latest</td>
+                            <td class="px-4 py-2">
+                                <span
+                                    class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">
+                                    stopped
+                                </span>
+                            </td>
+                            <td class="px-4 py-2">0.0%</td>
+                            <td class="px-4 py-2">—</td>
+                            <td class="px-4 py-2">—</td>
+                            <td class="px-4 py-2">—</td>
+                            <td class="px-4 py-2" title="">197h 32m</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-2">web-server3</td>
+                            <td class="px-4 py-2">DeepThought</td>
+
+                            <td class="px-4 py-2">docker.io/library/nginx:latest</td>
+                            <td class="px-4 py-2">
+                                <span
+                                    class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">
+                                    stopped
+                                </span>
+                            </td>
+                            <td class="px-4 py-2">0.0%</td>
+                            <td class="px-4 py-2">—</td>
+                            <td class="px-4 py-2">—</td>
+                            <td class="px-4 py-2">—</td>
+                            <td class="px-4 py-2" title="">197h 32m</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-2">webserver-01</td>
+                            <td class="px-4 py-2">DeepThought</td>
+
+                            <td class="px-4 py-2">docker.io/library/nginx:latest</td>
+                            <td class="px-4 py-2">
+                                <span
+                                    class="inline-block px-3 py-1 text-xs font-bold rounded-full bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
+                                    running
+                                </span>
+                            </td>
+                            <td class="px-4 py-2">0.0%</td>
+                            <td class="px-4 py-2">10.4 MB</td>
+                            <td class="px-4 py-2">7.4 KB</td>
+                            <td class="px-4 py-2">1.2 KB</td>
+                            <td class="px-4 py-2" title="">2h 5m</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ end }} {{ define "disk-tab" }}
+<div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="disk" role="tabpanel" aria-labelledby="disk-tab">
+    <div class="space-y-8">
+
+        <!-- Section: Disk Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Disk Space</p>
+                <p class="text-xl font-bold text-blue-600 dark:text-blue-400">512 GB</p>
+            </div>
+            <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Used Disk Space</p>
+                <p class="text-xl font-bold text-blue-600 dark:text-blue-400">312 GB</p>
+            </div>
+            <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Free Disk Space</p>
+                <p class="text-xl font-bold text-blue-600 dark:text-blue-400">200 GB</p>
+            </div>
+            <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Disk Usage</p>
+                <p class="text-xl font-bold text-yellow-500 dark:text-yellow-400">61%</p>
+            </div>
+        </div>
+
+        <!-- Section: Disk Charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+            <!-- Disk Usage Donut -->
+            <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Disk Usage</h4>
+                <div class="relative h-60 w-full">
+                    <canvas id="diskUsageDonutChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+                </div>
+            </div>
+
+            <!-- Inode Usage Bar -->
+            <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Inode Usage</h4>
+                <div class="relative h-60 w-full">
+                    <canvas id="inodeUsageBarChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{{ end }} {{ define "network-tab" }}
+<div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="network" role="tabpanel"
+    aria-labelledby="network-tab">
+    <div class="space-y-6">
+        <!-- Section Header -->
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+
+            <select id="interface-select"
+                class="text-sm mt-4 lg:mt-0 border rounded px-3 py-1 dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+                <option value="eth0">eth0</option>
+                <option value="wlan0">wlan0</option>
+                <option value="lo">lo</option>
+            </select>
+        </div>
+
+        <!-- Live Delta Row -->
+        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+            <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                    Current Bandwidth
+                </p>
+                <p class="text-xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+                    ↑ 12.4 Mbps / ↓ 10.2 Mbps
+                </p>
+                <p class="text-xs text-gray-400 dark:text-gray-500">
+                    eth0 — 1m average
+                </p>
+            </div>
+            <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Peak Bandwidth</p>
+                <p class="text-xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">
+                    ↑ 21.6 Mbps / ↓ 18.3 Mbps
+                </p>
+                <p class="text-xs text-gray-400 dark:text-gray-500">
+                    Observed in last 10m
+                </p>
+            </div>
+        </div>
+
+        <!-- Bandwidth Chart -->
+        <div
+            class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm h-64">
+            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">
+                Bandwidth Over Time (Mbps)
+            </h4>
+            <canvas id="networkChart" class="w-full h-full"></canvas>
+        </div>
+        <!-- Toggle Chart Unit -->
+        <div class="flex items-center justify-between mt-8 mb-4">
+            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                Interface Breakdown
+            </h4>
+            <div class="flex items-center space-x-4">
+                <label class="text-sm text-gray-600 dark:text-gray-400">Chart Unit:</label>
+                <select id="chart-unit"
+                    class="text-sm border rounded px-2 py-1 dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+                    <option value="mbps">Mbps</option>
+                    <option value="kbps">KBps</option>
+                    <option value="bytes">Bytes/sec</option>
+                </select>
+            </div>
+        </div>
+        <!-- Packet + Error Stats -->
+        <div class="grid gap-4 lg:grid-cols-4">
+            <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Packets Sent</p>
+                <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+                    18,430
+                </p>
+                <p class="text-xs text-gray-400 dark:text-gray-500">
+                    system.network.packets_sent
+                </p>
+            </div>
+            <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                    Packets Received
+                </p>
+                <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+                    21,917
+                </p>
+                <p class="text-xs text-gray-400 dark:text-gray-500">
+                    system.network.packets_recv
+                </p>
+            </div>
+            <div class="bg-white dark:bg-gray-900 border border-red-300 dark:border-red-500 rounded-lg p-4 shadow-sm">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Input Errors</p>
+                <p class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
+                    5
+                </p>
+                <p class="text-xs text-gray-400 dark:text-gray-500">
+                    system.network.err_in
+                </p>
+            </div>
+            <div class="bg-white dark:bg-gray-900 border border-red-300 dark:border-red-500 rounded-lg p-4 shadow-sm">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Output Errors</p>
+                <p class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
+                    2
+                </p>
+                <p class="text-xs text-gray-400 dark:text-gray-500">
+                    system.network.err_out
+                </p>
+            </div>
+        </div>
+        <!-- Interface Table Controls -->
+        <div class="flex justify-between items-center mb-3">
+            <input type="text" id="filter-interface" placeholder="Filter interfaces…"
+                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
+            <button id="export-csv" class="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                ⬇ Export CSV
+            </button>
+        </div>
+
+        <!-- Table -->
+        <div class="overflow-x-auto">
+            <table id="interface-table" class="min-w-full text-sm table-auto border-collapse">
+                <thead class="bg-gray-100 dark:bg-gray-700 text-left cursor-pointer">
+                    <tr>
+                        <th class="px-4 py-2">Interface</th>
+                        <th class="px-4 py-2">Upload</th>
+                        <th class="px-4 py-2">Download</th>
+                        <th class="px-4 py-2">Packets Sent</th>
+                        <th class="px-4 py-2">Packets Received</th>
+                        <th class="px-4 py-2">Errors In</th>
+                        <th class="px-4 py-2">Errors Out</th>
+                    </tr>
+                </thead>
+                <tbody id="interface-table-body" class="divide-y divide-gray-200 dark:divide-gray-700">
+                    <tr>
+                        <td class="px-4 py-2 font-medium text-blue-500">eth0</td>
+                        <td class="px-4 py-2">1.8 GB</td>
+                        <td class="px-4 py-2">2.3 GB</td>
+                        <td class="px-4 py-2">18,430</td>
+                        <td class="px-4 py-2">21,917</td>
+                        <td class="px-4 py-2 text-red-600 dark:text-red-400">5</td>
+                        <td class="px-4 py-2 text-red-600 dark:text-red-400">2</td>
+                    </tr>
+                    <tr>
+                        <td class="px-4 py-2 font-medium text-blue-500">wlan0</td>
+                        <td class="px-4 py-2">745 MB</td>
+                        <td class="px-4 py-2">1.1 GB</td>
+                        <td class="px-4 py-2">7,893</td>
+                        <td class="px-4 py-2">8,120</td>
+                        <td class="px-4 py-2 text-green-600 dark:text-green-400">0</td>
+                        <td class="px-4 py-2 text-green-600 dark:text-green-400">0</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{{ end }} {{ define "activity-tab" }}
+<div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="activity" role="tabpanel"
+    aria-labelledby="activity-tab">
+    <div
+        class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+        <!-- Header + Controls -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+
+            <!-- Left: Title -->
+            <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Recent Activity
+            </h2>
+            <div class="flex justify-between items-center flex-wrap gap-2 mb-2">
+                <!-- Right: Filters and Export Button -->
+                <div class="flex flex-wrap justify-end items-center gap-2">
+                    <input type="text" id="activityFilter" placeholder="Filter logs..."
+                        class="w-48 text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700"
+                        oninput="filterActivity()" />
+
+                    <input type="date" id="startDate"
+                        class="w-36 text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
+
+                    <input type="date" id="endDate"
+                        class="w-36 text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
+
+                    <button onclick="exportCSV()"
+                        class="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v16h16V4H4zm8 6v6m0 0l-3-3m3 3l3-3" />
+                        </svg>
+                        Export CSV
+                    </button>
+                </div>
+            </div>
+
+
+        </div>
+
+        <!-- Table -->
+        <div class="overflow-x-auto">
+            <table class="min-w-full table-auto text-sm text-left text-gray-700 dark:text-gray-300">
+                <thead class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                    <tr class="text-sm font-semibold">
+                        <th class="px-4 py-2 whitespace-nowrap w-1">Category</th>
+                        <th class="px-4 py-2 whitespace-nowrap w-1">Date</th>
+                        <th class="px-4 py-2">Message</th> <!-- no width here; fills remaining -->
+                    </tr>
+                </thead>
+                <tbody id="activity-log-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+                    <!-- log rows here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex justify-end items-center gap-2 pt-2">
+            <button
+                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700">
+                Previous
+            </button>
+            <span class="text-sm text-gray-500 dark:text-gray-400">Page 1 of 5</span>
+            <button
+                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700">
+                Next
+            </button>
+        </div>
+    </div>
+</div>
+{{ end }}{{ define "console-tab" }}
+<!-- Console Tab Panel -->
+<div class="hidden p-4 bg-gray-50 dark:bg-gray-800" id="console" role="tabpanel" aria-labelledby="console-tab">
+    <div
+        class="bg-black text-green-400 font-mono text-sm leading-relaxed whitespace-pre-wrap border border-gray-700 dark:border-gray-600 shadow-inner p-4 overflow-y-auto h-96 rounded-md">
+        top - 14:22:42 up 3 days, 4:17, 2 users, load average: 0.36, 0.28, 0.25
+        Tasks: 223 total, 1 running, 222 sleeping, 0 stopped, 0 zombie %Cpu(s):
+        3.3 us, 1.1 sy, 0.0 ni, 94.8 id, 0.3 wa, 0.0 hi, 0.5 si, 0.0 st KiB Mem :
+        32782644 total, 12345678 used, 20436966 free, 2345676 buffers
+
+        <span class="text-blue-400">user</span>@<span class="text-purple-400">hostname123</span>:<span
+            class="text-red-400">~</span>$
+        <span id="console-input" class="text-cyan-400 animate-pulse">_</span>
+    </div>
+</div>
+
+{{ end }} {{ define "page-scripts" }}
+
+<script>
+    const charts = {};
+    const chartAnimation = {
+        tension: {
+            duration: 1000,
+            easing: "easeOutQuart",
+            from: 0.4,
+            to: 0,
+            loop: false,
+        },
+    };
+
+    const tooltipPlugin = {
+        enabled: true,
+        callbacks: {
+            label: function (context) {
+                return `${context.dataset.label || ""}: ${context.parsed.y}`;
+            },
+        },
+    };
+    const renderCpuCharts = () => {
+        console.log("🔧 renderCpuCharts() called");
+
+        charts.cpuUsageChart = new Chart(
+            document.getElementById("cpuUsageChart"),
+            {
+                type: "line",
+                data: {
+                    labels: [
+                        "10m",
+                        "9m",
+                        "8m",
+                        "7m",
+                        "6m",
+                        "5m",
+                        "4m",
+                        "3m",
+                        "2m",
+                        "1m",
+                    ],
+                    datasets: [
+                        {
+                            label: "CPU Usage %",
+                            data: [20, 23, 21, 25, 28, 26, 30, 27, 24, 22],
+                            borderColor: "#3b82f6",
+                            backgroundColor: "rgba(59, 130, 246, 0.1)",
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 2,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: (val) => val + "%",
+                            },
+                        },
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: "#4B5563" },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (ctx) {
+                                    return `${ctx.dataset.label}: ${ctx.parsed.y}%`;
+                                },
+                            },
+                        },
+                    },
+                    animations: {
+                        tension: {
+                            duration: 1000,
+                            easing: "easeInOutQuart",
+                            from: 0.3,
+                            to: 0,
+                            loop: false,
+                        },
+                    },
+                },
+            }
+        );
+        charts.cpuLoadChart = new Chart(
+            document.getElementById("cpuLoadChart"),
+            {
+                type: "line",
+                data: {
+                    labels: [
+                        "10m", "9m", "8m", "7m", "6m",
+                        "5m", "4m", "3m", "2m", "1m"
+                    ],
+                    datasets: [
+                        {
+                            label: "CPU Load Avg",
+                            data: [0.45, 0.50, 0.65, 0.60, 0.75, 0.90, 1.00, 0.80, 0.70, 0.60],
+                            borderColor: "#10b981", // teal-500
+                            backgroundColor: "rgba(16, 185, 129, 0.1)",
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 2,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            suggestedMax: 2.0, // assuming 1 core or more
+                            title: {
+                                display: true,
+                                text: "Load",
+                                color: "#6B7280",
+                            },
+                            ticks: {
+                                color: "#6B7280",
+                            },
+                        },
+                        x: {
+                            ticks: {
+                                color: "#6B7280",
+                            },
+                        },
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: "#4B5563" },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (ctx) {
+                                    return `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}`;
+                                },
+                            },
+                        },
+                    },
+                    animations: {
+                        tension: {
+                            duration: 1000,
+                            easing: "easeInOutQuart",
+                            from: 0.3,
+                            to: 0,
+                            loop: false,
+                        },
+                    },
+                },
+            }
+        );
+
+
+        charts.cpuDonutChart = new Chart(document.getElementById("cpuDonutChart"), {
+            type: "doughnut",
+            data: {
+                labels: ["User", "System", "Idle", "Nice"],
+                datasets: [
+                    {
+                        data: [20, 10, 60, 10],
+                        backgroundColor: [
+                            "#3b82f6", // User - blue-500
+                            "#10b981", // System - green-500
+                            "#9ca3af", // Idle - gray-400
+                            "#f59e0b", // Nice - amber-500
+                        ],
+                        borderWidth: 2,
+                        borderColor: "#ffffff",
+                        hoverOffset: 10,
+                    },
+                ],
+            },
+            options: {
+                cutout: "70%",
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: "bottom",
+                        labels: {
+                            color: "#6B7280", // gray-500
+                            boxWidth: 14,
+                            font: { size: 12, weight: "500" },
+                        },
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                return `${ctx.label}: ${ctx.parsed}%`;
+                            },
+                        },
+                    },
+                },
+            },
+        });
+        setInterval(() => {
+            if (!charts.cpuUsageChart) return;
+
+            const nextVal = Math.random() * 100;
+            const nextLabel = `${charts.cpuUsageChart.data.labels.length + 1}m`;
+
+            console.log(
+                `📊 Adding new CPU point: ${nextVal.toFixed(1)}% at ${nextLabel}`
+            );
+
+            charts.cpuUsageChart.data.datasets[0].data.push(nextVal);
+            charts.cpuUsageChart.data.labels.push(nextLabel);
+
+            if (charts.cpuUsageChart.data.labels.length > 60) {
+                charts.cpuUsageChart.data.datasets[0].data.shift();
+                charts.cpuUsageChart.data.labels.shift();
+            }
+
+            charts.cpuUsageChart.update();
+        }, 2000);
+        setInterval(() => {
+            if (!charts.cpuLoadChart) return;
+
+            // Simulate a new CPU load average between 0.4 and 2.0
+            const nextVal = (Math.random() * 1.6 + 0.4).toFixed(2);
+            const nextLabel = `${charts.cpuLoadChart.data.labels.length + 1}m`;
+
+            console.log(`📈 Adding new CPU Load point: ${nextVal} at ${nextLabel}`);
+
+            charts.cpuLoadChart.data.datasets[0].data.push(parseFloat(nextVal));
+            charts.cpuLoadChart.data.labels.push(nextLabel);
+
+            // Keep last 60 points
+            if (charts.cpuLoadChart.data.labels.length > 60) {
+                charts.cpuLoadChart.data.datasets[0].data.shift();
+                charts.cpuLoadChart.data.labels.shift();
+            }
+
+            charts.cpuLoadChart.update();
+        }, 2000);
+    };
+
+    const renderMemoryCharts = () => {
+        if (charts.memoryUsageChart) return;
+
+        charts.memoryUsageChart = new Chart(
+            document.getElementById("memoryUsageChart"),
+            {
+                type: "line",
+                data: {
+                    labels: [
+                        "10m",
+                        "9m",
+                        "8m",
+                        "7m",
+                        "6m",
+                        "5m",
+                        "4m",
+                        "3m",
+                        "2m",
+                        "1m",
+                    ],
+                    datasets: [
+                        {
+                            label: "Memory Used (GB)",
+                            data: [
+                                11.5, 11.7, 12.0, 12.2, 12.4, 12.3, 12.1, 12.3, 12.4, 12.4,
+                            ],
+                            borderColor: "#10b981",
+                            backgroundColor: "rgba(16, 185, 129, 0.1)",
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 2,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 800,
+                        easing: "easeOutExpo",
+                        animateScale: true,
+                        animateRotate: false,
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: (val) => val + " GB",
+                            },
+                        },
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: "#4B5563" },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (ctx) {
+                                    return `${ctx.dataset.label}: ${ctx.parsed.y} GB`;
+                                },
+                            },
+                        },
+                    },
+                },
+            }
+        );
+
+        charts.memoryDonutChart = new Chart(
+            document.getElementById("memoryDonutChart"),
+            {
+                type: "doughnut",
+                data: {
+                    labels: ["Used", "Free", "Buffers", "Cache"],
+                    datasets: [
+                        {
+                            label: "Memory Distribution",
+                            data: [12.4, 17.9, 0.8, 0.9],
+                            backgroundColor: ["#10b981", "#3b82f6", "#f59e0b", "#f87171"],
+                            borderWidth: 1,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                    },
+                },
+            }
+        );
+        setInterval(() => {
+            const nextVal = (11 + Math.random() * 2).toFixed(1);
+            charts.memoryUsageChart.data.datasets[0].data.push(parseFloat(nextVal));
+            charts.memoryUsageChart.data.labels.push(
+                `${charts.memoryUsageChart.data.labels.length + 1}m`
+            );
+            charts.memoryUsageChart.update();
+        }, 2500);
+    };
+
+    const renderMiniCharts = () => {
+        new Chart(document.getElementById("miniCpuChart"), {
+            type: "line",
+            data: {
+                labels: ["1m", "2m", "3m", "4m", "5m"],
+                datasets: [
+                    {
+                        data: [12, 18, 14, 20, 17],
+                        borderColor: "#3b82f6",
+                        backgroundColor: "rgba(59, 130, 246, 0.1)",
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: tooltipPlugin,
+                },
+                scales: { y: { display: true }, x: { display: true } },
+                elements: { line: { borderWidth: 2 } },
+                animations: chartAnimation,
+            },
+        });
+
+        new Chart(document.getElementById("miniMemoryChart"), {
+            type: "line",
+            data: {
+                labels: ["1m", "2m", "3m", "4m", "5m"],
+                datasets: [
+                    {
+                        data: [6.2, 6.3, 6.1, 6.4, 6.6],
+                        borderColor: "#10b981",
+                        backgroundColor: "rgba(16, 185, 129, 0.1)",
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: tooltipPlugin,
+                },
+                scales: { y: { display: true }, x: { display: true } },
+                elements: { line: { borderWidth: 2 } },
+                animations: chartAnimation,
+            },
+        });
+
+        new Chart(document.getElementById("miniDiskChart"), {
+            type: "line",
+            data: {
+                labels: ["1m", "2m", "3m", "4m", "5m"],
+                datasets: [
+                    {
+                        data: [110, 135, 90, 120, 140],
+                        borderColor: "#f59e0b",
+                        backgroundColor: "rgba(245, 158, 11, 0.1)",
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: tooltipPlugin,
+                },
+                scales: { y: { display: true }, x: { display: true } },
+                elements: { line: { borderWidth: 2 } },
+                animations: chartAnimation,
+            },
+        });
+    };
+    document.addEventListener("DOMContentLoaded", function () {
+        console.log("📦 DOMContentLoaded triggered");
+
+        renderMiniCharts(); // always render mini charts
+        renderCpuCharts(); // optional preload
+        renderMemoryCharts(); // optional preload
+
+        // Flowbite manual init in case tabs are not registering
+        window.Flowbite?.initTabs?.();
+
+        console.log("✅ DOM ready. Tabs initialized.");
+    });
+
+    document.addEventListener("shown.tw.tab", function (event) {
+        const target = event.target;
+        console.log("🔁 Tab switch triggered:", target?.id);
+
+        if (target?.id === "cpu-tab") {
+            console.log("⚙️ Switching to CPU tab...");
+            renderCpuCharts();
+        } else if (target?.id === "memory-tab") {
+            console.log("⚙️ Switching to Memory tab...");
+            renderMemoryCharts();
+        }
+    });
+</script>
+<script>
+    const themeToggleBtn = document.getElementById("theme-toggle");
+    const lightIcon = document.getElementById("theme-toggle-light-icon");
+    const darkIcon = document.getElementById("theme-toggle-dark-icon");
+
+    // Load stored theme
+    if (
+        localStorage.getItem("color-theme") === "dark" ||
+        (!localStorage.getItem("color-theme") &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches)
+    ) {
+        document.documentElement.classList.add("dark");
+        lightIcon.classList.remove("hidden");
+    } else {
+        document.documentElement.classList.remove("dark");
+        darkIcon.classList.remove("hidden");
+    }
+
+    themeToggleBtn?.addEventListener("click", function () {
+        lightIcon.classList.toggle("hidden");
+        darkIcon.classList.toggle("hidden");
+
+        // Toggle and store
+        if (document.documentElement.classList.contains("dark")) {
+            document.documentElement.classList.remove("dark");
+            localStorage.setItem("color-theme", "light");
+        } else {
+            document.documentElement.classList.add("dark");
+            localStorage.setItem("color-theme", "dark");
+        }
+    });
+</script>
+<script>
+    const inputEl = document.getElementById("console-input");
+    const fakeCommand = "uptime";
+    let idx = 0;
+
+    const typeCommand = () => {
+        if (idx < fakeCommand.length) {
+            inputEl.classList.remove("animate-pulse");
+            inputEl.innerText = fakeCommand.slice(0, idx + 1);
+            idx++;
+            setTimeout(typeCommand, 120);
+        } else {
+            inputEl.classList.add("animate-pulse");
+        }
+    };
+
+    // Trigger typing after a short delay
+    setTimeout(typeCommand, 1000);
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const ctx = document.getElementById("networkChart").getContext("2d");
+        new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: ["10m", "9m", "8m", "7m", "6m", "5m", "4m", "3m", "2m", "1m"],
+                datasets: [
+                    {
+                        label: "Bytes Sent",
+                        data: [100, 120, 150, 170, 130, 180, 160, 190, 200, 210],
+                        borderColor: "#3b82f6",
+                        backgroundColor: "rgba(59, 130, 246, 0.1)",
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 2,
+                    },
+                    {
+                        label: "Bytes Received",
+                        data: [80, 90, 140, 160, 120, 170, 150, 180, 190, 220],
+                        borderColor: "#10b981",
+                        backgroundColor: "rgba(16, 185, 129, 0.1)",
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 2,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (val) => `${val} KB`,
+                        },
+                    },
+                },
+                plugins: {
+                    legend: { labels: { color: "#4B5563" } },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y} KB`,
+                        },
+                    },
+                },
+            },
+        });
+    });
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const ctx = document.getElementById("networkChart").getContext("2d");
+        new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: ["10m", "9m", "8m", "7m", "6m", "5m", "4m", "3m", "2m", "1m"],
+                datasets: [
+                    {
+                        label: "Upload (Mbps)",
+                        data: [4.2, 5.3, 6.7, 7.8, 9.1, 10.2, 11.4, 12.2, 11.9, 12.4],
+                        borderColor: "#3b82f6",
+                        backgroundColor: "rgba(59, 130, 246, 0.1)",
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2,
+                    },
+                    {
+                        label: "Download (Mbps)",
+                        data: [3.6, 4.1, 5.2, 6.0, 7.3, 8.4, 9.7, 9.9, 10.1, 10.2],
+                        borderColor: "#10b981",
+                        backgroundColor: "rgba(16, 185, 129, 0.1)",
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (val) => `${val} Mbps`,
+                        },
+                    },
+                },
+                plugins: {
+                    legend: {
+                        labels: { color: "#4B5563" },
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: (ctx) => {
+                                const index = ctx[0].dataIndex;
+                                const now = new Date();
+                                const minutesAgo = 10 - index;
+                                const ts = new Date(now.getTime() - minutesAgo * 60 * 1000);
+                                return ts.toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                });
+                            },
+                            label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y} Mbps`,
+                        },
+                    },
+                },
+            },
+        });
+    });
+</script>
+<script>
+    // Chart unit toggle logic
+    document.getElementById("chart-unit").addEventListener("change", (e) => {
+        const unit = e.target.value;
+        const labels = {
+            mbps: "Mbps",
+            kbps: "KBps",
+            bytes: "Bytes/sec",
+        };
+        const multiplier = {
+            mbps: 1,
+            kbps: 1000,
+            bytes: 1000000,
+        };
+
+        const chart = Chart.getChart("networkChart");
+        chart.data.datasets.forEach((ds) => {
+            ds.label = ds.label.includes("Upload")
+                ? `Upload (${labels[unit]})`
+                : `Download (${labels[unit]})`;
+            ds.data = ds.data.map((val) =>
+                unit === "mbps"
+                    ? val
+                    : unit === "kbps"
+                        ? (val * 1000).toFixed(1)
+                        : (val * 1000000).toFixed(0)
+            );
+        });
+        chart.options.scales.y.ticks.callback = (val) => `${val} ${labels[unit]}`;
+        chart.update();
+    });
+
+    // Table filter logic
+    document
+        .getElementById("filter-interface")
+        .addEventListener("input", (e) => {
+            const filter = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll("#interface-table-body tr");
+            rows.forEach((row) => {
+                row.style.display = row.innerText.toLowerCase().includes(filter)
+                    ? ""
+                    : "none";
+            });
+        });
+
+    // Export CSV logic
+    document.getElementById("export-csv").addEventListener("click", () => {
+        const rows = document.querySelectorAll("#interface-table tr");
+        const csv = Array.from(rows)
+            .map((row) =>
+                Array.from(row.querySelectorAll("td,th"))
+                    .map((cell) => `"${cell.innerText.trim()}"`)
+                    .join(",")
+            )
+            .join("\n");
+
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.download = "network_interfaces.csv";
+        link.href = url;
+        link.click();
+
+        URL.revokeObjectURL(url);
+    });
+</script>
+<script>
+    function getRandomItem(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function formatDateUS(date) {
+        return new Intl.DateTimeFormat('en-US', {
+            dateStyle: 'short',
+            timeStyle: 'short'
+        }).format(date);
+    }
+
+    function generateFakeActivity(count = 25) {
+        const categories = ["Info", "Warning", "Error"];
+        const messages = [
+            "Donec mattis erat vel mi tristique, eget feugiat urna mattis. Fusce at efficitur risus. Nulla consectetur, ligula sed tincidunt iaculis, justo mi luctus sapien, non sollicitudin dolor eros eu metus. Donec sed iaculis est, in elementum velit. Pellentesque suscipit augue ipsum, non vestibulum lorem finibus a. Fusce vestibulum magna eget nisi aliquam varius. Duis posuere et enim in dictum. Suspendisse vitae est tristique, ullamcorper purus in, tincidunt quam. Mauris vel sapien ac neque ultricies faucibus. Etiam tristique urna a dolor sodales faucibus. Sed mattis, dolor pulvinar viverra facilisis, ante dolor laoreet ex, id semper augue nibh nec elit.",
+            "High memory usage detected",
+            "Disk space exceeded threshold on /dev/sda1",
+            "New SSH login from 192.168.1.20",
+            "Service `postgresql` stopped unexpectedly",
+            "Swap usage crossed 75% threshold",
+            "System time synchronized",
+            "Kernel update available",
+            "Firewall rules reloaded",
+        ];
+
+        const logs = [];
+
+        for (let i = 0; i < count; i++) {
+            const timeOffset = Math.floor(Math.random() * 60 * 24 * 10); // up to 10 days ago
+            const date = new Date();
+            date.setMinutes(date.getMinutes() - timeOffset);
+
+            logs.push({
+                date: formatDateUS(date),
+                category: getRandomItem(categories),
+                message: getRandomItem(messages),
+            });
+        }
+
+        return logs;
+    }
+
+    function renderActivityLogs(logs) {
+        const tbody = document.getElementById("activity-log-body");
+        tbody.innerHTML = "";
+
+        logs.forEach(log => {
+
+            const iconMap = {
+                "Info": `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"><i class="mr-1 fa fa-info-circle"></i> Info</span>`,
+                "Warning": `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"><i class="mr-1 fa fa-exclamation-triangle"></i> Warning</span>`,
+                "Error": `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"><i class="mr-1 fa fa-times-circle"></i> Error</span>`,
+            };
+
+            const row = document.createElement("tr");
+
+            row.innerHTML = `
+                <td class="px-4 py-2 align-top  whitespace-nowrap">${iconMap[log.category]}</td>
+                <td class="px-4 py-2 align-top whitespace-nowrap">${log.date}</td>
+                <td class="px-4 py-2">${log.message}</td>
+                `;
+            tbody.appendChild(row);
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const logs = generateFakeActivity(50);
+        renderActivityLogs(logs);
+    });
+</script>
+<script>
+    // Disk Usage Donut
+    new Chart(document.getElementById('diskUsageDonutChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Used', 'Free'],
+            datasets: [{
+                data: [312, 200],
+                backgroundColor: ['#3b82f6', '#10b981'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        color: getComputedStyle(document.documentElement).getPropertyValue('--tw-text-opacity') === '1' ? '#1f2937' : '#d1d5db'
+                    }
+                }
+            }
+        }
+    });
+
+    // Inode Usage Bar Chart
+    new Chart(document.getElementById('inodeUsageBarChart'), {
+        type: 'bar',
+        data: {
+            labels: ['Used', 'Free'],
+            datasets: [{
+                label: 'Inodes (in millions)',
+                data: [3.2, 1.8],
+                backgroundColor: ['#6366f1', '#34d399']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            scales: {
+                x: {
+                    ticks: {
+                        color: getComputedStyle(document.documentElement).getPropertyValue('--tw-text-opacity') === '1' ? '#1f2937' : '#d1d5db'
+                    }
+                },
+                y: {
+                    ticks: {
+                        color: getComputedStyle(document.documentElement).getPropertyValue('--tw-text-opacity') === '1' ? '#1f2937' : '#d1d5db'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+</script>
+{{ end }}
+</div>

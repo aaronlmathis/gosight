@@ -1,1 +1,19 @@
 @import "tailwindcss";
+@layer components {
+    .stat-card {
+      @apply bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm;
+    }
+  
+    .stat-card .label {
+      @apply text-sm text-gray-500 dark:text-gray-400;
+    }
+  
+    .stat-card .value {
+      @apply text-xl font-bold text-blue-600 dark:text-blue-400;
+    }
+  
+    .stat-card .unit {
+      @apply text-xs text-gray-400 dark:text-gray-500;
+    }
+  }
+  
