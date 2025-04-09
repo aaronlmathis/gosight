@@ -1,0 +1,240 @@
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/flowbite@1.7.0/dist/flowbite.min.js"></script>
+    <script>
+      console.log("Flowbite:", window.Flowbite);
+      
+      const charts = {};
+
+      const renderMiniCharts = () => {
+        new Chart(document.getElementById("miniCpuChart"), {
+          type: "line",
+          data: {
+            labels: ["1m", "2m", "3m", "4m", "5m"],
+            datasets: [
+              {
+                data: [12, 18, 14, 20, 17],
+                borderColor: "#3b82f6",
+                backgroundColor: "rgba(59, 130, 246, 0.1)",
+                tension: 0,
+                fill: true,
+                pointRadius: 0,
+              },
+            ],
+          },
+          options: {
+            plugins: { legend: { display: false } },
+            scales: { y: { display: true }, x: { display: true } },
+            elements: { line: { borderWidth: 2 } },
+            responsive: true,
+          },
+        });
+
+        new Chart(document.getElementById("miniMemoryChart"), {
+          type: "line",
+          data: {
+            labels: ["1m", "2m", "3m", "4m", "5m"],
+            datasets: [
+              {
+                data: [6.2, 6.3, 6.1, 6.4, 6.6],
+                borderColor: "#10b981",
+                backgroundColor: "rgba(16, 185, 129, 0.1)",
+                tension: 0,
+                fill: true,
+                pointRadius: 0,
+              },
+            ],
+          },
+          options: {
+            plugins: { legend: { display: false } },
+            scales: { y: { display: true }, x: { display: true } },
+            elements: { line: { borderWidth: 2 } },
+            responsive: true,
+          },
+        });
+
+        new Chart(document.getElementById("miniDiskChart"), {
+          type: "line",
+          data: {
+            labels: ["1m", "2m", "3m", "4m", "5m"],
+            datasets: [
+              {
+                data: [110, 135, 90, 120, 140],
+                borderColor: "#f59e0b",
+                backgroundColor: "rgba(245, 158, 11, 0.1)",
+                tension: 0,
+                fill: true,
+                pointRadius: 0,
+              },
+            ],
+          },
+          options: {
+            plugins: { legend: { display: false } },
+            scales: { y: { display: true }, x: { display: true } },
+            elements: { line: { borderWidth: 2 } },
+            responsive: true,
+          },
+        });
+      };
+
+      const renderCpuCharts = () => {
+        if (charts.cpuUsageChart) return;
+
+        charts.cpuUsageChart = new Chart(
+          document.getElementById("cpuUsageChart"),
+          {
+            type: "line",
+            data: {
+              labels: Array.from({ length: 60 }, (_, i) => `${i + 1}m`),
+              datasets: [
+                {
+                  label: "CPU Usage %",
+                  data: [
+                    20, 23, 35, 64, 85, 2, 45, 27, 24, 22, 18, 40, 33, 56, 70,
+                    15, 48, 29, 26, 30, 35, 60, 25, 19, 22, 31, 58, 12, 44, 39,
+                    21, 18, 50, 62, 38, 24, 10, 36, 43, 47, 29, 34, 59, 28, 26,
+                    31, 55, 61, 17, 19, 25, 41, 48, 53, 60, 20, 22, 30, 35, 40,
+                  ],
+                  borderColor: "#3b82f6",
+                  backgroundColor: "rgba(59, 130, 246, 0.1)",
+                  fill: true,
+                  tension: 0,
+                  pointRadius: 2,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  min: 0,
+                  max: 100,
+                  ticks: {
+                    callback: (val) => val + "%",
+                  },
+                },
+                x: {
+                  display: true,
+                },
+              },
+              plugins: {
+                legend: {
+                  labels: { color: "#4B5563" },
+                },
+              },
+            },
+          }
+        );
+
+        charts.cpuDonutChart = new Chart(
+          document.getElementById("cpuDonutChart"),
+          {
+            type: "doughnut",
+            data: {
+              labels: ["User", "System", "Idle", "Nice"],
+              datasets: [
+                {
+                  label: "CPU Time",
+                  data: [13400, 7300, 28000, 1200],
+                  backgroundColor: ["#3b82f6", "#10b981", "#9ca3af", "#fbbf24"],
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: {
+                  position: "bottom",
+                  labels: { color: "#4B5563" },
+                },
+              },
+            },
+          }
+        );
+      };
+      const renderMemoryCharts = () => {
+  if (charts.memoryUsageChart) return;
+
+  charts.memoryUsageChart = new Chart(
+    document.getElementById("memoryUsageChart"),
+    {
+      type: "line",
+      data: {
+        labels: Array.from({ length: 10 }, (_, i) => `${10 - i}m`),
+        datasets: [
+          {
+            label: "Memory Used (GB)",
+            data: [11.5, 11.7, 12.0, 12.2, 12.4, 12.3, 12.1, 12.3, 12.4, 12.4],
+            borderColor: "#10b981",
+            backgroundColor: "rgba(16, 185, 129, 0.1)",
+            fill: true,
+            tension: 0,
+            pointRadius: 2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: false,
+            ticks: {
+              callback: (val) => val + " GB",
+            },
+          },
+        },
+        plugins: {
+          legend: {
+            labels: { color: "#4B5563" },
+          },
+        },
+      },
+    }
+  );
+
+  charts.memoryDonutChart = new Chart(
+    document.getElementById("memoryDonutChart"),
+    {
+      type: "doughnut",
+      data: {
+        labels: ["Used", "Free", "Buffers", "Cache"],
+        datasets: [
+          {
+            label: "Memory Distribution",
+            data: [12.4, 17.9, 0.8, 0.9],
+            backgroundColor: ["#10b981", "#3b82f6", "#f59e0b", "#f87171"],
+            borderWidth: 1,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: { color: "#4B5563" },
+          },
+        },
+      },
+    }
+  );
+};
+
+// Memory tab render trigger
+document
+  .getElementById("memory-tab")
+  ?.addEventListener("click", renderMemoryCharts);
+
+      document.addEventListener("DOMContentLoaded", () => {
+        renderMiniCharts(); // immediately load mini charts
+        renderCpuCharts(); // preload CPU tab
+        renderMemoryCharts(); // preload Memory tab
+      });
+
+      document
+        .getElementById("cpu-tab")
+        ?.addEventListener("click", renderCpuCharts);
+    </script>
