@@ -28,6 +28,7 @@ import (
 
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
 	"github.com/aaronlmathis/gosight/server/internal/config"
+	"github.com/aaronlmathis/gosight/server/internal/contextutil"
 	"github.com/aaronlmathis/gosight/server/internal/store"
 	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
 	"github.com/aaronlmathis/gosight/shared/utils"
@@ -64,16 +65,40 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
 			}
-			token := gosightauth.GenerateToken(user.ID)
+			// ✅ Load roles + permissions
+			user, err = userStore.GetUserWithPermissions(r.Context(), user.ID)
+			if err != nil {
+				utils.Error("❌ Failed to load roles for user %s: %v", user.Email, err)
+				http.Error(w, "failed to load user roles", http.StatusInternalServerError)
+				return
+			}
+
+			// ✅ Inject context (for immediate handlers, or log/debug)
+			ctx := contextutil.SetUserID(r.Context(), user.ID)
+			userRoles := gosightauth.ExtractRoleNames(user.Roles)
+			ctx = contextutil.SetUserRoles(ctx, userRoles)
+			ctx = contextutil.SetUserPermissions(ctx, gosightauth.FlattenPermissions(user.Roles))
+
+			// ⛔ Not passed to next here, but could be for inline chaining
+			traceID, _ := contextutil.GetTraceID(r.Context())
+			// ✅ Set session + redirect
+			token, err := gosightauth.GenerateToken(user.ID, userRoles, traceID)
+			if err != nil {
+				utils.Error("❌ Failed to generate session token for user %s: %v", user.Email, err)
+				http.Error(w, "server error", http.StatusInternalServerError)
+				return
+			}
 			gosightauth.SetSessionCookie(w, token)
+
 			next := r.URL.Query().Get("next")
 			if next == "" {
 				next = "/dashboard"
 			}
 			http.Redirect(w, r, next, http.StatusSeeOther)
-		} else {
-			http.Error(w, "invalid provider", http.StatusBadRequest)
+			return
 		}
+
+		http.Error(w, "invalid provider", http.StatusBadRequest)
 	}).Methods("GET", "POST")
 
 	r.HandleFunc("/agents", func(w http.ResponseWriter, r *http.Request) {

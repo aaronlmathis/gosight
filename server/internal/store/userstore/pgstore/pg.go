@@ -76,7 +76,7 @@ func (s *PGStore) GetUserWithPermissions(ctx context.Context, userID string) (*u
 		if err != nil {
 			return nil, err
 		}
-
+		defer permRows.Close()
 		for permRows.Next() {
 			var perm usermodel.Permission
 			if err := permRows.Scan(&perm.ID, &perm.Name, &perm.Description); err != nil {
@@ -97,7 +97,33 @@ func (s *PGStore) AssignRoleToUser(ctx context.Context, userID, roleID string) e
 	return nil
 }
 
-func (s *PGStore) SaveUser(ctx context.Context, u *usermodel.User) error   { return nil }
+func (s *PGStore) GetUserBySSO(ctx context.Context, provider, ssoID string) (*usermodel.User, error) {
+	row := s.db.QueryRowContext(ctx, `
+		SELECT id, email, password_hash, mfa_secret, sso_provider, sso_id, last_login
+		FROM users
+		WHERE sso_provider = $1 AND sso_id = $2
+	`, provider, ssoID)
+
+	u := &usermodel.User{}
+	if err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.TOTPSecret, &u.SSOProvider, &u.SSOID, &u.LastLogin); err != nil {
+		return nil, err
+	}
+	return u, nil
+}
+
+func (s *PGStore) SaveUser(ctx context.Context, u *usermodel.User) error {
+	_, err := s.db.ExecContext(ctx, `
+		UPDATE users
+		SET
+			last_login = $1,
+			sso_provider = $2,
+			sso_id = $3
+		WHERE id = $4
+	`, u.LastLogin, u.SSOProvider, u.SSOID, u.ID)
+
+	return err
+}
+
 func (s *PGStore) CreateRole(ctx context.Context, r *usermodel.Role) error { return nil }
 
 func (s *PGStore) CreatePermission(ctx context.Context, p *usermodel.Permission) error { return nil }

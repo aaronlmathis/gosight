@@ -9,9 +9,10 @@ import (
 type ctxKey string
 
 const (
-	userIDKey  ctxKey = "user_id"
-	roleKey    ctxKey = "user_roles"
-	traceIDKey ctxKey = "trace_id"
+	userIDKey     ctxKey = "user_id"
+	roleKey       ctxKey = "user_roles"
+	permissionKey ctxKey = "user_permissions"
+	traceIDKey    ctxKey = "trace_id"
 )
 
 // SetUserID returns a new context with the user ID stored
@@ -38,6 +39,20 @@ func GetUserRoles(ctx context.Context) ([]string, bool) {
 	val := ctx.Value(roleKey)
 	if roles, ok := val.([]string); ok {
 		return roles, true
+	}
+	return nil, false
+}
+
+// SetUserPermissions stores a slice of permission strings in the context
+func SetUserPermissions(ctx context.Context, perms []string) context.Context {
+	return context.WithValue(ctx, permissionKey, perms)
+}
+
+// GetUserPermissions retrieves the permissions slice from context
+func GetUserPermissions(ctx context.Context) ([]string, bool) {
+	val := ctx.Value(permissionKey)
+	if perms, ok := val.([]string); ok {
+		return perms, true
 	}
 	return nil, false
 }

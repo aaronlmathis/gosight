@@ -43,9 +43,10 @@ type Config struct {
 	} `yaml:"server"`
 
 	Logs struct {
-		ErrorLogFile string `yaml:"error_log_file"`
-		AppLogFile   string `yaml:"app_log_file"`
-		LogLevel     string `yaml:"log_level"`
+		ErrorLogFile  string `yaml:"error_log_file"`
+		AppLogFile    string `yaml:"app_log_file"`
+		AccessLogFile string `yaml:"access_log_file"`
+		LogLevel      string `yaml:"log_level"`
 	}
 	Web struct {
 		StaticDir     string   `yaml:"static_dir"`
@@ -114,6 +115,9 @@ func ApplyEnvOverrides(cfg *Config) {
 	}
 	if val := os.Getenv("GOSIGHT_APP_LOG_FILE"); val != "" {
 		cfg.Logs.ErrorLogFile = val
+	}
+	if val := os.Getenv("GOSIGHT_ACCESS_LOG_FILE"); val != "" {
+		cfg.Logs.AccessLogFile = val
 	}
 	if val := os.Getenv("GOSIGHT_LOG_LEVEL"); val != "" {
 		cfg.Logs.LogLevel = val

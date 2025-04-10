@@ -7,9 +7,11 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
 	"github.com/aaronlmathis/gosight/server/internal/usermodel"
+	"github.com/aaronlmathis/gosight/shared/utils"
 	"golang.org/x/oauth2"
 )
 
@@ -50,6 +52,25 @@ func (g *GoogleAuth) HandleCallback(w http.ResponseWriter, r *http.Request) (*us
 	if err != nil {
 		// 🛑 Optional: return unauthorized if not found
 		return nil, ErrUnauthorized // you can define this in errors.go
+	}
+
+	//  If user has SSO info, verify match
+	if user.SSOID != "" {
+		if user.SSOID != userInfo.ID || user.SSOProvider != "google" {
+			utils.Warn("❌ SSO mismatch for %s: expected %s/%s, got %s/google",
+				user.Email, user.SSOProvider, user.SSOID, userInfo.ID)
+			return nil, ErrUnauthorized
+		}
+	} else {
+		// First-time login — store SSO info
+		user.SSOID = userInfo.ID
+		user.SSOProvider = "google"
+		utils.Info("🔐 First-time SSO link: %s → %s/%s", user.Email, user.SSOProvider, user.SSOID)
+	}
+	// Always update last_login
+	user.LastLogin = time.Now()
+	if err := g.Store.SaveUser(ctx, user); err != nil {
+		utils.Warn("⚠️ Failed to update user login metadata: %v", err)
 	}
 
 	// ✅ Authorized user

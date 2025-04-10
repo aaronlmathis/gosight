@@ -44,15 +44,17 @@ import (
 var (
 	debugEnabled = false
 
-	infoLog  *log.Logger
-	warnLog  *log.Logger
-	errorLog *log.Logger
-	debugLog *log.Logger
+	infoLog   *log.Logger
+	warnLog   *log.Logger
+	errorLog  *log.Logger
+	debugLog  *log.Logger
+	accessLog *log.Logger
 )
 
-func InitLogger(appLogFile, errorLogFile, logLevel string) error {
+func InitLogger(appLogFile, errorLogFile, accessLogFile, logLevel string) error {
 	var errorOutput io.Writer = os.Stdout
 	var appOutput io.Writer = os.Stdout
+	var accessOutput io.Writer = os.Stdout
 
 	// Try to open file if provided
 	if errorLogFile != "" {
@@ -71,9 +73,18 @@ func InitLogger(appLogFile, errorLogFile, logLevel string) error {
 		appOutput = f
 	}
 
+	if accessLogFile != "" {
+		f, err := os.OpenFile(accessLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return err
+		}
+		accessOutput = f
+	}
+
 	infoLog = log.New(appOutput, "[INFO] ", log.LstdFlags)
 	warnLog = log.New(errorOutput, "[WARN] ", log.LstdFlags)
 	errorLog = log.New(errorOutput, "[ERROR] ", log.LstdFlags)
+	accessLog = log.New(accessOutput, "[ACCESS] ", log.LstdFlags)
 
 	multiDebugOutput := io.MultiWriter(os.Stdout, appOutput) // or appOutput if preferred
 	debugLog = log.New(multiDebugOutput, "[DEBUG] ", log.LstdFlags)
@@ -108,4 +119,8 @@ func Debug(format string, args ...any) {
 		debugLog.Printf(format, args...)
 	}
 
+}
+
+func Access(format string, args ...any) {
+	accessLog.Printf(format, args...)
 }
