@@ -33,11 +33,27 @@ Last updated: 2025-04-05
   - Native Podman REST API integration (no Docker dependency)
   - Includes memory, CPU, network, and metadata collection per container
   - Integrated into agent and dashboard
+- [x] **Admin Dashboard Mocked-up**
+  - Responsive design using JS / TailwindCSS / Flowbite
+  - Includes animated graphs / charts
+- [X] **Persistent metric storage backend**
+  - Implemented MetricStore abstraction layer implemented to support multiple time-series backends
+  - Initial backend integration completed using VictoriaMetrics:
+    - Prometheus-compatible label formatting
+    - Batch write support via /api/v1/import/prometheus
+    - Gzip compression and retry logic
+    - Tag enrichment with metadata (e.g. hostname, container ID)
 
 ## 🔜 In Progress / Next
-
+- [ ] Design and implement auth package with support for:
+    - Single Sign-On (SSO) via Google, AWS Cognito, and Azure AD
+    - Multi-factor authentication (MFA) including TOTP and hardware tokens (e.g. YubiKey)
+    - Role-based access control (RBAC) for dashboard and API endpoints
+- [ ] Design and implement UserStore abstraction layer implemented to support multiple SQL backends for storing User / Role / Permission data
+- [ ] Finalize front-end html/css/js templates for administration panel
 - [ ] Refactor agent and server config structs to support full TLS/mTLS config validation
-- [ ] Persistent metric storage backend (SQLite, PostgreSQL)
 - [ ] Historical dashboard views and time-series charting
 - [ ] Alerting engine and trigger conditions
 - [ ] Podman container lifecycle tracking and restart alerting
+
+
