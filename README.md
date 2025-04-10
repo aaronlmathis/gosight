@@ -2,7 +2,20 @@
 
 GoSight is a high-performance, modular, and vendor-agnostic observability platform written in Go. It includes an agent that collects system metrics and meta data and a server that aggregates, stores, and exposes those metrics securely over gRPC.
 
-**This (ambitious) project is still in early development. Not available for production yet, and many features yet to be included. Some scripts might not work. Please see the [Project Status](https://github.com/aaronlmathis/gosight/blob/main/PROJECT_STATUS.md) for updates.**
+> 🚧 **Development Status**
+>
+> GoSight is under active development and **not yet production-ready**, but many core features are already working:
+>
+> - ✅ Fully functional agent/server gRPC streaming  
+> - ✅ TLS + mutual TLS (mTLS) with certificate auth  
+> - ✅ Modular collector system (CPU, memory, disk, network, containers)  
+> - ✅ Basic web dashboard (dark mode, metric tabs, container/host table)  
+> - ✅ Cert generation scripts for local dev  
+>
+> Next up: persistent storage, historical views, alerts, and more.
+>
+> 🔍 See [Project Status](https://github.com/aaronlmathis/gosight/blob/main/PROJECT_STATUS.md) for detailed progress.
+
 
 ## 🌐 Project Overview
 
