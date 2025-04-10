@@ -18,14 +18,14 @@ req_extensions     = req_ext
 distinguished_name = dn
 
 [ dn ]
-CN =DeepThought 
+CN =localhost
 
 [ req_ext ]
 subjectAltName = @alt_names
 
 [ alt_names ]
-DNS.1 = DeepThought
-IP.1  = 192.168.0.40
+DNS.1 = localhost
+IP.1  = 127.0.0.1
 EOF
 
 # === 3. Generate server cert ===
