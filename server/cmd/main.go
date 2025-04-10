@@ -56,8 +56,13 @@ func main() {
 		utils.Fatal("Metric index init failed: %v", err)
 	}
 
+	userStore, err := bootstrap.InitUserStore(cfg)
+	if err != nil {
+		utils.Fatal("User store init failed: %v", err)
+	}
+
 	// Start HTTP server for admin console/api
-	go httpserver.StartHTTPServer(cfg, agentTracker, metricStore, metricIndex)
+	go httpserver.StartHTTPServer(cfg, agentTracker, metricStore, metricIndex, userStore)
 
 	grpcServer, listener, err := server.NewGRPCServer(cfg, metricStore, agentTracker, metricIndex)
 	if err != nil {

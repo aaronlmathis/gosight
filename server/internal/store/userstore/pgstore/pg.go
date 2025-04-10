@@ -5,7 +5,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
+	"github.com/aaronlmathis/gosight/server/internal/usermodel"
 )
 
 type PGStore struct {
@@ -16,24 +16,36 @@ func New(db *sql.DB) *PGStore {
 	return &PGStore{db: db}
 }
 
-func (s *PGStore) GetUserByEmail(ctx context.Context, email string) (*userstore.User, error) {
+func (s *PGStore) GetUserByUsername(ctx context.Context, username string) (*usermodel.User, error) {
 	row := s.db.QueryRowContext(ctx, `
-		SELECT id, email, password_hash, mfa_secret FROM users WHERE email = $1
-	`, email)
+		SELECT id, username, first_name, last_name, email, password_hash, mfa_secret FROM users WHERE username = $1
+	`, username)
 
-	u := &userstore.User{}
-	if err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.MFASecret); err != nil {
+	u := &usermodel.User{}
+	if err := row.Scan(&u.ID, &u.Username, &u.FirstName, &u.LastName, &u.Email, &u.PasswordHash, &u.TOTPSecret); err != nil {
 		return nil, err
 	}
 	return u, nil
 }
 
-func (s *PGStore) GetUserWithPermissions(ctx context.Context, userID string) (*userstore.User, error) {
-	u := &userstore.User{ID: userID, Roles: []userstore.Role{}}
+func (s *PGStore) GetUserByEmail(ctx context.Context, email string) (*usermodel.User, error) {
+	row := s.db.QueryRowContext(ctx, `
+		SELECT id, email, password_hash, mfa_secret FROM users WHERE email = $1
+	`, email)
+
+	u := &usermodel.User{}
+	if err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.TOTPSecret); err != nil {
+		return nil, err
+	}
+	return u, nil
+}
+
+func (s *PGStore) GetUserWithPermissions(ctx context.Context, userID string) (*usermodel.User, error) {
+	u := &usermodel.User{ID: userID, Roles: []usermodel.Role{}}
 
 	err := s.db.QueryRowContext(ctx, `
 		SELECT email, password_hash, mfa_secret FROM users WHERE id = $1
-	`, userID).Scan(&u.Email, &u.PasswordHash, &u.MFASecret)
+	`, userID).Scan(&u.Email, &u.PasswordHash, &u.TOTPSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +62,7 @@ func (s *PGStore) GetUserWithPermissions(ctx context.Context, userID string) (*u
 	defer roleRows.Close()
 
 	for roleRows.Next() {
-		var role userstore.Role
+		var role usermodel.Role
 		if err := roleRows.Scan(&role.ID, &role.Name, &role.Description); err != nil {
 			return nil, err
 		}
@@ -66,7 +78,7 @@ func (s *PGStore) GetUserWithPermissions(ctx context.Context, userID string) (*u
 		}
 
 		for permRows.Next() {
-			var perm userstore.Permission
+			var perm usermodel.Permission
 			if err := permRows.Scan(&perm.ID, &perm.Name, &perm.Description); err != nil {
 				permRows.Close()
 				return nil, err
@@ -79,4 +91,16 @@ func (s *PGStore) GetUserWithPermissions(ctx context.Context, userID string) (*u
 	}
 
 	return u, nil
+}
+
+func (s *PGStore) AssignRoleToUser(ctx context.Context, userID, roleID string) error {
+	return nil
+}
+
+func (s *PGStore) SaveUser(ctx context.Context, u *usermodel.User) error   { return nil }
+func (s *PGStore) CreateRole(ctx context.Context, r *usermodel.Role) error { return nil }
+
+func (s *PGStore) CreatePermission(ctx context.Context, p *usermodel.Permission) error { return nil }
+func (s *PGStore) AttachPermissionToRole(ctx context.Context, roleID, permID string) error {
+	return nil
 }

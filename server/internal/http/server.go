@@ -26,21 +26,29 @@ package httpserver
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"path/filepath"
 
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/store"
+	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/gorilla/mux"
 )
 
-func StartHTTPServer(cfg *config.Config, tracker *store.AgentTracker, metricStore store.MetricStore, metricIndex *store.MetricIndex) {
+func StartHTTPServer(cfg *config.Config, tracker *store.AgentTracker, metricStore store.MetricStore, metricIndex *store.MetricIndex, userStore userstore.UserStore) {
 	InitHandlers(tracker)
 
 	router := mux.NewRouter()
 	apiStore := &APIMetricStore{Store: metricStore}
-	SetupRoutes(router, metricIndex, apiStore, cfg.Web.StaticDir, cfg.Web.TemplateDir, cfg.Server.Environment)
+
+	authProviders, err := BuildAuthProviders(cfg, userStore)
+	if err != nil {
+		log.Fatalf("failed to build auth providers: %v", err)
+	}
+
+	SetupRoutes(router, metricIndex, apiStore, userStore, authProviders, cfg)
 
 	// Static file server
 	staticDir := http.Dir(cfg.Web.StaticDir)

@@ -2,23 +2,22 @@
 package gosightauth
 
 import (
-	"context"
 	"net/http"
+	"net/url"
+
+	"github.com/aaronlmathis/gosight/server/internal/contextutil"
 )
 
-type ctxKey string
-
-const userIDKey ctxKey = "user_id"
-
-// Middleware to require auth
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID, err := GetSessionUserID(r)
 		if err != nil {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			// Redirect to login with next=originalPath
+			http.Redirect(w, r, "/login?next="+url.QueryEscape(r.URL.RequestURI()), http.StatusSeeOther)
 			return
 		}
-		r = r.WithContext(context.WithValue(r.Context(), userIDKey, userID))
-		next.ServeHTTP(w, r)
+
+		ctx := contextutil.SetUserID(r.Context(), userID)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

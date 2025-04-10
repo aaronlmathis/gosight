@@ -26,23 +26,64 @@ package httpserver
 import (
 	"net/http"
 
+	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
+	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/store"
+	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
+	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/gorilla/mux"
 )
 
-func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore store.MetricStore, staticDir, templateDir, env string) {
+func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore store.MetricStore, userStore userstore.UserStore, authProviders map[string]gosightauth.AuthProvider, cfg *config.Config) {
 
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		HandleIndex(w, r, templateDir, env)
+		HandleIndex(w, r, cfg.Web.TemplateDir, cfg.Server.Environment)
 	})
+
+	r.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		HandleLoginPage(w, r, authProviders, cfg.Web.TemplateDir)
+	}).Methods("GET")
+
+	// Start login for a provider (Google, Azure, etc.)
+	r.HandleFunc("/login/start", func(w http.ResponseWriter, r *http.Request) {
+		provider := r.URL.Query().Get("provider")
+		if handler, ok := authProviders[provider]; ok {
+			handler.StartLogin(w, r)
+		} else {
+			http.Error(w, "invalid provider", http.StatusBadRequest)
+		}
+	}).Methods("GET")
+
+	// Handle provider callback (local or SSO)
+	r.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
+		provider := r.URL.Query().Get("provider")
+		if handler, ok := authProviders[provider]; ok {
+			user, err := handler.HandleCallback(w, r)
+			if err != nil {
+				utils.Debug("❌ Login failed for provider %s: %v", provider, err)
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+			token := gosightauth.GenerateToken(user.ID)
+			gosightauth.SetSessionCookie(w, token)
+			next := r.URL.Query().Get("next")
+			if next == "" {
+				next = "/dashboard"
+			}
+			http.Redirect(w, r, next, http.StatusSeeOther)
+		} else {
+			http.Error(w, "invalid provider", http.StatusBadRequest)
+		}
+	}).Methods("GET", "POST")
+
 	r.HandleFunc("/agents", func(w http.ResponseWriter, r *http.Request) {
-		RenderAgentsPage(w, r, templateDir, env)
+		RenderAgentsPage(w, r, cfg.Web.TemplateDir, cfg.Server.Environment)
 	})
 	r.HandleFunc("/endpoints", func(w http.ResponseWriter, r *http.Request) {
-		HandleEndpoints(w, r, templateDir)
+		HandleEndpoints(w, r, cfg.Web.TemplateDir)
 	})
 	r.HandleFunc("/mockup", func(w http.ResponseWriter, r *http.Request) {
-		RenderMockupPage(w, r, templateDir)
+		RenderMockupPage(w, r, cfg.Web.TemplateDir)
 	})
 	r.Handle("/api/endpoints/containers", &ContainerHandler{Store: metricStore})
 	r.Handle("/api/endpoints/hosts", &HostsHandler{Store: metricStore})

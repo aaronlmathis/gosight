@@ -30,6 +30,8 @@ package config
 import (
 	"os"
 
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 	"gopkg.in/yaml.v3"
 )
 
@@ -46,9 +48,10 @@ type Config struct {
 		LogLevel     string `yaml:"log_level"`
 	}
 	Web struct {
-		StaticDir    string `yaml:"static_dir"`
-		TemplateDir  string `yaml:"template_dir"`
-		DefaultTitle string `yaml:"default_title"`
+		StaticDir     string   `yaml:"static_dir"`
+		TemplateDir   string   `yaml:"template_dir"`
+		DefaultTitle  string   `yaml:"default_title"`
+		AuthProviders []string `yaml:"auth_providers"`
 	} `yaml:"web"`
 
 	TLS struct {
@@ -71,6 +74,20 @@ type Config struct {
 		BatchRetry    int    `yaml:"batch_retry"`
 		BatchInterval int    `yaml:"batch_interval"`
 	} `yaml:"storage"`
+
+	UserStore struct {
+		Type     string `yaml:"type"`      // e.g. "postgres", "memory", "ldap"
+		DSN      string `yaml:"dsn"`       // e.g. PostgreSQL connection string
+		LDAPBase string `yaml:"ldap_base"` // optional: LDAP-specific config
+	} `yaml:"userstore"`
+
+	Google GoogleConfig `yaml:"google"`
+}
+
+type GoogleConfig struct {
+	ClientID     string `yaml:"client_id"`
+	ClientSecret string `yaml:"client_secret"`
+	RedirectURI  string `yaml:"redirect_uri"`
 }
 
 func LoadConfig(path string) (*Config, error) {
@@ -112,5 +129,24 @@ func ApplyEnvOverrides(cfg *Config) {
 	}
 	if val := os.Getenv("GOSIGHT_DEBUG_ENABLE_REFLECTION"); val != "" {
 		cfg.Debug.EnableReflection = val == "true"
+	}
+	if val := os.Getenv("GOSIGHT_USERSTORE_TYPE"); val != "" {
+		cfg.UserStore.Type = val
+	}
+	if val := os.Getenv("GOSIGHT_USERSTORE_DSN"); val != "" {
+		cfg.UserStore.DSN = val
+	}
+	if val := os.Getenv("GOSIGHT_USERSTORE_LDAP_BASE"); val != "" {
+		cfg.UserStore.LDAPBase = val
+	}
+}
+
+func (g *GoogleConfig) ToOAuthConfig() *oauth2.Config {
+	return &oauth2.Config{
+		ClientID:     g.ClientID,
+		ClientSecret: g.ClientSecret,
+		RedirectURL:  g.RedirectURI,
+		Scopes:       []string{"openid", "email", "profile"},
+		Endpoint:     google.Endpoint,
 	}
 }

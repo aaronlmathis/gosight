@@ -1,37 +1,19 @@
 // Package userstore defines the RBAC storage interface and types
 package userstore
 
-import "context"
+import (
+	"context"
+
+	"github.com/aaronlmathis/gosight/server/internal/usermodel"
+)
 
 type UserStore interface {
-	GetUserByEmail(ctx context.Context, email string) (*User, error)
-	GetUserWithPermissions(ctx context.Context, userID string) (*User, error)
-	SaveUser(ctx context.Context, u *User) error
-
-	CreateRole(ctx context.Context, r *Role) error
+	GetUserByEmail(ctx context.Context, email string) (*usermodel.User, error)
+	GetUserByUsername(ctx context.Context, username string) (*usermodel.User, error)
+	GetUserWithPermissions(ctx context.Context, userID string) (*usermodel.User, error)
+	SaveUser(ctx context.Context, u *usermodel.User) error
+	CreateRole(ctx context.Context, r *usermodel.Role) error
 	AssignRoleToUser(ctx context.Context, userID, roleID string) error
-
-	CreatePermission(ctx context.Context, p *Permission) error
+	CreatePermission(ctx context.Context, p *usermodel.Permission) error
 	AttachPermissionToRole(ctx context.Context, roleID, permID string) error
-}
-
-type User struct {
-	ID           string
-	Email        string
-	PasswordHash string
-	MFASecret    string
-	Roles        []Role
-}
-
-type Role struct {
-	ID          string
-	Name        string
-	Description string
-	Permissions []Permission
-}
-
-type Permission struct {
-	ID          string
-	Name        string
-	Description string
 }

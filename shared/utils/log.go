@@ -74,7 +74,9 @@ func InitLogger(appLogFile, errorLogFile, logLevel string) error {
 	infoLog = log.New(appOutput, "[INFO] ", log.LstdFlags)
 	warnLog = log.New(errorOutput, "[WARN] ", log.LstdFlags)
 	errorLog = log.New(errorOutput, "[ERROR] ", log.LstdFlags)
-	debugLog = log.New(errorOutput, "[DEBUG] ", log.LstdFlags)
+
+	multiDebugOutput := io.MultiWriter(os.Stdout, appOutput) // or appOutput if preferred
+	debugLog = log.New(multiDebugOutput, "[DEBUG] ", log.LstdFlags)
 
 	// Enable debug mode if requested
 	if strings.ToLower(logLevel) == "debug" {
@@ -105,4 +107,5 @@ func Debug(format string, args ...any) {
 	if debugEnabled {
 		debugLog.Printf(format, args...)
 	}
+
 }
