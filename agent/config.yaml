@@ -1,16 +1,20 @@
-server_url: "10.10.10.136:50051"
-interval: 2s
-host: "dev-machine-01"
-metrics_enabled:
-  - cpu
-  - mem
-  - host
-  - disk
-  - net
-  - podman
-log_file: "./agent.log"     # Optional — empty means stdout/stderr
-log_level: "debug"     # Or "debug", etc.
-environment: "dev" # Optional — used for logging and debugging
+agent:
+  server_url: "10.10.10.136:50051"
+  interval: 2s
+  host: "dev-machine-01"
+  metrics_enabled:
+    - cpu
+    - mem
+    - host
+    - disk
+    - net
+  environment: "dev" # Optional — used for logging and debugging
+
+logs:
+  app_log_file: "./agent.log"     # Optional — empty means stdout/stderr
+  error_log_file: "error.log"
+  log_level: "debug"     # Or "debug", etc.
+
 
 tls:
   ca_file: "../certs/ca.crt"
@@ -18,5 +22,5 @@ tls:
   key_file: "../certs/client.key"          # (only needed if doing mTLS)
 
 podman:
-  enabled: true
+  enabled: false
   socket: "/run/user/1000/podman/podman.sock"
