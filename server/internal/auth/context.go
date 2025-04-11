@@ -5,6 +5,7 @@ import (
 
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
 	"github.com/aaronlmathis/gosight/server/internal/usermodel"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 func InjectSessionContext(ctx context.Context, user *usermodel.User) context.Context {
@@ -24,6 +25,8 @@ func InjectSessionContext(ctx context.Context, user *usermodel.User) context.Con
 		}
 	}
 	ctx = contextutil.SetUserPermissions(ctx, permNames)
-
+	utils.Debug("🔐 Injected user: %s", user.ID)
+	utils.Debug("🔐 Roles: %v", roleNames)
+	utils.Debug("🔐 Permissions: %v", permNames)
 	return ctx
 }

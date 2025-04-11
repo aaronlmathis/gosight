@@ -5,6 +5,7 @@ package gosightauth
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -21,7 +22,13 @@ type GoogleAuth struct {
 }
 
 func (g *GoogleAuth) StartLogin(w http.ResponseWriter, r *http.Request) {
-	url := g.OAuthConfig.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
+	next := r.URL.Query().Get("next")
+	if next == "" {
+		next = "/dashboard"
+	}
+
+	state := base64.URLEncoding.EncodeToString([]byte(next))
+	url := g.OAuthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	http.Redirect(w, r, url, http.StatusFound)
 }
 

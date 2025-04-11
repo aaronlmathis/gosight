@@ -14,6 +14,61 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func RequirePermission(required string, next http.Handler, userStore userstore.UserStore) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		// Permissions missing from context?
+		perms, ok := contextutil.GetUserPermissions(ctx)
+		if !ok || len(perms) == 0 {
+			// Try to fetch fresh perms from DB
+			userID, ok := contextutil.GetUserID(ctx)
+			if ok {
+				user, err := userStore.GetUserWithPermissions(ctx, userID)
+				if err == nil {
+					perms = FlattenPermissions(user.Roles)
+					ctx = contextutil.SetUserPermissions(ctx, perms)
+					r = r.WithContext(ctx) // update request context
+				}
+			}
+		}
+
+		if !HasPermission(ctx, required) {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func RequireAnyPermissionWithStore(store userstore.UserStore, required ...string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			perms, ok := contextutil.GetUserPermissions(ctx)
+
+			if !ok || len(perms) == 0 {
+				if userID, ok := contextutil.GetUserID(ctx); ok {
+					user, err := store.GetUserWithPermissions(ctx, userID)
+					if err == nil {
+						perms = FlattenPermissions(user.Roles)
+						ctx = contextutil.SetUserPermissions(ctx, perms)
+						r = r.WithContext(ctx)
+					}
+				}
+			}
+
+			if !HasAnyPermission(ctx, required...) {
+				http.Error(w, "forbidden", http.StatusForbidden)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 func AuthMiddleware(userStore userstore.UserStore) mux.MiddlewareFunc {
 	utils.Debug("🔑 AuthMiddleware: Injecting user context")
 	return func(next http.Handler) http.Handler {
@@ -23,18 +78,19 @@ func AuthMiddleware(userStore userstore.UserStore) mux.MiddlewareFunc {
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
 			}
-
+			utils.Debug("🔑 AuthMiddleware: Token found: %s", token)
 			claims, err := ValidateToken(token)
 			if err != nil {
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
 			}
-
+			utils.Debug("🔑 AuthMiddleware: Token claims: %v", claims)
 			userID := claims.UserID
 			traceID := claims.TraceID
 
 			var user *usermodel.User
 			var roleNames []string
+			var perms []string
 			rolesTTL := 10 * time.Minute
 			refreshedAt := time.Unix(claims.RolesRefreshedAt, 0)
 
@@ -46,10 +102,12 @@ func AuthMiddleware(userStore userstore.UserStore) mux.MiddlewareFunc {
 					return
 				}
 				roleNames = ExtractRoleNames(user.Roles)
+				perms = FlattenPermissions(user.Roles)
+				utils.Debug("🔐 Flattened permissions from DB: %v", perms)
 			} else {
 				// Roles are fresh, use from token
 				roleNames = claims.Roles
-				user = &usermodel.User{ID: userID} // minimal fallback user
+
 			}
 
 			// Inject trace ID
@@ -63,9 +121,10 @@ func AuthMiddleware(userStore userstore.UserStore) mux.MiddlewareFunc {
 			ctx = contextutil.SetUserID(ctx, userID)
 			ctx = contextutil.SetUserRoles(ctx, roleNames)
 
-			// Only flatten perms if we loaded real roles from DB
 			if user != nil && len(user.Roles) > 0 {
-				ctx = contextutil.SetUserPermissions(ctx, FlattenPermissions(user.Roles))
+				perms = FlattenPermissions(user.Roles)
+				ctx = contextutil.SetUserPermissions(ctx, perms)
+				utils.Debug("🔁 Revalidated user: %s, permissions: %v", user.ID, perms)
 			}
 
 			next.ServeHTTP(w, r.WithContext(ctx))
@@ -99,6 +158,10 @@ func AccessLogMiddleware(next http.Handler) http.Handler {
 		userID, _ := contextutil.GetUserID(ctx)
 		roles, _ := contextutil.GetUserRoles(ctx)
 		perms, _ := contextutil.GetUserPermissions(ctx)
+
+		if userID == "" {
+			userID = "anonymous"
+		}
 
 		entry := map[string]interface{}{
 			"timestamp":   time.Now().Format(time.RFC3339),

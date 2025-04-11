@@ -18,6 +18,7 @@ type User struct {
 	Roles         []Role
 	CreatedAt     time.Time
 	LastLogin     time.Time
+	Scopes        map[string][]string
 }
 
 type Role struct {

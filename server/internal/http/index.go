@@ -29,8 +29,28 @@ import (
 	"path/filepath"
 	"text/template"
 
+	"github.com/aaronlmathis/gosight/server/internal/contextutil"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
+
+func RenderDashboard(w http.ResponseWriter, r *http.Request, templateDir string) {
+	ctx := r.Context()
+	userID, _ := contextutil.GetUserID(ctx)
+	roles, _ := contextutil.GetUserRoles(ctx)
+	perms, _ := contextutil.GetUserPermissions(ctx)
+
+	data := map[string]any{
+		"UserID":          userID,
+		"Roles":           roles,
+		"Permissions":     perms,
+		"HasAdmin":        HasPermission(perms, "gosight:admin:*"),
+		"CanViewUsers":    HasPermission(perms, "gosight:admin:users:view"),
+		"CanEditSettings": HasPermission(perms, "gosight:admin:settings:edit"),
+	}
+
+	tmpl := template.Must(template.ParseFiles(filepath.Join(templateDir, "dashboard.html")))
+	tmpl.Execute(w, data)
+}
 
 func RenderIndexPage(w http.ResponseWriter, r *http.Request, templateDir, env string) {
 	tmplPath := filepath.Join(templateDir, "index.html")

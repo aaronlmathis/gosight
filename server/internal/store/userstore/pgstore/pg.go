@@ -88,8 +88,29 @@ func (s *PGStore) GetUserWithPermissions(ctx context.Context, userID string) (*u
 		permRows.Close()
 
 		u.Roles = append(u.Roles, role)
+
 	}
 
+	scopeRows, err := s.db.QueryContext(ctx, `
+		SELECT resource, scope_value
+		FROM user_scopes
+		WHERE user_id = $1
+	`, userID)
+
+	if err != nil {
+		return nil, err
+	}
+	defer scopeRows.Close()
+	scopes := make(map[string][]string)
+	for scopeRows.Next() {
+		var resource, value string
+		if err := scopeRows.Scan(&resource, &value); err != nil {
+			return nil, err
+		}
+		scopes[resource] = append(scopes[resource], value)
+	}
+
+	u.Scopes = scopes
 	return u, nil
 }
 

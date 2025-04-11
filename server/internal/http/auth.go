@@ -13,7 +13,7 @@ import (
 func HandleLoginPage(w http.ResponseWriter, r *http.Request, authProviders map[string]gosightauth.AuthProvider, templateDir string) {
 	next := r.URL.Query().Get("next")
 	if next == "" {
-		next = "/dashboard"
+		next = "/fake"
 	}
 
 	// Extract the list of enabled providers

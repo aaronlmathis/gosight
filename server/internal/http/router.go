@@ -24,6 +24,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package httpserver
 
 import (
+	"encoding/base64"
 	"net/http"
 
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
@@ -58,6 +59,7 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 	// Handle provider callback (local or SSO)
 	r.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
 		provider := r.URL.Query().Get("provider")
+
 		if handler, ok := authProviders[provider]; ok {
 			user, err := handler.HandleCallback(w, r)
 			if err != nil {
@@ -65,7 +67,7 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
 			}
-			// ✅ Load roles + permissions
+			//  Load roles + permissions
 			user, err = userStore.GetUserWithPermissions(r.Context(), user.ID)
 			if err != nil {
 				utils.Error("❌ Failed to load roles for user %s: %v", user.Email, err)
@@ -73,15 +75,15 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 				return
 			}
 
-			// ✅ Inject context (for immediate handlers, or log/debug)
+			//  Inject context (for immediate handlers, or log/debug)
 			ctx := contextutil.SetUserID(r.Context(), user.ID)
 			userRoles := gosightauth.ExtractRoleNames(user.Roles)
 			ctx = contextutil.SetUserRoles(ctx, userRoles)
 			ctx = contextutil.SetUserPermissions(ctx, gosightauth.FlattenPermissions(user.Roles))
 
-			// ⛔ Not passed to next here, but could be for inline chaining
+			//  Not passed to next here, but could be for inline chaining
 			traceID, _ := contextutil.GetTraceID(r.Context())
-			// ✅ Set session + redirect
+			//  Set session + redirect
 			token, err := gosightauth.GenerateToken(user.ID, userRoles, traceID)
 			if err != nil {
 				utils.Error("❌ Failed to generate session token for user %s: %v", user.Email, err)
@@ -90,16 +92,39 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 			}
 			gosightauth.SetSessionCookie(w, token)
 
-			next := r.URL.Query().Get("next")
-			if next == "" {
-				next = "/dashboard"
+			state := r.URL.Query().Get("state")
+			var next string
+
+			if state != "" {
+				decoded, err := base64.URLEncoding.DecodeString(state)
+				if err == nil {
+					next = string(decoded)
+				}
 			}
+			if next == "" {
+				next = "/fake"
+			}
+			utils.Debug("✅ Google user: %s", user.Email)
+			utils.Debug("✅ Token will be issued with roles: %v", userRoles)
+			utils.Debug("✅ Flattened permissions: %v", gosightauth.FlattenPermissions(user.Roles))
 			http.Redirect(w, r, next, http.StatusSeeOther)
 			return
 		}
 
 		http.Error(w, "invalid provider", http.StatusBadRequest)
 	}).Methods("GET", "POST")
+
+	/// DEBUG
+	r.Handle("/fake",
+		gosightauth.AuthMiddleware(userStore)(
+			gosightauth.RequirePermission("gosight:fake:access",
+				gosightauth.AccessLogMiddleware(
+					http.HandlerFunc(FakeHandler),
+				),
+				userStore,
+			),
+		),
+	)
 
 	r.HandleFunc("/agents", func(w http.ResponseWriter, r *http.Request) {
 		RenderAgentsPage(w, r, cfg.Web.TemplateDir, cfg.Server.Environment)

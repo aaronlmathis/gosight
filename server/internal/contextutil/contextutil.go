@@ -70,3 +70,17 @@ func GetTraceID(ctx context.Context) (string, bool) {
 	}
 	return "", false
 }
+
+// SetUserScopes stores a map of user scopes in the context for the user
+func SetUserScopes(ctx context.Context, scopes map[string][]string) context.Context {
+	return context.WithValue(ctx, ctxKey("user_scopes"), scopes)
+}
+
+// GetUserScopes retrieves the user scopes from the context
+func GetUserScopes(ctx context.Context) (map[string][]string, bool) {
+	val := ctx.Value(ctxKey("user_scopes"))
+	if scopes, ok := val.(map[string][]string); ok {
+		return scopes, true
+	}
+	return nil, false
+}

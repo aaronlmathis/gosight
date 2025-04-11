@@ -22,3 +22,30 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 // Basic Handler for http server
 // server/internal/http/handler.go
 package httpserver
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/aaronlmathis/gosight/server/internal/contextutil"
+)
+
+func FakeHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	userID, _ := contextutil.GetUserID(ctx)
+	roles, _ := contextutil.GetUserRoles(ctx)
+	perms, _ := contextutil.GetUserPermissions(ctx)
+	traceID, _ := contextutil.GetTraceID(ctx)
+
+	resp := map[string]interface{}{
+		"message":     "✅ You accessed a protected test route!",
+		"user_id":     userID,
+		"roles":       roles,
+		"permissions": perms,
+		"trace_id":    traceID,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
