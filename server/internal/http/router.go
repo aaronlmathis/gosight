@@ -90,6 +90,12 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 
 			// Only enforce 2FA for local users
 			if provider == "local" && user.TOTPSecret != "" {
+				if gosightauth.CheckRememberMFA(r, user.ID) {
+					// Valid remembered device — skip MFA
+					ctx := InjectUserContext(r.Context(), user)
+					createFinalSessionAndRedirect(w, r.WithContext(ctx), user)
+					return
+				}
 				gosightauth.SavePendingMFA(user.ID, w)
 
 				// Optional: persist 'next' (state)
@@ -109,13 +115,9 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 
 			} else {
 
-				//  Inject context (for immediate handlers, or log/debug)
-				ctx := contextutil.SetUserID(r.Context(), user.ID)
-				userRoles := gosightauth.ExtractRoleNames(user.Roles)
-				ctx = contextutil.SetUserRoles(ctx, userRoles)
-				ctx = contextutil.SetUserPermissions(ctx, gosightauth.FlattenPermissions(user.Roles))
+				ctx := InjectUserContext(r.Context(), user)
 				utils.Debug("✅ Google user: %s", user.Email)
-				utils.Debug("✅ Token will be issued with roles: %v", userRoles)
+				utils.Debug("✅ Token will be issued with roles: %v", user.Roles)
 				utils.Debug("✅ Flattened permissions: %v", gosightauth.FlattenPermissions(user.Roles))
 
 				// create final session and redirect
@@ -137,6 +139,7 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 			}
 			return
 		} else {
+
 			userID, err := gosightauth.LoadPendingMFA(r)
 			if err != nil || userID == "" {
 				http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -155,6 +158,14 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 			if err != nil {
 				http.Error(w, "failed to load roles", http.StatusInternalServerError)
 				return
+			}
+
+			// Set Remember me cookie
+			utils.Debug("✅ MFA passed for", user.ID)
+
+			if r.FormValue("remember") == "on" {
+				utils.Debug("📦 Setting remember_mfa cookie")
+				gosightauth.SetRememberMFA(w, user.ID, r)
 			}
 
 			// Inject context

@@ -1,6 +1,7 @@
 package gosightauth
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,7 +12,7 @@ import (
 )
 
 // session.go: Handles signed cookies or token generation/validation.
-var jwtSecret = []byte("your-super-secret-key-change-this")
+var jwtSecret []byte
 
 type SessionClaims struct {
 	UserID           string   `json:"sub"`
@@ -19,6 +20,15 @@ type SessionClaims struct {
 	TraceID          string   `json:"trace_id,omitempty"`
 	RolesRefreshedAt int64    `json:"roles_refreshed_at"`
 	jwt.RegisteredClaims
+}
+
+func InitJWTSecret(encoded string) error {
+	decoded, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil || len(decoded) < 32 {
+		return fmt.Errorf("invalid JWT secret (must be base64 and 32+ bytes)")
+	}
+	jwtSecret = decoded
+	return nil
 }
 
 func GenerateToken(userID string, roles []string, traceID string) (string, error) {

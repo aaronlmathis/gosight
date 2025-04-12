@@ -18,7 +18,7 @@ func BuildAuthProviders(cfg *config.Config, store userstore.UserStore) (map[stri
 
 		case "google":
 			providers["google"] = &gosightauth.GoogleAuth{
-				OAuthConfig: cfg.Google.ToOAuthConfig(), // helper to build *oauth2.Config
+				OAuthConfig: cfg.Auth.Google.ToOAuthConfig(), // helper to build *oauth2.Config
 				Store:       store,
 			}
 

@@ -44,6 +44,20 @@ import (
 var AuthProviders map[string]gosightauth.AuthProvider
 
 func StartHTTPServer(cfg *config.Config, tracker *store.AgentTracker, metricStore store.MetricStore, metricIndex *store.MetricIndex, userStore userstore.UserStore) {
+
+	// Decode and store MFASecret and JWTSecret
+	err := gosightauth.InitJWTSecret(cfg.Auth.JWTSecret)
+	if err != nil {
+		utils.Error("failed to decode JWT secret: %v", err)
+		return
+	}
+
+	err = gosightauth.InitMFAKey(cfg.Auth.MFASecret)
+	if err != nil {
+		utils.Error("failed to decode MFA secret: %v", err)
+		return
+	}
+
 	InitHandlers(tracker)
 
 	router := mux.NewRouter()

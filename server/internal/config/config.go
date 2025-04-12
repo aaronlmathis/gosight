@@ -82,7 +82,12 @@ type Config struct {
 		LDAPBase string `yaml:"ldap_base"` // optional: LDAP-specific config
 	} `yaml:"userstore"`
 
-	Google GoogleConfig `yaml:"google"`
+	Auth struct {
+		SSOEnabled bool         `yaml:"sso_enabled"`
+		MFASecret  string       `yaml:"mfa_secret_key"`
+		JWTSecret  string       `yaml:"jwt_secret"`
+		Google     GoogleConfig `yaml:"google"`
+	}
 }
 
 type GoogleConfig struct {
