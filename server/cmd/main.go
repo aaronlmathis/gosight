@@ -28,6 +28,7 @@ import (
 	"github.com/aaronlmathis/gosight/server/internal/bootstrap"
 	httpserver "github.com/aaronlmathis/gosight/server/internal/http"
 	"github.com/aaronlmathis/gosight/server/internal/server"
+	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
@@ -60,11 +61,11 @@ func main() {
 	if err != nil {
 		utils.Fatal("User store init failed: %v", err)
 	}
-
+	metaTracker := metastore.NewMetaTracker()
 	// Start HTTP server for admin console/api
-	go httpserver.StartHTTPServer(cfg, agentTracker, metricStore, metricIndex, userStore)
+	go httpserver.StartHTTPServer(cfg, agentTracker, metricStore, metricIndex, userStore, metaTracker)
 
-	grpcServer, listener, err := server.NewGRPCServer(cfg, metricStore, agentTracker, metricIndex)
+	grpcServer, listener, err := server.NewGRPCServer(cfg, metricStore, agentTracker, metricIndex, metaTracker)
 	if err != nil {
 		utils.Fatal("Failed to start gRPC server: %v", err)
 	}

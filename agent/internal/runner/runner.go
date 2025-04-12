@@ -21,7 +21,7 @@ func RunAgent(ctx context.Context, cfg *config.Config) {
 	}
 	defer sndr.Close()
 
-	taskQueue := make(chan model.MetricPayload, 500)
+	taskQueue := make(chan *model.MetricPayload, 500)
 	go sender.StartWorkerPool(ctx, sndr, taskQueue, 10)
 
 	ticker := time.NewTicker(cfg.Agent.Interval)
@@ -99,7 +99,7 @@ func RunAgent(ctx context.Context, cfg *config.Config) {
 				}
 				//utils.Info("📦 META Payload for: %s - %v", payload.Host, payload.Meta)
 				select {
-				case taskQueue <- payload:
+				case taskQueue <- &payload:
 				default:
 					utils.Warn("⚠️ Host task queue full! Dropping host metrics")
 				}
@@ -113,10 +113,10 @@ func RunAgent(ctx context.Context, cfg *config.Config) {
 					Metrics:   metrics,
 					Meta:      containerMetas[id],
 				}
-				utils.Info("📦 META Payload for: %s - %v", payload.Host, payload.Meta)
+				//utils.Info("📦 META Payload for: %s - %v", payload.Host, payload.Meta)
 
 				select {
-				case taskQueue <- payload:
+				case taskQueue <- &payload:
 				default:
 					utils.Warn("⚠️ Task queue full! Dropping container metrics for %s", id)
 				}

@@ -25,15 +25,19 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package httpserver
 
 import (
+	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"path/filepath"
+	"time"
 
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/http/templates"
 	"github.com/aaronlmathis/gosight/server/internal/store"
+	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/gorilla/mux"
@@ -43,7 +47,7 @@ import (
 
 var AuthProviders map[string]gosightauth.AuthProvider
 
-func StartHTTPServer(cfg *config.Config, tracker *store.AgentTracker, metricStore store.MetricStore, metricIndex *store.MetricIndex, userStore userstore.UserStore) {
+func StartHTTPServer(cfg *config.Config, tracker *store.AgentTracker, metricStore store.MetricStore, metricIndex *store.MetricIndex, userStore userstore.UserStore, metaTracker *metastore.MetaTracker) {
 
 	// Decode and store MFASecret and JWTSecret
 	err := gosightauth.InitJWTSecret(cfg.Auth.JWTSecret)
@@ -68,7 +72,7 @@ func StartHTTPServer(cfg *config.Config, tracker *store.AgentTracker, metricStor
 		log.Fatalf("failed to build auth providers: %v", err)
 	}
 
-	SetupRoutes(router, metricIndex, apiStore, userStore, AuthProviders, cfg)
+	SetupRoutes(router, metricIndex, apiStore, userStore, metaTracker, AuthProviders, cfg)
 
 	// Static file server
 	staticDir := http.Dir(cfg.Web.StaticDir)
@@ -110,6 +114,24 @@ func StartHTTPServer(cfg *config.Config, tracker *store.AgentTracker, metricStor
 		"hasPermission": func(_, _ interface{}) bool { return true },
 		"safeHTML":      func(s string) template.HTML { return template.HTML(s) },
 		"title":         cases.Title(language.English).String,
+		"toJson": func(v interface{}) template.JS {
+			b, _ := json.Marshal(v)
+			return template.JS(b)
+		},
+		"since": func(ts string) string {
+			t, err := time.Parse(time.RFC3339, ts)
+			if err != nil {
+				return "unknown"
+			}
+			d := time.Since(t)
+			if d < time.Minute {
+				return fmt.Sprintf("%ds ago", int(d.Seconds()))
+			}
+			if d < time.Hour {
+				return fmt.Sprintf("%dm ago", int(d.Minutes()))
+			}
+			return fmt.Sprintf("%dh ago", int(d.Hours()))
+		},
 	}
 
 	router.PathPrefix("/images/").Handler(http.StripPrefix("/images/", fs))

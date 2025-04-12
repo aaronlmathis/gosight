@@ -98,11 +98,11 @@ func NewVictoriaStore(url string, workers, queueSize, batchSize, timeoutMS, retr
 }
 
 func (v *VictoriaStore) Write(metrics []model.MetricPayload) error {
-	utils.Debug("✉️ store.Write received: %d metrics (store addr: %p)", totalMetricCount(metrics), v)
+	//utils.Debug("✉️ store.Write received: %d metrics (store addr: %p)", totalMetricCount(metrics), v)
 
 	select {
 	case v.incoming <- metrics:
-		utils.Debug("✅ Write enqueued %d metrics", totalMetricCount(metrics))
+		//utils.Debug("✅ Write enqueued %d metrics", totalMetricCount(metrics))
 		return nil
 	default:
 		utils.Warn("❌ Incoming buffer full: dropping metrics")
@@ -115,8 +115,8 @@ func (v *VictoriaStore) collectorLoop() {
 	ticker := time.NewTicker(v.batchTimeout)
 	defer ticker.Stop()
 
-	utils.Info("⏱️ batchTimeout raw = %v\n", v.batchTimeout)
-	utils.Debug("🕰️ collectorLoop started with timeout: %s", v.batchTimeout)
+	//utils.Info("⏱️ batchTimeout raw = %v\n", v.batchTimeout)
+	//utils.Debug("🕰️ collectorLoop started with timeout: %s", v.batchTimeout)
 
 	var pending []model.MetricPayload
 
@@ -125,20 +125,20 @@ func (v *VictoriaStore) collectorLoop() {
 		case <-v.stopChan:
 			utils.Debug("🛑 collectorLoop received stop signal")
 			if len(pending) > 0 {
-				utils.Debug("🛑 Flushing %d pending payloads on shutdown", len(pending))
+				//utils.Debug("🛑 Flushing %d pending payloads on shutdown", len(pending))
 				v.enqueue(pending)
 			}
 			return
 
 		case batch := <-v.incoming:
-			total := totalMetricCount(batch)
-			utils.Debug("📥 Received payload with %d metrics", total)
+			//total := totalMetricCount(batch)
+			//utils.Debug("📥 Received payload with %d metrics", total)
 			pending = append(pending, batch...)
 			currentTotal := totalMetricCount(pending)
 			utils.Debug("📊 Total metrics pending: %d", currentTotal)
 
 			if currentTotal >= v.batchSize {
-				utils.Info("📦 Batch size reached: %d metrics, flushing now", currentTotal)
+				//utils.Info("📦 Batch size reached: %d metrics, flushing now", currentTotal)
 				v.enqueue(pending)
 				pending = nil
 			}
@@ -148,7 +148,7 @@ func (v *VictoriaStore) collectorLoop() {
 			//utils.Debug("⏰ Timeout ticked. Pending payloads: %d, metrics: %d", len(pending), currentTotal)
 
 			if currentTotal > 0 {
-				utils.Info("⏳ Timeout flush triggered for %d metrics", currentTotal)
+				//utils.Info("⏳ Timeout flush triggered for %d metrics", currentTotal)
 				v.enqueue(pending)
 				pending = nil
 			}
@@ -169,12 +169,12 @@ func (v *VictoriaStore) enqueue(batch []model.MetricPayload) {
 func (v *VictoriaStore) worker() {
 	defer v.wg.Done()
 	for {
-		utils.Debug("👷 Worker waiting for batch...")
+		//utils.Debug("👷 Worker waiting for batch...")
 
 		select {
 
 		case batch := <-v.queue:
-			utils.Debug("👷 Worker received batch with %d payloads / %d metrics", len(batch), totalMetricCount(batch))
+			//utils.Debug("👷 Worker received batch with %d payloads / %d metrics", len(batch), totalMetricCount(batch))
 			v.flush(batch)
 		case <-v.stopChan:
 			return
@@ -191,7 +191,7 @@ func (v *VictoriaStore) flush(batch []model.MetricPayload) {
 	_, _ = gz.Write([]byte(payload))
 	_ = gz.Close()
 
-	utils.Debug("🚀 Flushing batch of %d metrics", len(batch))
+	//utils.Debug("🚀 Flushing batch of %d metrics", len(batch))
 
 	req, err := http.NewRequest("POST", v.url+"/api/v1/import/prometheus", &buf)
 	if err != nil {
@@ -204,7 +204,7 @@ func (v *VictoriaStore) flush(batch []model.MetricPayload) {
 	for attempt := 0; attempt < v.batchRetry; attempt++ {
 		resp, err := v.client.Do(req)
 		if err == nil && resp.StatusCode < 300 {
-			utils.Debug("Batch sent successfully to VictoriaMetrics")
+			//utils.Debug("Batch sent successfully to VictoriaMetrics")
 			return
 		}
 		utils.Warn("Retrying batch write... attempt %d", attempt+1)
@@ -379,7 +379,7 @@ func (v *VictoriaStore) QueryInstant(metric string, filters map[string]string) (
 	query := buildPromQL(metric, filters)
 
 	fullURL := fmt.Sprintf("%s/api/v1/query?query=%s", v.url, url.QueryEscape(query))
-	utils.Debug("📡 QueryInstant URL: %s", fullURL)
+	//utils.Debug("📡 QueryInstant URL: %s", fullURL)
 
 	resp, err := http.Get(fullURL)
 	if err != nil {
@@ -489,6 +489,153 @@ func (v *VictoriaStore) QueryRange(metric string, start, end time.Time, filters 
 		}
 	}
 	return points, nil
+}
+
+func (v *VictoriaStore) QueryMultiInstant(metricNames []string, filters map[string]string) ([]model.MetricRow, error) {
+	//utils.Debug("🧠 Executing VictoriaStore.QueryMultiInstant")
+	if len(metricNames) == 0 {
+		return nil, nil
+	}
+
+	// Build metric regex selector
+	nameSelector := fmt.Sprintf(`__name__=~"%s"`, strings.Join(metricNames, "|"))
+
+	// Combine all label filters
+	var labelSelectors []string
+	labelSelectors = append(labelSelectors, nameSelector)
+	for k, val := range filters {
+		// URL-encode the label value to handle special characters
+		escapedVal := url.QueryEscape(val)
+		labelSelectors = append(labelSelectors, fmt.Sprintf(`%s="%s"`, k, escapedVal))
+	}
+
+	// Construct final query string
+	query := fmt.Sprintf("{%s}", strings.Join(labelSelectors, ", "))
+
+	// Build full URL
+	reqURL := fmt.Sprintf("%s/api/v1/query?query=%s", v.url, url.QueryEscape(query))
+	//utils.Debug("📡 QueryMultiInstant URL: %s", reqURL)
+	// Make HTTP request
+	resp, err := http.Get(reqURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("victoriametrics error: %s", string(body))
+	}
+
+	// Parse response
+	var vmResp struct {
+		Status string `json:"status"`
+		Data   struct {
+			Result []struct {
+				Metric map[string]string `json:"metric"`
+				Value  [2]interface{}    `json:"value"`
+			} `json:"result"`
+		} `json:"data"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&vmResp); err != nil {
+		return nil, err
+	}
+
+	// Convert to MetricRow
+	var rows []model.MetricRow
+	for _, item := range vmResp.Data.Result {
+		valStr, ok := item.Value[1].(string)
+		if !ok {
+			continue
+		}
+		val, err := strconv.ParseFloat(valStr, 64)
+		if err != nil {
+			continue
+		}
+
+		rows = append(rows, model.MetricRow{
+			Value: val,
+			Tags:  item.Metric,
+		})
+	}
+
+	return rows, nil
+}
+
+func (v *VictoriaStore) QueryMultiRange(metrics []string, start, end time.Time, filters map[string]string) ([]model.MetricRow, error) {
+	if len(metrics) == 0 {
+		return nil, nil
+	}
+
+	// Build PromQL selector
+	nameSelector := fmt.Sprintf(`__name__=~"%s"`, strings.Join(metrics, "|"))
+
+	var labelSelectors []string
+	labelSelectors = append(labelSelectors, nameSelector)
+	for k, val := range filters {
+		labelSelectors = append(labelSelectors, fmt.Sprintf(`%s="%s"`, k, val))
+	}
+	query := fmt.Sprintf("{%s}", strings.Join(labelSelectors, ", "))
+
+	// Build URL
+	params := url.Values{}
+	params.Set("query", query)
+	params.Set("start", start.Format(time.RFC3339))
+	params.Set("end", end.Format(time.RFC3339))
+	params.Set("step", "15s") // TODO: make configurable?
+
+	fullURL := fmt.Sprintf("%s/api/v1/query_range?%s", v.url, params.Encode())
+	resp, err := http.Get(fullURL)
+	if err != nil {
+		return nil, fmt.Errorf("VM QueryMultiRange failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read failed: %w", err)
+	}
+
+	var parsed struct {
+		Status string `json:"status"`
+		Data   struct {
+			ResultType string `json:"resultType"`
+			Result     []struct {
+				Metric map[string]string `json:"metric"`
+				Values [][]interface{}   `json:"values"` // [ [timestamp, value], ... ]
+			} `json:"result"`
+		} `json:"data"`
+	}
+
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return nil, fmt.Errorf("decode error: %w", err)
+	}
+	if parsed.Status != "success" {
+		return nil, fmt.Errorf("query failed: %s", parsed.Status)
+	}
+
+	var rows []model.MetricRow
+	for _, series := range parsed.Data.Result {
+		for _, val := range series.Values {
+			tsRaw, ok1 := val[0].(float64)
+			valStr, ok2 := val[1].(string)
+			if !ok1 || !ok2 {
+				continue
+			}
+			valFloat, err := strconv.ParseFloat(valStr, 64)
+			if err != nil {
+				continue
+			}
+			rows = append(rows, model.MetricRow{
+				Timestamp: int64(tsRaw * 1000), // convert seconds → ms
+				Value:     valFloat,
+				Tags:      series.Metric,
+			})
+		}
+	}
+
+	return rows, nil
 }
 
 func buildPromQL(metric string, filters map[string]string) string {

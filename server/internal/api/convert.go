@@ -69,6 +69,7 @@ func convertProtoMetaToModelMeta(pbMeta *proto.Meta) *model.Meta {
 		return nil
 	}
 	return &model.Meta{
+		EndpointID:       pbMeta.EndpointId,
 		Hostname:         pbMeta.Hostname,
 		IPAddress:        pbMeta.IpAddress,
 		OS:               pbMeta.Os,

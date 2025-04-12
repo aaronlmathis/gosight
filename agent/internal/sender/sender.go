@@ -92,7 +92,7 @@ func (s *Sender) Close() error {
 	return s.cc.Close()
 }
 
-func (s *Sender) SendMetrics(payload model.MetricPayload) error {
+func (s *Sender) SendMetrics(payload *model.MetricPayload) error {
 	pbMetrics := make([]*proto.Metric, 0, len(payload.Metrics))
 	for _, m := range payload.Metrics {
 		pbMetric := &proto.Metric{
@@ -118,6 +118,7 @@ func (s *Sender) SendMetrics(payload model.MetricPayload) error {
 		pbMetrics = append(pbMetrics, pbMetric)
 	}
 	var convertedMeta *proto.Meta
+
 	// Convert meta to proto
 	if payload.Meta != nil {
 		convertedMeta = api.ConvertMetaToProtoMeta(payload.Meta)
@@ -130,6 +131,7 @@ func (s *Sender) SendMetrics(payload model.MetricPayload) error {
 		Metrics:   pbMetrics,
 		Meta:      convertedMeta,
 	}
+	//fmt.Printf("🚀 Sending proto.Meta: %+v\n", req.Meta)
 	//utils.Debug("📦 Sending %d metrics to server: %v", len(pbMetrics), pbMetrics)
 	if err := s.stream.Send(req); err != nil {
 		return fmt.Errorf("stream send failed: %w", err)

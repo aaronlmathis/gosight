@@ -31,3 +31,9 @@ func (a *APIMetricStore) QueryRange(metric string, start, end time.Time, filters
 	utils.Debug("📈 QueryRange: %s (%s - %s)", metric, start.Format(time.RFC3339), end.Format(time.RFC3339))
 	return a.Store.QueryRange(metric, start, end, filters)
 }
+func (a *APIMetricStore) QueryMultiInstant(metricNames []string, filters map[string]string) ([]model.MetricRow, error) {
+	return a.Store.QueryMultiInstant(metricNames, filters)
+}
+func (a *APIMetricStore) QueryMultiRange(metrics []string, start, end time.Time, filters map[string]string) ([]model.MetricRow, error) {
+	return a.Store.QueryMultiRange(metrics, start, end, filters)
+}

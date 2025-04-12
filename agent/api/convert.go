@@ -27,6 +27,7 @@ package api
 import (
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/proto"
+	"github.com/aaronlmathis/gosight/shared/utils"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -72,8 +73,9 @@ func ConvertMetaToProtoMeta(m *model.Meta) *proto.Meta {
 	if m == nil {
 		return nil
 	}
-
+	utils.Debug("📦 Converting meta to proto: %v", m)
 	return &proto.Meta{
+		EndpointId:       m.EndpointID,
 		Hostname:         m.Hostname,
 		IpAddress:        m.IPAddress,
 		Os:               m.OS,

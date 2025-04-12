@@ -59,5 +59,7 @@ func BuildStandardTags(meta *model.Meta, m model.Metric, isContainer bool) {
 	}
 
 	// Final identity key
-	meta.Tags["endpoint_id"] = utils.GenerateEndpointID(meta)
+	endpointID := utils.GenerateEndpointID(meta)
+	meta.Tags["endpoint_id"] = endpointID
+	meta.EndpointID = endpointID
 }

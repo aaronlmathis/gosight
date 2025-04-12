@@ -34,6 +34,7 @@ message Meta {
   string os_version = 4;
   string kernel_version = 5;
   string architecture = 6;
+  string endpoint_id = 35;
 
   // Cloud Provider Specific
   string cloud_provider = 7;

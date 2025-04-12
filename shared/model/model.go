@@ -56,6 +56,7 @@ type Meta struct {
 	OSVersion     string `json:"os_version,omitempty"`
 	KernelVersion string `json:"kernel_version,omitempty"`
 	Architecture  string `json:"architecture,omitempty"`
+	EndpointID    string `json:"endpoint_id,omitempty"` // Unique ID for the endpoint
 
 	// Cloud Provider Specific
 	CloudProvider    string `json:"cloud_provider,omitempty"` // AWS, Azure, GCP
@@ -104,6 +105,19 @@ type MetricPayload struct {
 }
 
 type MetricRow struct {
-	Value float64           `json:"value"`
-	Tags  map[string]string `json:"tags"`
+	Value     float64           `json:"value"`
+	Tags      map[string]string `json:"tags"`
+	Timestamp int64             `json:"timestamp"` // Unix ms
+}
+
+type MetricPoint struct {
+	Timestamp int64   `json:"timestamp"` // Unix ms
+	Value     float64 `json:"value"`     // Metric value
+}
+
+type MetricSelector struct {
+	Name         string
+	Namespace    string
+	SubNamespace string
+	Instant      bool // true = stat card, false = chart or long term
 }

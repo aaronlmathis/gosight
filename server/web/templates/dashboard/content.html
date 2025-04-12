@@ -1,12 +1,35 @@
 {{ define "content" }}
 <section class="flex-1 bg-white 2xl:col-span-2 dark:bg-gray-800">
     <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 bg-white dark:bg-gray-800 pt-2 z-10">
-        Host: <span class="text-blue-500">{{ if .Hostname }}{{ .Hostname }}{{ end }}</span>
+        Host: <span class="text-blue-500">
+            {{ with .Meta }}
+              {{ .Hostname }}
+            {{ else }}
+              <span class="text-gray-400">unknown</span>
+            {{ end }}
+          </span>
     </h2>
     <div class="flex items-center justify-between text-sm mb-4">
         <div class="flex items-center space-x-3">
-            <span class="text-green-500 font-medium">● Online</span>
-            <span class="text-gray-500 dark:text-gray-400">Last report: {{ if .LastReportAgo }}{{ .LastReportAgo }}{{ end }}</span>
+  <!-- Status Dot -->
+  {{ with $status := index .Labels "status" }}
+    {{ if eq $status "online" }}
+      <span class="text-green-500 font-semibold">● Online</span>
+    {{ else if eq $status "offline" }}
+      <span class="text-red-500 font-semibold">● Offline</span>
+    {{ else }}
+      <span class="text-gray-400 font-semibold">● Unknown</span>
+    {{ end }}
+  {{ else }}
+    <span class="text-gray-400 font-semibold">● Unknown</span>
+  {{ end }}
+
+  <!-- Last Seen -->
+  {{ with $ts := index .Labels "last_report" }}
+    <span>Last report: {{ $ts | since }}</span>
+  {{ else }}
+    <span>Last report: unknown</span>
+  {{ end }}
             {{ if .Tags }}
                 {{ range .Tags }}
                 <span
@@ -16,6 +39,9 @@
         </div>
         <button class="text-sm text-blue-500 hover:underline">↻ Refresh</button>
     </div>
+
+
+    
     <!-- Host Summary Inline Row (Responsive) -->
     <div class="flex flex-wrap items-center gap-2 mt-2 text-sm text-gray-700 dark:text-gray-300">
 
@@ -24,7 +50,11 @@
             class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
             <i class="fa-solid fa-clock text-blue-500 text-xs"></i>
             <span class="font-medium">Uptime:</span>
-            <span>5d 14h 22m</span>
+            {{ with index .Metrics "system.host.uptime" }}
+                <span>{{ . }}</span>
+            {{ else }}
+                <span class="text-gray-400">N/A</span>
+            {{ end }}
         </div>
 
         <!-- Processes -->
@@ -32,7 +62,11 @@
             class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
             <i class="fa-solid fa-microchip text-green-500 text-xs"></i>
             <span class="font-medium">Procs:</span>
-            <span>182</span>
+            {{ with index .Metrics "system.host.procs" }}
+                <span>{{ . }}</span>
+            {{ else }}
+                <span class="text-gray-400">N/A</span>
+            {{ end }}
         </div>
 
         <!-- Logged-in Users -->
@@ -40,7 +74,11 @@
             class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
             <i class="fa-solid fa-user-group text-yellow-500 text-xs"></i>
             <span class="font-medium">Users:</span>
-            <span>3</span>
+            {{ with index .Metrics "system.host.users_loggedin" }}
+                <span>{{ . }}</span>
+            {{ else }}
+                <span class="text-gray-400">N/A</span>
+            {{ end }}
         </div>
 
         <!-- OS Info -->
@@ -48,13 +86,18 @@
             class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
             <i class="fa-solid fa-server text-purple-500 text-xs"></i>
             <span class="font-medium">OS:</span>
-            <span>Ubuntu 22.04</span>
+            {{ with index .Labels "os" }}
+                <span>{{ . }}</span>
+            {{ else }}
+                <span class="text-gray-400">unknown</span>
+            {{ end }}
         </div>
 
     </div>
     {{ template "dashboard/tabs" . }}
 </section>
     {{ block "page-scripts" .}}
+         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script src="/js/tabs/overview.js"></script>
         <script src="/js/tabs/compute.js"></script>
         <script src="/js/tabs/disk.js"></script>

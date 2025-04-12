@@ -34,18 +34,25 @@ import (
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/store"
 	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
+	"github.com/aaronlmathis/gosight/server/internal/usermodel"
+	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 var Tmpl *template.Template
 
 type TemplateData struct {
-	Title       string              // Title of the page
-	Body        string              // Body of the page
-	MetricStore store.MetricStore   // Metric store for the page
-	MetricIndex *store.MetricIndex  // Metric index for the page
-	UserStore   userstore.UserStore // User store for the page
-
+	Title       string
+	User        *usermodel.User                // Current logged-in user
+	Permissions []string                       // Flattened permissions for template logic
+	Metrics     map[string]float64             // Current values (e.g., for mini cards)
+	Timeseries  map[string][]model.MetricPoint // For charts like cpuUsageChart
+	Tags        map[string]string              // Tags for the endpoint
+	Labels      map[string]string              // Optional: metadata (hostname, OS, etc.)
+	Meta        model.Meta
+	MetricStore store.MetricStore
+	MetricIndex *store.MetricIndex
+	UserStore   userstore.UserStore
 }
 
 func InitTemplates(cfg *config.Config, funcMap template.FuncMap) error {

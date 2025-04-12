@@ -31,6 +31,7 @@ import (
 
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/store"
+	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
@@ -52,4 +53,8 @@ func InitMetricIndex() (*store.MetricIndex, error) {
 	metricIndex := store.NewMetricIndex()
 
 	return metricIndex, nil
+}
+
+func InitMetaStore() *metastore.MetaTracker {
+	return metastore.NewMetaTracker()
 }

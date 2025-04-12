@@ -32,13 +32,15 @@ import (
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
 	"github.com/aaronlmathis/gosight/server/internal/store"
+	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
 	"github.com/aaronlmathis/gosight/server/internal/usermodel"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/gorilla/mux"
 )
 
-func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore store.MetricStore, userStore userstore.UserStore, authProviders map[string]gosightauth.AuthProvider, cfg *config.Config) {
+func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore store.MetricStore,
+	userStore userstore.UserStore, metaTracker *metastore.MetaTracker, authProviders map[string]gosightauth.AuthProvider, cfg *config.Config) {
 
 	r.Handle("/",
 		gosightauth.AuthMiddleware(userStore)(
@@ -52,7 +54,7 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 			),
 		),
 	)
-	utils.Debug("Auth providers: %v", authProviders)
+
 	r.HandleFunc("/logout", HandleLogout).Methods("GET")
 	r.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		HandleLoginPage(w, r, authProviders)
@@ -175,16 +177,16 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 		}
 	})
 
-	r.HandleFunc("/agents", func(w http.ResponseWriter, r *http.Request) {
-		RenderAgentsPage(w, r, cfg.Web.TemplateDir, cfg.Server.Environment)
-	})
+	//r.HandleFunc("/agents", func(w http.ResponseWriter, r *http.Request) {
+	//	RenderAgentsPage(w, r, cfg.Web.TemplateDir, cfg.Server.Environment)
+	//})
 
 	r.Handle("/endpoints/{endpoint_id}",
 		gosightauth.AuthMiddleware(userStore)(
 			gosightauth.RequirePermission("gosight:dashboard:view", // TODO Permissions
 				gosightauth.AccessLogMiddleware(
 					http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						HandleEndpointDetail(w, r, cfg, metricStore, userStore)
+						HandleEndpointDetail(w, r, cfg, metricStore, userStore, metaTracker)
 					}),
 				),
 				userStore,
@@ -192,12 +194,9 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 		),
 	)
 
-	r.HandleFunc("/mockup", func(w http.ResponseWriter, r *http.Request) {
-		RenderMockupPage(w, r, cfg.Web.TemplateDir)
-	})
-	r.Handle("/api/endpoints/containers", &ContainerHandler{Store: metricStore})
-	r.Handle("/api/endpoints/hosts", &HostsHandler{Store: metricStore})
-	r.HandleFunc("/api/agents", HandleAgentsAPI).Methods("GET")
+	//r.Handle("/api/endpoints/containers", &ContainerHandler{Store: metricStore})
+	//r.Handle("/api/endpoints/hosts", &HostsHandler{Store: metricStore})
+	//r.HandleFunc("/api/agents", HandleAgentsAPI).Methods("GET")
 
 	meta := NewMetricMetaHandler(metricIndex, metricStore)
 	r.HandleFunc("/api", meta.GetNamespaces).Methods("GET")

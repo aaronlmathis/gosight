@@ -33,7 +33,7 @@ import (
 )
 
 // StartWorkerPool launches N workers and processes metric payloads with retries
-func StartWorkerPool(ctx context.Context, s *Sender, queue <-chan model.MetricPayload, workerCount int) {
+func StartWorkerPool(ctx context.Context, s *Sender, queue <-chan *model.MetricPayload, workerCount int) {
 	for i := 0; i < workerCount; i++ {
 		go func(id int) {
 			for {
@@ -51,7 +51,7 @@ func StartWorkerPool(ctx context.Context, s *Sender, queue <-chan model.MetricPa
 	}
 }
 
-func trySendWithBackoff(s *Sender, payload model.MetricPayload) error {
+func trySendWithBackoff(s *Sender, payload *model.MetricPayload) error {
 	var err error
 	backoff := 500 * time.Millisecond
 	maxBackoff := 10 * time.Second
