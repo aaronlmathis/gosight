@@ -1,6 +1,6 @@
 # GoSight
 
-GoSight is a high-performance, modular, and vendor-agnostic observability platform written in Go. It includes a lightweight agent for collecting metrics on Windows, macOS, and Linux systems and a server that aggregates, stores, and exposes those metrics securely over gRPC. The agent is designed for minimal overhead and high performance, making it ideal for both servers and developer machines.
+GoSight is a high-performance, modular, and vendor-agnostic observability platform written in Go. It includes a lightweight agent for collecting metrics on Windows, macOS, and Linux systems and a server that aggregates, stores, and exposes those metrics securely over gRPC. The agent is designed for minimal overhead and high performance, making it ideal for servers.
 
 In addition to system and container metrics, GoSight will support ingesting telemetry from third-party services by:
 - Exposing a flexible HTTP API for external collectors and custom integrations
