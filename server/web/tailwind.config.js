@@ -17,6 +17,7 @@ module.exports = {
     darkMode: 'class', // Enables toggling via 'dark' class
     theme: {
       extend: {
+        
         colors: {
           brand: {
             light: '#f1f5f9',

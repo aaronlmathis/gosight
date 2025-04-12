@@ -31,7 +31,6 @@ import (
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
-	"github.com/aaronlmathis/gosight/server/internal/http/templates"
 	"github.com/aaronlmathis/gosight/server/internal/store"
 	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
 	"github.com/aaronlmathis/gosight/server/internal/usermodel"
@@ -56,7 +55,7 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 	utils.Debug("Auth providers: %v", authProviders)
 	r.HandleFunc("/logout", HandleLogout).Methods("GET")
 	r.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-		HandleLoginPage(w, r, authProviders, cfg.Web.TemplateDir)
+		HandleLoginPage(w, r, authProviders)
 	}).Methods("GET")
 
 	// Start login for a provider (Google, Azure, etc.)
@@ -76,8 +75,9 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 		if handler, ok := authProviders[provider]; ok {
 			user, err := handler.HandleCallback(w, r)
 			if err != nil {
-				utils.Debug("❌ Login failed for provider %s: %v", provider, err)
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				SetFlash(w, "Invalid username or password")
+				http.Redirect(w, r, "/login", http.StatusSeeOther)
+
 				return
 			}
 			//  Load roles + permissions
@@ -132,11 +132,7 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 
 	r.HandleFunc("/mfa", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			err := templates.RenderTemplate(w, "dashboard/mfa", nil)
-			if err != nil {
-				utils.Error("❌ Failed to render MFA page: %v", err)
-				http.Error(w, "template error", http.StatusInternalServerError)
-			}
+			HandleMFAPage(w, r)
 			return
 		} else {
 
