@@ -16,6 +16,18 @@ func New(db *sql.DB) *PGStore {
 	return &PGStore{db: db}
 }
 
+func (s *PGStore) GetUserByID(ctx context.Context, ID string) (*usermodel.User, error) {
+	row := s.db.QueryRowContext(ctx, `
+		SELECT id, username, first_name, last_name, email, password_hash, mfa_secret FROM users WHERE id = $1
+	`, ID)
+
+	u := &usermodel.User{}
+	if err := row.Scan(&u.ID, &u.Username, &u.FirstName, &u.LastName, &u.Email, &u.PasswordHash, &u.TOTPSecret); err != nil {
+		return nil, err
+	}
+	return u, nil
+}
+
 func (s *PGStore) GetUserByUsername(ctx context.Context, username string) (*usermodel.User, error) {
 	row := s.db.QueryRowContext(ctx, `
 		SELECT id, username, first_name, last_name, email, password_hash, mfa_secret FROM users WHERE username = $1

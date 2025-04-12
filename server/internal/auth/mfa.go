@@ -2,6 +2,7 @@
 package gosightauth
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/pquerna/otp/totp"
@@ -23,22 +24,28 @@ func ValidateTOTP(secret, code string) bool {
 	return totp.Validate(code, secret)
 }
 
-// -- mfa cookie helpers --
+func LoadPendingMFA(r *http.Request) (string, error) {
+	cookie, err := r.Cookie("pending_mfa")
+	if err != nil {
+		return "", fmt.Errorf("pending_mfa cookie not found")
+	}
+
+	userID := cookie.Value
+	if userID == "" {
+		return "", fmt.Errorf("pending_mfa cookie was empty")
+	}
+
+	return userID, nil
+}
+
 func SavePendingMFA(userID string, w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "pending_mfa",
 		Value:    userID,
-		HttpOnly: true,
 		Path:     "/",
+		MaxAge:   300, // 5 minutes
+		HttpOnly: true,
 		Secure:   true,
-		MaxAge:   300, // 5 mins
+		SameSite: http.SameSiteLaxMode,
 	})
-}
-
-func LoadPendingMFA(r *http.Request) (string, error) {
-	c, err := r.Cookie("pending_mfa")
-	if err != nil {
-		return "", err
-	}
-	return c.Value, nil
 }

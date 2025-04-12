@@ -13,6 +13,7 @@ const (
 	roleKey       ctxKey = "user_roles"
 	permissionKey ctxKey = "user_permissions"
 	traceIDKey    ctxKey = "trace_id"
+	forbiddenKey  ctxKey = "forbidden"
 )
 
 // SetUserID returns a new context with the user ID stored
@@ -83,4 +84,16 @@ func GetUserScopes(ctx context.Context) (map[string][]string, bool) {
 		return scopes, true
 	}
 	return nil, false
+}
+
+// SetForbidden sets a flag in the context to indicate forbidden access
+func SetForbidden(ctx context.Context) context.Context {
+	return context.WithValue(ctx, forbiddenKey, true)
+}
+
+// IsForbidden checks if the context has the forbidden flag set
+
+func IsForbidden(ctx context.Context) bool {
+	v, ok := ctx.Value(forbiddenKey).(bool)
+	return ok && v
 }

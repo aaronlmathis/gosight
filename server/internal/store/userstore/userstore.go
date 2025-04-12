@@ -10,6 +10,7 @@ import (
 type UserStore interface {
 	GetUserByEmail(ctx context.Context, email string) (*usermodel.User, error)
 	GetUserByUsername(ctx context.Context, username string) (*usermodel.User, error)
+	GetUserByID(ctx context.Context, username string) (*usermodel.User, error)
 	GetUserWithPermissions(ctx context.Context, userID string) (*usermodel.User, error)
 	GetUserBySSO(ctx context.Context, provider string, ssoID string) (*usermodel.User, error)
 	SaveUser(ctx context.Context, u *usermodel.User) error

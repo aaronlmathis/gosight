@@ -102,3 +102,17 @@ func GetSessionUserID(r *http.Request) (string, error) {
 	}
 	return claims.UserID, nil
 }
+
+// ClearCookie clears a cookie by setting its MaxAge to -1 and Expiration to the past
+func ClearCookie(w http.ResponseWriter, name string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		Expires:  time.Unix(0, 0),
+		HttpOnly: true,
+		Secure:   true, // set to false if not using HTTPS in dev
+		SameSite: http.SameSiteLaxMode,
+	})
+}

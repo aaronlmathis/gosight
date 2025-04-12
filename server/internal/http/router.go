@@ -26,12 +26,15 @@ package httpserver
 import (
 	"encoding/base64"
 	"net/http"
+	"time"
 
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
+	"github.com/aaronlmathis/gosight/server/internal/http/templates"
 	"github.com/aaronlmathis/gosight/server/internal/store"
 	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
+	"github.com/aaronlmathis/gosight/server/internal/usermodel"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/gorilla/mux"
 )
@@ -50,7 +53,7 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 			),
 		),
 	)
-
+	utils.Debug("Auth providers: %v", authProviders)
 	r.HandleFunc("/logout", HandleLogout).Methods("GET")
 	r.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		HandleLoginPage(w, r, authProviders, cfg.Web.TemplateDir)
@@ -85,44 +88,85 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 				return
 			}
 
-			//  Inject context (for immediate handlers, or log/debug)
-			ctx := contextutil.SetUserID(r.Context(), user.ID)
-			userRoles := gosightauth.ExtractRoleNames(user.Roles)
-			ctx = contextutil.SetUserRoles(ctx, userRoles)
-			ctx = contextutil.SetUserPermissions(ctx, gosightauth.FlattenPermissions(user.Roles))
+			// Only enforce 2FA for local users
+			if provider == "local" && user.TOTPSecret != "" {
+				gosightauth.SavePendingMFA(user.ID, w)
 
-			//  Not passed to next here, but could be for inline chaining
-			traceID, _ := contextutil.GetTraceID(r.Context())
-			//  Set session + redirect
-			token, err := gosightauth.GenerateToken(user.ID, userRoles, traceID)
-			if err != nil {
-				utils.Error("❌ Failed to generate session token for user %s: %v", user.Email, err)
-				http.Error(w, "server error", http.StatusInternalServerError)
+				// Optional: persist 'next' (state)
+				state := r.URL.Query().Get("state")
+				if state != "" {
+					http.SetCookie(w, &http.Cookie{
+						Name:     "pending_next",
+						Value:    state,
+						Path:     "/",
+						MaxAge:   300,
+						HttpOnly: true,
+						Secure:   true,
+					})
+				}
+				http.Redirect(w, r, "/mfa", http.StatusSeeOther)
+				return
+
+			} else {
+
+				//  Inject context (for immediate handlers, or log/debug)
+				ctx := contextutil.SetUserID(r.Context(), user.ID)
+				userRoles := gosightauth.ExtractRoleNames(user.Roles)
+				ctx = contextutil.SetUserRoles(ctx, userRoles)
+				ctx = contextutil.SetUserPermissions(ctx, gosightauth.FlattenPermissions(user.Roles))
+				utils.Debug("✅ Google user: %s", user.Email)
+				utils.Debug("✅ Token will be issued with roles: %v", userRoles)
+				utils.Debug("✅ Flattened permissions: %v", gosightauth.FlattenPermissions(user.Roles))
+
+				// create final session and redirect
+				createFinalSessionAndRedirect(w, r.WithContext(ctx), user)
 				return
 			}
-			gosightauth.SetSessionCookie(w, token)
 
-			state := r.URL.Query().Get("state")
-			var next string
-
-			if state != "" {
-				decoded, err := base64.URLEncoding.DecodeString(state)
-				if err == nil {
-					next = string(decoded)
-				}
-			}
-			if next == "" {
-				next = "/"
-			}
-			utils.Debug("✅ Google user: %s", user.Email)
-			utils.Debug("✅ Token will be issued with roles: %v", userRoles)
-			utils.Debug("✅ Flattened permissions: %v", gosightauth.FlattenPermissions(user.Roles))
-			http.Redirect(w, r, next, http.StatusSeeOther)
-			return
 		}
 
 		http.Error(w, "invalid provider", http.StatusBadRequest)
 	}).Methods("GET", "POST")
+
+	r.HandleFunc("/mfa", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			err := templates.RenderTemplate(w, "dashboard/mfa", nil)
+			if err != nil {
+				utils.Error("❌ Failed to render MFA page: %v", err)
+				http.Error(w, "template error", http.StatusInternalServerError)
+			}
+			return
+		} else {
+			userID, err := gosightauth.LoadPendingMFA(r)
+			if err != nil || userID == "" {
+				http.Redirect(w, r, "/login", http.StatusSeeOther)
+				return
+			}
+
+			code := r.FormValue("code")
+			user, err := userStore.GetUserByID(r.Context(), userID)
+			if err != nil || !gosightauth.ValidateTOTP(user.TOTPSecret, code) {
+				http.Error(w, "Invalid TOTP code", http.StatusUnauthorized)
+				return
+			}
+
+			// Load roles
+			user, err = userStore.GetUserWithPermissions(r.Context(), user.ID)
+			if err != nil {
+				http.Error(w, "failed to load roles", http.StatusInternalServerError)
+				return
+			}
+
+			// Inject context
+			ctx := contextutil.SetUserID(r.Context(), user.ID)
+			roles := gosightauth.ExtractRoleNames(user.Roles)
+			ctx = contextutil.SetUserRoles(ctx, roles)
+			ctx = contextutil.SetUserPermissions(ctx, gosightauth.FlattenPermissions(user.Roles))
+
+			// Final login and redirect
+			createFinalSessionAndRedirect(w, r.WithContext(ctx), user)
+		}
+	})
 
 	r.HandleFunc("/agents", func(w http.ResponseWriter, r *http.Request) {
 		RenderAgentsPage(w, r, cfg.Web.TemplateDir, cfg.Server.Environment)
@@ -158,4 +202,39 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 	r.HandleFunc("/api/query", meta.HandleAPIQuery).Methods("GET")
 
 	// ...
+}
+
+func createFinalSessionAndRedirect(w http.ResponseWriter, r *http.Request, user *usermodel.User) {
+	traceID, _ := contextutil.GetTraceID(r.Context())
+	roles := gosightauth.ExtractRoleNames(user.Roles)
+
+	token, err := gosightauth.GenerateToken(user.ID, roles, traceID)
+	if err != nil {
+		utils.Error("❌ Failed to generate session token: %v", err)
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
+	gosightauth.SetSessionCookie(w, token)
+
+	// Clear any pending MFA/session leftovers
+	gosightauth.ClearCookie(w, "pending_mfa")
+	http.SetCookie(w, &http.Cookie{
+		Name:     "pending_next",
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Unix(0, 0),
+		HttpOnly: true,
+	})
+
+	// handle redirect after login
+	next := "/"
+	if state := r.URL.Query().Get("state"); state != "" {
+		if decoded, err := base64.URLEncoding.DecodeString(state); err == nil {
+			next = string(decoded)
+		}
+	}
+	if c, err := r.Cookie("pending_next"); err == nil {
+		next = c.Value
+	}
+	http.Redirect(w, r, next, http.StatusSeeOther)
 }

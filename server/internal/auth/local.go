@@ -23,7 +23,6 @@ func (l *LocalAuth) HandleCallback(w http.ResponseWriter, r *http.Request) (*use
 	ctx := r.Context()
 	username := r.FormValue("username")
 	password := r.FormValue("password")
-	totp := r.FormValue("totp")
 
 	user, err := l.Store.GetUserByUsername(ctx, username)
 	if err != nil {
@@ -34,8 +33,6 @@ func (l *LocalAuth) HandleCallback(w http.ResponseWriter, r *http.Request) (*use
 		utils.Debug("❌ Password Hash ain't right: ")
 		return nil, ErrInvalidPassword
 	}
-	if user.TOTPSecret != "" && !ValidateTOTP(user.TOTPSecret, totp) {
-		return nil, ErrInvalidTOTP
-	}
+
 	return user, nil
 }

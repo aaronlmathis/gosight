@@ -37,6 +37,8 @@ import (
 	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/gorilla/mux"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 var AuthProviders map[string]gosightauth.AuthProvider
@@ -90,12 +92,13 @@ func StartHTTPServer(cfg *config.Config, tracker *store.AgentTracker, metricStor
 		http.ServeFile(w, r, fullPath)
 	})
 
-	router.PathPrefix("/images/").Handler(http.StripPrefix("/images/", fs))
-
 	funcMap := template.FuncMap{
 		"hasPermission": func(_, _ interface{}) bool { return true },
 		"safeHTML":      func(s string) template.HTML { return template.HTML(s) },
+		"title":         cases.Title(language.English).String,
 	}
+
+	router.PathPrefix("/images/").Handler(http.StripPrefix("/images/", fs))
 
 	// Initialize templates with the function map
 	templates.InitTemplates(cfg, funcMap)

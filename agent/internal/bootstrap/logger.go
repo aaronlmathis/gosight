@@ -35,7 +35,7 @@ func SetupLogging(cfg *config.Config) {
 	if cfg.Agent.Environment == "dev" {
 		cfg.Logs.ErrorLogFile = ""
 	}
-	if err := utils.InitLogger(cfg.Agent.AppLogFile, cfg.Agent.ErrorLogFile, cfg.Logs.LogLevel); err != nil {
+	if err := utils.InitLogger(cfg.Agent.AppLogFile, cfg.Agent.ErrorLogFile, "access.log", cfg.Logs.LogLevel); err != nil {
 		fmt.Printf("Failed to initialize logger: %v\n", err)
 		os.Exit(1)
 	}

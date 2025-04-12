@@ -30,12 +30,18 @@ func RequirePermission(required string, next http.Handler, userStore userstore.U
 					ctx = contextutil.SetUserPermissions(ctx, perms)
 					r = r.WithContext(ctx) // update request context
 				}
+			} else {
+				// User is not authenticated
+				// Set forbidden flag in context
+				ctx = contextutil.SetForbidden(ctx)
+				r = r.WithContext(ctx)
+
 			}
 		}
 
 		if !HasPermission(ctx, required) {
-			http.Error(w, "forbidden", http.StatusForbidden)
-			return
+			ctx = contextutil.SetUserPermissions(ctx, perms)
+			r = r.WithContext(ctx) // update request context
 		}
 
 		next.ServeHTTP(w, r)
@@ -75,7 +81,7 @@ func AuthMiddleware(userStore userstore.UserStore) mux.MiddlewareFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token, err := GetSessionToken(r)
 			if err != nil {
-				utils.Debug("❌ GetSessionToken failed: %v", err)
+				utils.Debug("❌ AuthMiddleWare: GetSessionToken failed: %v", err)
 				//http.Error(w, "unauthorized", http.StatusUnauthorized)
 				next.ServeHTTP(w, r)
 				return
@@ -83,7 +89,7 @@ func AuthMiddleware(userStore userstore.UserStore) mux.MiddlewareFunc {
 			utils.Debug("🔑 AuthMiddleware: Token found: %s", token)
 			claims, err := ValidateToken(token)
 			if err != nil {
-				utils.Debug("❌ ValidateToken failed: %v", err)
+				utils.Debug("❌ AuthMiddleWare: ValidateToken failed: %v", err)
 				next.ServeHTTP(w, r)
 				return
 			}

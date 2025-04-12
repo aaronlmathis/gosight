@@ -2,13 +2,11 @@ package httpserver
 
 import (
 	"net/http"
-	"path/filepath"
-	"text/template"
 	"time"
 
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
+	"github.com/aaronlmathis/gosight/server/internal/http/templates"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 func HandleLoginPage(w http.ResponseWriter, r *http.Request, authProviders map[string]gosightauth.AuthProvider, templateDir string) {
@@ -21,22 +19,15 @@ func HandleLoginPage(w http.ResponseWriter, r *http.Request, authProviders map[s
 	for name := range authProviders {
 		providers = append(providers, name)
 	}
-
-	tmpl, err := template.New("login.html").
-		Funcs(template.FuncMap{
-			"title": cases.Title(language.English).String,
-		}).
-		ParseFiles(filepath.Join(templateDir, "login.html"))
-	if err != nil {
-		http.Error(w, "template parse error", http.StatusInternalServerError)
-		return
-	}
-
-	err = tmpl.Execute(w, map[string]any{
+	data := map[string]any{
 		"Next":      next,
 		"Providers": providers,
-	})
+	}
+	utils.Debug("Auth providers: %v", authProviders)
+	utils.Debug("Template Data: %v", data)
+	err := templates.RenderTemplate(w, "dashboard/login", data)
 	if err != nil {
+		utils.Error("❌ Failed to execute template: %v", err)
 		http.Error(w, "template execution error", http.StatusInternalServerError)
 	}
 }
