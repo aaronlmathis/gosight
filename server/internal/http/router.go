@@ -38,10 +38,20 @@ import (
 
 func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore store.MetricStore, userStore userstore.UserStore, authProviders map[string]gosightauth.AuthProvider, cfg *config.Config) {
 
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		HandleIndex(w, r, cfg.Web.TemplateDir, cfg.Server.Environment)
-	})
+	r.Handle("/",
+		gosightauth.AuthMiddleware(userStore)(
+			gosightauth.RequirePermission("gosight:dashboard:view",
+				gosightauth.AccessLogMiddleware(
+					http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						HandleIndex(w, r, cfg, userStore)
+					}),
+				),
+				userStore,
+			),
+		),
+	)
 
+	r.HandleFunc("/logout", HandleLogout).Methods("GET")
 	r.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		HandleLoginPage(w, r, authProviders, cfg.Web.TemplateDir)
 	}).Methods("GET")
@@ -102,7 +112,7 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 				}
 			}
 			if next == "" {
-				next = "/fake"
+				next = "/"
 			}
 			utils.Debug("✅ Google user: %s", user.Email)
 			utils.Debug("✅ Token will be issued with roles: %v", userRoles)
@@ -114,24 +124,23 @@ func SetupRoutes(r *mux.Router, metricIndex *store.MetricIndex, metricStore stor
 		http.Error(w, "invalid provider", http.StatusBadRequest)
 	}).Methods("GET", "POST")
 
-	/// DEBUG
-	r.Handle("/fake",
+	r.HandleFunc("/agents", func(w http.ResponseWriter, r *http.Request) {
+		RenderAgentsPage(w, r, cfg.Web.TemplateDir, cfg.Server.Environment)
+	})
+
+	r.Handle("/endpoints/{endpoint_id}",
 		gosightauth.AuthMiddleware(userStore)(
-			gosightauth.RequirePermission("gosight:fake:access",
+			gosightauth.RequirePermission("gosight:dashboard:view", // TODO Permissions
 				gosightauth.AccessLogMiddleware(
-					http.HandlerFunc(FakeHandler),
+					http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						HandleEndpointDetail(w, r, cfg, metricStore, userStore)
+					}),
 				),
 				userStore,
 			),
 		),
 	)
 
-	r.HandleFunc("/agents", func(w http.ResponseWriter, r *http.Request) {
-		RenderAgentsPage(w, r, cfg.Web.TemplateDir, cfg.Server.Environment)
-	})
-	r.HandleFunc("/endpoints", func(w http.ResponseWriter, r *http.Request) {
-		HandleEndpoints(w, r, cfg.Web.TemplateDir)
-	})
 	r.HandleFunc("/mockup", func(w http.ResponseWriter, r *http.Request) {
 		RenderMockupPage(w, r, cfg.Web.TemplateDir)
 	})

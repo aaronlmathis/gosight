@@ -31,7 +31,7 @@ func (l *LocalAuth) HandleCallback(w http.ResponseWriter, r *http.Request) (*use
 		return nil, err
 	}
 	if !CheckPasswordHash(password, user.PasswordHash) {
-		utils.Debug("❌ Password Hash ain't right: %")
+		utils.Debug("❌ Password Hash ain't right: ")
 		return nil, ErrInvalidPassword
 	}
 	if user.TOTPSecret != "" && !ValidateTOTP(user.TOTPSecret, totp) {

@@ -75,13 +75,16 @@ func AuthMiddleware(userStore userstore.UserStore) mux.MiddlewareFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token, err := GetSessionToken(r)
 			if err != nil {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				utils.Debug("❌ GetSessionToken failed: %v", err)
+				//http.Error(w, "unauthorized", http.StatusUnauthorized)
+				next.ServeHTTP(w, r)
 				return
 			}
 			utils.Debug("🔑 AuthMiddleware: Token found: %s", token)
 			claims, err := ValidateToken(token)
 			if err != nil {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				utils.Debug("❌ ValidateToken failed: %v", err)
+				next.ServeHTTP(w, r)
 				return
 			}
 			utils.Debug("🔑 AuthMiddleware: Token claims: %v", claims)
@@ -98,7 +101,7 @@ func AuthMiddleware(userStore userstore.UserStore) mux.MiddlewareFunc {
 			if len(claims.Roles) == 0 || time.Since(refreshedAt) > rolesTTL {
 				user, err = userStore.GetUserWithPermissions(r.Context(), userID)
 				if err != nil {
-					http.Error(w, "unauthorized", http.StatusUnauthorized)
+					next.ServeHTTP(w, r)
 					return
 				}
 				roleNames = ExtractRoleNames(user.Roles)

@@ -44,8 +44,8 @@ func (s *PGStore) GetUserWithPermissions(ctx context.Context, userID string) (*u
 	u := &usermodel.User{ID: userID, Roles: []usermodel.Role{}}
 
 	err := s.db.QueryRowContext(ctx, `
-		SELECT email, password_hash, mfa_secret FROM users WHERE id = $1
-	`, userID).Scan(&u.Email, &u.PasswordHash, &u.TOTPSecret)
+		SELECT first_name, last_name, email, password_hash, mfa_secret FROM users WHERE id = $1
+	`, userID).Scan(&u.FirstName, &u.LastName, &u.Email, &u.PasswordHash, &u.TOTPSecret)
 	if err != nil {
 		return nil, err
 	}

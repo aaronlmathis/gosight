@@ -1,0 +1,7 @@
+{{ define "dashboard/tabs/disk" }}
+<!-- dashboard/tabs/disk.html -->
+<div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="disk" role="tabpanel" aria-labelledby="disk-tab">
+  {{ template "dashboard/partials/disk/summary" . }}
+  {{ template "dashboard/partials/disk/charts" . }}
+</div>
+{{ end }}

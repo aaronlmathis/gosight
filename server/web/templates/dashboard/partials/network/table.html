@@ -1,0 +1,21 @@
+{{ define "dashboard/partials/network/table" }}
+<!-- dashboard/partials/network/table.html -->
+<div class="overflow-x-auto">
+    <table id="interface-table" class="min-w-full text-sm table-auto border-collapse">
+        <thead class="bg-gray-100 dark:bg-gray-700 text-left cursor-pointer">
+            <tr>
+                <th class="px-4 py-2">Interface</th>
+                <th class="px-4 py-2">Upload</th>
+                <th class="px-4 py-2">Download</th>
+                <th class="px-4 py-2">Packets Sent</th>
+                <th class="px-4 py-2">Packets Received</th>
+                <th class="px-4 py-2">Errors In</th>
+                <th class="px-4 py-2">Errors Out</th>
+            </tr>
+        </thead>
+        <tbody id="interface-table-body" class="divide-y divide-gray-200 dark:divide-gray-700">
+            <!-- rows go here -->
+        </tbody>
+    </table>
+</div>
+{{ end }}

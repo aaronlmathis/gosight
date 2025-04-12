@@ -1,0 +1,17 @@
+{{ define "dashboard/partials/disk/charts" }}
+<!-- dashboard/partials/disk/charts.html -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Disk Usage</h4>
+    <div class="relative h-60 w-full">
+      <canvas id="diskUsageDonutChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+    </div>
+  </div>
+  <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Inode Usage</h4>
+    <div class="relative h-60 w-full">
+      <canvas id="inodeUsageBarChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+    </div>
+  </div>
+</div>
+{{ end }}

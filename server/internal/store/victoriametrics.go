@@ -145,7 +145,7 @@ func (v *VictoriaStore) collectorLoop() {
 
 		case <-ticker.C:
 			currentTotal := totalMetricCount(pending)
-			utils.Debug("⏰ Timeout ticked. Pending payloads: %d, metrics: %d", len(pending), currentTotal)
+			//utils.Debug("⏰ Timeout ticked. Pending payloads: %d, metrics: %d", len(pending), currentTotal)
 
 			if currentTotal > 0 {
 				utils.Info("⏳ Timeout flush triggered for %d metrics", currentTotal)

@@ -59,7 +59,7 @@ func ValidateToken(tokenStr string) (*SessionClaims, error) {
 
 func SetSessionCookie(w http.ResponseWriter, token string) {
 	http.SetCookie(w, &http.Cookie{
-		Name:     "session",
+		Name:     "gosight_session",
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true,
@@ -73,7 +73,7 @@ var ErrNoSession = errors.New("no session token found")
 
 // GetSessionToken retrieves the session token from cookie or header
 func GetSessionToken(r *http.Request) (string, error) {
-	if cookie, err := r.Cookie("session"); err == nil && cookie.Value != "" {
+	if cookie, err := r.Cookie("gosight_session"); err == nil && cookie.Value != "" {
 		return cookie.Value, nil
 	}
 

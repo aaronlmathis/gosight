@@ -1,0 +1,60 @@
+
+{{ define "dashboard/partials/overview/containers" }}
+<div class="mt-8">
+  <div class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-semibold">Container Endpoints</h2>
+      <span class="text-sm text-gray-500 dark:text-gray-400" id="endpoint-count">{{ .ContainerCount }} total</span>
+    </div>
+    <div class="flex flex-wrap gap-4 mb-4">
+      <select id="filter-container-status" class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+        <option value="">All Statuses</option>
+        <option value="running">Running</option>
+        <option value="stopped">Stopped</option>
+      </select>
+      <select id="filter-runtime" class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+        <option value="">All Types</option>
+        <option value="podman">Podman</option>
+        <option value="docker">Docker</option>
+      </select>
+      <input id="filter-host" type="text" placeholder="Filter by Host" class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm table-auto border-collapse">
+        <thead class="bg-gray-100 dark:bg-gray-700 text-left">
+          <tr>
+            <th class="px-4 py-2">Name</th>
+            <th class="px-4 py-2">Host</th>
+            <th class="px-4 py-2">Image</th>
+            <th class="px-4 py-2">Status</th>
+            <th class="px-4 py-2">CPU %</th>
+            <th class="px-4 py-2">Mem</th>
+            <th class="px-4 py-2">RX</th>
+            <th class="px-4 py-2">TX</th>
+            <th class="px-4 py-2">Uptime</th>
+          </tr>
+        </thead>
+        <tbody id="container-table-body" class="divide-y divide-gray-200 dark:divide-gray-700">
+          {{ range .Containers }}
+          <tr>
+            <td class="px-4 py-2">{{ .Name }}</td>
+            <td class="px-4 py-2">{{ .Host }}</td>
+            <td class="px-4 py-2">{{ .Image }}</td>
+            <td class="px-4 py-2">
+              <span class="inline-block px-3 py-1 text-xs font-bold rounded-full {{ if eq .Status "running" }}bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100{{ else }}bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100{{ end }}">
+                {{ .Status }}
+              </span>
+            </td>
+            <td class="px-4 py-2">{{ .CPU }}</td>
+            <td class="px-4 py-2">{{ .Memory }}</td>
+            <td class="px-4 py-2">{{ .RX }}</td>
+            <td class="px-4 py-2">{{ .TX }}</td>
+            <td class="px-4 py-2" title="{{ .StartTime }}">{{ .Uptime }}</td>
+          </tr>
+          {{ end }}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{{ end }}

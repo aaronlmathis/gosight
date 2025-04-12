@@ -1,0 +1,35 @@
+{{ define "dashboard/partials/compute/charts" }}
+<!-- dashboard/partials/compute/charts.html -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+  <div class="flex flex-col gap-4">
+    <div class="bg-white dark:bg-gray-900 border rounded-lg p-4 shadow-sm">
+      <h3 class="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">CPU Usage Over Time</h3>
+      <div class="relative h-48 w-full">
+        <canvas id="cpuUsageChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-900 border rounded-lg p-4 shadow-sm">
+      <h3 class="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">CPU Load Average</h3>
+      <div class="relative h-48 w-full">
+        <canvas id="cpuLoadChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white dark:bg-gray-900 border rounded-lg p-4 shadow-sm">
+    <div class="flex flex-col h-full">
+      <div class="flex justify-between items-center mb-4">
+        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">CPU Time Breakdown</h4>
+        <select id="cpu-time-unit" class="text-xs border dark:bg-gray-900 px-2 py-1 rounded">
+          <option value="ticks">Ticks</option>
+          <option value="seconds">Seconds</option>
+        </select>
+      </div>
+      <div class="flex-1 relative">
+        <canvas id="cpuDonutChart" class="absolute inset-0 w-full h-full"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+{{ end }}

@@ -1,0 +1,65 @@
+{{ define "content" }}
+<section class="flex-1 bg-white 2xl:col-span-2 dark:bg-gray-800">
+    <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 bg-white dark:bg-gray-800 pt-2 z-10">
+        Host: <span class="text-blue-500">{{ if .Hostname }}{{ .Hostname }}{{ end }}</span>
+    </h2>
+    <div class="flex items-center justify-between text-sm mb-4">
+        <div class="flex items-center space-x-3">
+            <span class="text-green-500 font-medium">● Online</span>
+            <span class="text-gray-500 dark:text-gray-400">Last report: {{ if .LastReportAgo }}{{ .LastReportAgo }}{{ end }}</span>
+            {{ if .Tags }}
+                {{ range .Tags }}
+                <span
+                    class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">{{ . }}</span>
+                {{ end }}
+            {{ end }}
+        </div>
+        <button class="text-sm text-blue-500 hover:underline">↻ Refresh</button>
+    </div>
+    <!-- Host Summary Inline Row (Responsive) -->
+    <div class="flex flex-wrap items-center gap-2 mt-2 text-sm text-gray-700 dark:text-gray-300">
+
+        <!-- Uptime -->
+        <div
+            class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+            <i class="fa-solid fa-clock text-blue-500 text-xs"></i>
+            <span class="font-medium">Uptime:</span>
+            <span>5d 14h 22m</span>
+        </div>
+
+        <!-- Processes -->
+        <div
+            class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+            <i class="fa-solid fa-microchip text-green-500 text-xs"></i>
+            <span class="font-medium">Procs:</span>
+            <span>182</span>
+        </div>
+
+        <!-- Logged-in Users -->
+        <div
+            class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+            <i class="fa-solid fa-user-group text-yellow-500 text-xs"></i>
+            <span class="font-medium">Users:</span>
+            <span>3</span>
+        </div>
+
+        <!-- OS Info -->
+        <div
+            class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+            <i class="fa-solid fa-server text-purple-500 text-xs"></i>
+            <span class="font-medium">OS:</span>
+            <span>Ubuntu 22.04</span>
+        </div>
+
+    </div>
+    {{ template "dashboard/tabs" . }}
+</section>
+    {{ block "page-scripts" .}}
+        <script src="/js/tabs/overview.js"></script>
+        <script src="/js/tabs/compute.js"></script>
+        <script src="/js/tabs/disk.js"></script>
+        <script src="/js/tabs/network.js"></script>
+        <script src="/js/tabs/activity.js"></script>
+        <script src="/js/tabs/console.js"></script>
+    {{ end }}
+{{ end }}

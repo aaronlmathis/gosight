@@ -1,0 +1,28 @@
+<html>
+
+<head>
+
+<body>
+
+    <h2>Sign In</h2>
+
+    <form method="POST" action="/callback?provider=local&next={{.Next}}">
+        <input name="username" placeholder="Username" />
+        <input type="password" name="password" placeholder="Password" />
+        <input name="totp" placeholder="2FA Code" />
+        <button type="submit">Login</button>
+    </form>
+
+    <hr />
+
+    <h3>Or sign in with:</h3>
+    {{ range .Providers }}
+    {{ if ne . "local" }}
+    <a href="/login/start?provider=google&next={{.Next}}">Sign in with Google</a>
+    {{ end }}
+    {{ end }}
+
+</body>
+</head>
+
+</html>

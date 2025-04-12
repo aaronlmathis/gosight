@@ -1,0 +1,20 @@
+{{ define "dashboard/partials/overview/metrics" }}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+  {{ range .OverviewMetrics }}
+  <div
+    class="relative p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full">
+    <div class="absolute top-4 right-4 text-{{ .IconColor }}">
+      {{ if .Icon }}
+      {{ .Icon | safeHTML }}
+      {{ end }}
+    </div>
+    <p class="text-sm text-gray-500 dark:text-gray-400">{{ .Label }}</p>
+    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{{ .Value }}</p>
+    <p class="text-xs text-gray-400 dark:text-gray-500">{{ .Unit }}</p>
+    <div class="mt-2">
+      <canvas id="{{ .ChartID }}" class="w-full h-20"></canvas>
+    </div>
+  </div>
+  {{ end }}
+</div>
+{{ end }}

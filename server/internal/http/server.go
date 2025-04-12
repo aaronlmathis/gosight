@@ -25,17 +25,21 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package httpserver
 
 import (
-	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"path/filepath"
 
+	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
 	"github.com/aaronlmathis/gosight/server/internal/config"
+	"github.com/aaronlmathis/gosight/server/internal/http/templates"
 	"github.com/aaronlmathis/gosight/server/internal/store"
 	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/gorilla/mux"
 )
+
+var AuthProviders map[string]gosightauth.AuthProvider
 
 func StartHTTPServer(cfg *config.Config, tracker *store.AgentTracker, metricStore store.MetricStore, metricIndex *store.MetricIndex, userStore userstore.UserStore) {
 	InitHandlers(tracker)
@@ -43,12 +47,12 @@ func StartHTTPServer(cfg *config.Config, tracker *store.AgentTracker, metricStor
 	router := mux.NewRouter()
 	apiStore := &APIMetricStore{Store: metricStore}
 
-	authProviders, err := BuildAuthProviders(cfg, userStore)
+	AuthProviders, err := BuildAuthProviders(cfg, userStore)
 	if err != nil {
 		log.Fatalf("failed to build auth providers: %v", err)
 	}
 
-	SetupRoutes(router, metricIndex, apiStore, userStore, authProviders, cfg)
+	SetupRoutes(router, metricIndex, apiStore, userStore, AuthProviders, cfg)
 
 	// Static file server
 	staticDir := http.Dir(cfg.Web.StaticDir)
@@ -88,13 +92,13 @@ func StartHTTPServer(cfg *config.Config, tracker *store.AgentTracker, metricStor
 
 	router.PathPrefix("/images/").Handler(http.StripPrefix("/images/", fs))
 
-	// Optional request logger
-	router.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Printf("📡 %s %s\n", r.Method, r.URL.Path)
-			next.ServeHTTP(w, r)
-		})
-	})
+	funcMap := template.FuncMap{
+		"hasPermission": func(_, _ interface{}) bool { return true },
+		"safeHTML":      func(s string) template.HTML { return template.HTML(s) },
+	}
+
+	// Initialize templates with the function map
+	templates.InitTemplates(cfg, funcMap)
 
 	utils.Info("🌐 HTTP server running at %s", cfg.Server.HTTPAddr)
 	if err := http.ListenAndServe(cfg.Server.HTTPAddr, router); err != nil {

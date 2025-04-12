@@ -1,0 +1,24 @@
+{{ define "dashboard/partials/overview/stats" }}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+  <div class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full">
+    <h3 class="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Recent Events</h3>
+    <ul class="text-xs space-y-1">
+      {{ if .RecentEvents }}
+        {{ range .RecentEvents }}
+        <li>{{ . }}</li>
+        {{ end }}
+      {{ end }}
+    </ul>
+  </div>
+  <div class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full">
+    <p class="text-sm text-gray-500 dark:text-gray-400">Uptime</p>
+    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{{ if .Uptime }}{{ .Uptime }} {{ end }}
+    <p class="text-xs text-gray-400 dark:text-gray-500">duration</p>
+  </div>
+  <div class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full">
+    <p class="text-sm text-gray-500 dark:text-gray-400">Processes</p>
+    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{{ if .ProcessCount }}{{ .ProcessCount }} {{ end }}</p>
+    <p class="text-xs text-gray-400 dark:text-gray-500">count</p>
+  </div>
+</div>
+{{ end }}

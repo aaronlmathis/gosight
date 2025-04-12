@@ -1,0 +1,37 @@
+{{ define "dashboard/partials/activity/table" }}
+<!-- dashboard/partials/activity/table.html -->
+<div class="overflow-x-auto">
+  <table class="min-w-full table-auto text-sm text-left text-gray-700 dark:text-gray-300">
+    <thead class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <tr class="text-sm font-semibold">
+        <th class="px-4 py-2 whitespace-nowrap w-1">Category</th>
+        <th class="px-4 py-2 whitespace-nowrap w-1">Date</th>
+        <th class="px-4 py-2">Message</th>
+      </tr>
+    </thead>
+    <tbody id="activity-log-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+      {{ range .ActivityLogs }}
+      <tr>
+        <td class="px-4 py-2 align-top whitespace-nowrap">
+          {{ if eq .Category "Info" }}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+              <i class="mr-1 fa fa-info-circle"></i> Info
+            </span>
+          {{ else if eq .Category "Warning" }}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+              <i class="mr-1 fa fa-exclamation-triangle"></i> Warning
+            </span>
+          {{ else }}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+              <i class="mr-1 fa fa-times-circle"></i> Error
+            </span>
+          {{ end }}
+        </td>
+        <td class="px-4 py-2 align-top whitespace-nowrap">{{ .Date }}</td>
+        <td class="px-4 py-2">{{ .Message }}</td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+</div>
+{{ end }}

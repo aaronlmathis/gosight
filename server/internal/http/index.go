@@ -26,73 +26,64 @@ package httpserver
 
 import (
 	"net/http"
-	"path/filepath"
-	"text/template"
 
+	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
+	"github.com/aaronlmathis/gosight/server/internal/http/templates"
+	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func RenderDashboard(w http.ResponseWriter, r *http.Request, templateDir string) {
+func HandleIndex(w http.ResponseWriter, r *http.Request, cfg *config.Config, userStore userstore.UserStore) {
 	ctx := r.Context()
-	userID, _ := contextutil.GetUserID(ctx)
-	roles, _ := contextutil.GetUserRoles(ctx)
-	perms, _ := contextutil.GetUserPermissions(ctx)
+
+	// Check for forbidden access first
+	if forbidden, ok := ctx.Value("forbidden").(bool); ok && forbidden {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	// Check if user is authenticated
+	userID, ok := contextutil.GetUserID(ctx)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	user, err := userStore.GetUserWithPermissions(ctx, userID)
+	if err != nil {
+		utils.Error("❌ Failed to load user %s: %v", userID, err)
+		http.Error(w, "failed to load user", http.StatusInternalServerError)
+		return
+	}
+	utils.Debug("User details: %s %s % s", user.FirstName, user.LastName, user.Email)
 
 	data := map[string]any{
-		"UserID":          userID,
-		"Roles":           roles,
-		"Permissions":     perms,
-		"HasAdmin":        HasPermission(perms, "gosight:admin:*"),
-		"CanViewUsers":    HasPermission(perms, "gosight:admin:users:view"),
-		"CanEditSettings": HasPermission(perms, "gosight:admin:settings:edit"),
+		"User":        user,
+		"Breadcrumbs": "Dashboard / Overview",
+
+		"OverviewMetrics": []map[string]string{
+			{
+				"Label": "CPU Usage",
+				"Value": "42%",
+				"Unit":  "",
+			},
+			{
+				"Label": "Memory",
+				"Value": "6.2 GB",
+				"Unit":  "of 16 GB",
+			},
+			{
+				"Label": "Uptime",
+				"Value": "3 days",
+				"Unit":  "",
+			},
+		},
 	}
 
-	tmpl := template.Must(template.ParseFiles(filepath.Join(templateDir, "dashboard.html")))
-	tmpl.Execute(w, data)
-}
-
-func RenderIndexPage(w http.ResponseWriter, r *http.Request, templateDir, env string) {
-	tmplPath := filepath.Join(templateDir, "index.html")
-	tmpl, err := template.ParseFiles(tmplPath)
+	err = templates.RenderTemplate(w, "dashboard/layout", data)
 	if err != nil {
-		utils.Error("Template parse error: %v", err)
-		http.Error(w, "Template error", http.StatusInternalServerError)
-		return
+		utils.Error("❌ Template error: %v", err)
+		http.Error(w, "template error", http.StatusInternalServerError)
 	}
-
-	data := map[string]interface{}{
-		"Title": "GoSight",
-		"Env":   env,
-	}
-
-	tmpl.Execute(w, data)
-}
-
-func HandleIndex(w http.ResponseWriter, r *http.Request, templateDir, env string) {
-	layout := filepath.Join(templateDir, "layout.html")
-	page := filepath.Join(templateDir, "index.html")
-	tmpl, err := template.ParseFiles(layout, page)
-
-	if err != nil {
-		http.Error(w, "Template parsing error: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = tmpl.ExecuteTemplate(w, "layout.html", nil)
-	if err != nil {
-		http.Error(w, "Template execution error: "+err.Error(), http.StatusInternalServerError)
-	}
-}
-
-func staticWithProperMIMEs(fs http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch filepath.Ext(r.URL.Path) {
-		case ".js":
-			w.Header().Set("Content-Type", "application/javascript")
-		case ".css":
-			w.Header().Set("Content-Type", "text/css")
-		}
-		fs.ServeHTTP(w, r)
-	})
 }
