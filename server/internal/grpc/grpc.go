@@ -43,7 +43,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 // gosight/server/internal/server/
 // grpc.go - gRPC server setup and initialization
 
-package server
+package grpcserver
 
 import (
 	"crypto/sha256"
@@ -58,6 +58,7 @@ import (
 
 	"github.com/aaronlmathis/gosight/server/internal/api"
 	"github.com/aaronlmathis/gosight/server/internal/config"
+	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
 	"github.com/aaronlmathis/gosight/server/internal/store"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/aaronlmathis/gosight/shared/proto"
@@ -67,7 +68,7 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-func NewGRPCServer(cfg *config.Config, store store.MetricStore, tracker *store.AgentTracker, metricIndex *store.MetricIndex, metaTracker *metastore.MetaTracker) (*grpc.Server, net.Listener, error) {
+func NewGRPCServer(cfg *config.Config, store store.MetricStore, tracker *store.AgentTracker, metricIndex *store.MetricIndex, metaTracker *metastore.MetaTracker, ws *websocket.Hub) (*grpc.Server, net.Listener, error) {
 	tlsCfg, err := loadTLSConfig(cfg)
 	if err != nil {
 		return nil, nil, fmt.Errorf("TLS config failed: %w", err)
@@ -80,7 +81,7 @@ func NewGRPCServer(cfg *config.Config, store store.MetricStore, tracker *store.A
 	creds := credentials.NewTLS(tlsCfg)
 	server := grpc.NewServer(grpc.Creds(creds))
 
-	handler := api.NewMetricsHandler(store, tracker, metricIndex, metaTracker)
+	handler := api.NewMetricsHandler(store, tracker, metricIndex, metaTracker, ws)
 	proto.RegisterMetricsServiceServer(server, handler)
 
 	go func() {

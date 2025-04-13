@@ -109,7 +109,7 @@ func FlattenRange(rows []model.MetricRow) map[string][]model.MetricPoint {
 	return result
 }
 
-func getMetricNames(metrics []model.MetricSelector, instantOnly bool) []string {
+func GetMetricNames(metrics []model.MetricSelector, instantOnly bool) []string {
 	var out []string
 	for _, m := range metrics {
 		if m.Instant == instantOnly {
@@ -132,7 +132,7 @@ func BuildHostDashboardData(ctx context.Context, ms store.MetricStore, metaTrack
 
 	utils.Debug("🧠 MetricStore concrete type: %T\n", ms)
 	// Pull all instant metrics for stat boxes
-	instantNames := getMetricNames(HostMetrics, true)
+	instantNames := GetMetricNames(HostMetrics, true)
 	fmt.Println("🧪 Querying instant metrics:", instantNames)
 	instantRows, err := ms.QueryMultiInstant(instantNames, labels)
 	utils.Debug("instantRows: %v", instantRows)
@@ -145,7 +145,7 @@ func BuildHostDashboardData(ctx context.Context, ms store.MetricStore, metaTrack
 	// Pull range metrics for charts (10 min window)
 	start := time.Now().Add(-10 * time.Minute)
 	end := time.Now()
-	rangeNames := getMetricNames(HostMetrics, false)
+	rangeNames := GetMetricNames(HostMetrics, false)
 
 	rangeRows, err := ms.QueryMultiRange(rangeNames, start, end, labels)
 	if err != nil {
@@ -185,6 +185,12 @@ func BuildHostDashboardData(ctx context.Context, ms store.MetricStore, metaTrack
 	labels["platform"] = tags["platform"]
 	labels["platform_version"] = tags["platform_version"]
 	labels["os"] = tags["os"]
+	utils.Debug("🧠 Labels %v", labels)
+
+	breadcrumbs := []Breadcrumb{
+		{Label: "Endpoints", URL: "/endpoints"},
+		{Label: "Host Overview", URL: ""}, // No URL for current page
+	}
 
 	return &TemplateData{
 		Title:       "Host Dashboard",
@@ -195,5 +201,6 @@ func BuildHostDashboardData(ctx context.Context, ms store.MetricStore, metaTrack
 		Metrics:     metrics,
 		Meta:        meta,
 		Timeseries:  timeseries,
+		Breadcrumbs: breadcrumbs,
 	}, nil
 }

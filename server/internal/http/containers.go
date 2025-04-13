@@ -27,13 +27,10 @@ package httpserver
 
 import (
 	"fmt"
-	"html/template"
 	"net/http"
-	"path/filepath"
 	"sort"
 	"strings"
 
-	"github.com/aaronlmathis/gosight/server/internal/store"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
@@ -51,11 +48,7 @@ type ContainerMetrics struct {
 	Ports  string            `json:"ports,omitempty"`
 }
 
-type ContainerHandler struct {
-	Store store.MetricStore
-}
-
-func (h *ContainerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) HandleContainers(w http.ResponseWriter, r *http.Request) {
 	queries := map[string]string{
 		"cpu":    "cpu_percent",
 		"mem":    "mem_usage_bytes",
@@ -70,7 +63,7 @@ func (h *ContainerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for metricKey, shortName := range queries {
 		for _, sub := range []string{"podman", "docker"} { // TODO: Dynamically track this
 			fullMetric := fmt.Sprintf("container.%s.%s", sub, shortName)
-			rows, err := h.Store.QueryInstant(fullMetric, map[string]string{
+			rows, err := s.MetricStore.QueryInstant(fullMetric, map[string]string{
 				"namespace": "container",
 			})
 			if err != nil {
@@ -156,38 +149,4 @@ func (h *ContainerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	})
 
 	utils.JSON(w, http.StatusOK, filtered)
-}
-
-func RenderContainersPage(w http.ResponseWriter, r *http.Request, templateDir, env string) {
-	tmplPath := filepath.Join(templateDir, "containers.html")
-	tmpl, err := template.ParseFiles(tmplPath)
-	if err != nil {
-		utils.Error("Template parse error: %v", err)
-		http.Error(w, "Template error", http.StatusInternalServerError)
-		return
-	}
-
-	data := map[string]interface{}{
-		"Title": "Containers - GoSight",
-		"Env":   env,
-	}
-
-	_ = tmpl.Execute(w, data)
-}
-
-func HandleEndpoints(w http.ResponseWriter, r *http.Request, templateDir string) {
-	containerTemplate := filepath.Join(templateDir, "endpoints.html")
-	layoutTemplate := filepath.Join(templateDir, "layout.html")
-	tmpl, err := template.ParseFiles(containerTemplate, layoutTemplate)
-
-	if err != nil {
-		http.Error(w, "Template parsing error: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// You can pass real data here if needed
-	err = tmpl.ExecuteTemplate(w, "layout.html", nil)
-	if err != nil {
-		http.Error(w, "Template execution error: "+err.Error(), http.StatusInternalServerError)
-	}
 }

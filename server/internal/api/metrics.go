@@ -25,6 +25,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package api
 
 import (
+	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
 	"github.com/aaronlmathis/gosight/server/internal/store"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/aaronlmathis/gosight/shared/model"
@@ -39,16 +40,18 @@ type MetricsHandler struct {
 	Tracker     *store.AgentTracker
 	metricIndex *store.MetricIndex
 	metaTracker *metastore.MetaTracker
+	websocket   *websocket.Hub
 	pb.UnimplementedMetricsServiceServer
 }
 
-func NewMetricsHandler(s store.MetricStore, tracker *store.AgentTracker, metricIndex *store.MetricIndex, meta *metastore.MetaTracker) *MetricsHandler {
+func NewMetricsHandler(s store.MetricStore, tracker *store.AgentTracker, metricIndex *store.MetricIndex, meta *metastore.MetaTracker, ws *websocket.Hub) *MetricsHandler {
 	utils.Debug("🚀 MetricsHandler initialized with store: %T", s)
 	return &MetricsHandler{
 		store:       s,
 		Tracker:     tracker,
 		metricIndex: metricIndex,
 		metaTracker: meta,
+		websocket:   ws,
 	}
 }
 
@@ -67,11 +70,16 @@ func (h *MetricsHandler) SubmitStream(stream pb.MetricsService_SubmitStreamServe
 		}
 
 		converted := ConvertToModelPayload(req)
+
+		// Broadcast to WebSocket clients
+		h.websocket.Broadcast(converted)
+		utils.Debug("📡 Broadcasted to WebSocket clients: %+v", converted)
+
 		//fmt.Printf("📬 Server received proto.Meta: %+v\n", req.Meta)
 		if err := h.store.Write([]model.MetricPayload{converted}); err != nil {
 			utils.Warn("❌ Failed to enqueue metrics from %s: %v", converted.Host, err)
 		} else {
-			//utils.Info("📥 Enqueued %d metrics from host: %s at %s", len(converted.Metrics), converted.Host, converted.Timestamp)
+			utils.Info("📥 Enqueued %d metrics from host: %s at %s", len(converted.Metrics), converted.Host, converted.Timestamp)
 
 			if converted.Meta != nil && converted.Meta.EndpointID != "" {
 				//fmt.Printf("🧠 Setting meta for %s\n", converted.Meta.EndpointID)

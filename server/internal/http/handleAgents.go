@@ -34,7 +34,7 @@ import (
 )
 
 // RenderAgentsPage serves the agents.html template
-func RenderAgentsPage(w http.ResponseWriter, r *http.Request, templateDir, env string) {
+func (s *HttpServer) HandleAgentsPage(w http.ResponseWriter, r *http.Request, templateDir, env string) {
 	tmplPath := filepath.Join(templateDir, "agents.html")
 	tmpl, err := template.ParseFiles(tmplPath)
 	if err != nil {
@@ -52,8 +52,8 @@ func RenderAgentsPage(w http.ResponseWriter, r *http.Request, templateDir, env s
 }
 
 // HandleAgentsAPI returns a JSON list of active agents
-func HandleAgentsAPI(w http.ResponseWriter, r *http.Request) {
-	agents := tracker.GetAgents()
+func (s *HttpServer) HandleAgentsAPI(w http.ResponseWriter, r *http.Request) {
+	agents := s.AgentTracker.GetAgents()
 
 	sort.SliceStable(agents, func(i, j int) bool {
 		return agents[i].Hostname < agents[j].Hostname

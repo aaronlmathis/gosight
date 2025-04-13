@@ -53,6 +53,12 @@ type TemplateData struct {
 	MetricStore store.MetricStore
 	MetricIndex *store.MetricIndex
 	UserStore   userstore.UserStore
+	Breadcrumbs []Breadcrumb
+}
+
+type Breadcrumb struct {
+	Label string
+	URL   string
 }
 
 func InitTemplates(cfg *config.Config, funcMap template.FuncMap) error {
@@ -78,7 +84,7 @@ func InitTemplates(cfg *config.Config, funcMap template.FuncMap) error {
 		}
 
 		counter++
-		utils.Debug("📦 Template loaded: %v - %v - %d", path, templateName, counter)
+		//utils.Debug("📦 Template loaded: %v - %v - %d", path, templateName, counter)
 
 		return nil
 	})
@@ -88,7 +94,7 @@ func InitTemplates(cfg *config.Config, funcMap template.FuncMap) error {
 		return err
 	}
 
-	utils.Debug("📦 Total Templates loaded: %d", counter)
+	//utils.Debug("📦 Total Templates loaded: %d", counter)
 	return nil
 }
 

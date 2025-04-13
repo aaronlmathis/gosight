@@ -26,8 +26,9 @@ import (
 	"fmt"
 
 	"github.com/aaronlmathis/gosight/server/internal/bootstrap"
+	grpcserver "github.com/aaronlmathis/gosight/server/internal/grpc"
 	httpserver "github.com/aaronlmathis/gosight/server/internal/http"
-	"github.com/aaronlmathis/gosight/server/internal/server"
+	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
@@ -37,41 +38,58 @@ func main() {
 	// Bootstrap config loading (flags -> env -> file)
 	cfg := bootstrap.LoadServerConfig()
 	fmt.Printf("🔧 About to init logger with level = %s\n", cfg.Logs.LogLevel)
+
 	// Initialize logging
 	bootstrap.SetupLogging(cfg)
 
+	// Initialize the websocket hub
+	wsHub := websocket.NewHub()
+	go func() {
+		utils.Info("🧬 Starting WebSocket hub...")
+		wsHub.Run() // no error returned, but safe to log around
+	}()
+
 	// Init metric store
-
 	metricStore, err := bootstrap.InitMetricStore(cfg)
-	if err != nil {
-		utils.Fatal("Metric store init failed: %v", err)
-	}
+	utils.Must("Metric store", err)
 
+	// Initialize agent tracker
 	agentTracker, err := bootstrap.InitAgentTracker(cfg.Server.Environment)
-	if err != nil {
-		utils.Fatal("Agent tracker init failed: %v", err)
-	}
+	utils.Must("Agent tracker", err)
 
+	// Initialize metric index
 	metricIndex, err := bootstrap.InitMetricIndex()
-	if err != nil {
-		utils.Fatal("Metric index init failed: %v", err)
-	}
+	utils.Must("Metric index", err)
 
+	// Initialize user store
 	userStore, err := bootstrap.InitUserStore(cfg)
-	if err != nil {
-		utils.Fatal("User store init failed: %v", err)
-	}
-	metaTracker := metastore.NewMetaTracker()
-	// Start HTTP server for admin console/api
-	go httpserver.StartHTTPServer(cfg, agentTracker, metricStore, metricIndex, userStore, metaTracker)
+	utils.Must("User store", err)
 
-	grpcServer, listener, err := server.NewGRPCServer(cfg, metricStore, agentTracker, metricIndex, metaTracker)
+	// Initialize meta tracker
+	metaTracker := metastore.NewMetaTracker()
+
+	// Initialize auth
+	authProviders, err := httpserver.InitAuth(cfg, userStore)
+	utils.Must("Auth providers", err)
+
+	// Start HTTP server for admin console/api
+	srv := httpserver.NewServer(agentTracker, authProviders, cfg, metaTracker, metricIndex, metricStore, userStore, wsHub)
+
+	go func() {
+		if err := srv.Start(); err != nil {
+			utils.Fatal("HTTP server failed: %v", err)
+		} else {
+			utils.Info("🌐 HTTP server started successfully")
+		}
+	}()
+
+	grpcServer, listener, err := grpcserver.NewGRPCServer(cfg, metricStore, agentTracker, metricIndex, metaTracker, wsHub)
 	if err != nil {
 		utils.Fatal("Failed to start gRPC server: %v", err)
+	} else {
+		utils.Info("🚀 GoSight server listening on %s", cfg.Server.GRPCAddr)
+		if err := grpcServer.Serve(listener); err != nil {
+			utils.Fatal("Failed to serve: %v", err)
+		}
 	}
-	utils.Info("🚀 GoSight server listening on %s", cfg.Server.GRPCAddr)
-	if err := grpcServer.Serve(listener); err != nil {
-		utils.Fatal("Failed to serve: %v", err)
-	}
-
 }

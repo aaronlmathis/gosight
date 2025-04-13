@@ -19,15 +19,15 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// Basic Handler for http server - init
-// server/internal/http/init.go
+// Handler for index page
+// server/internal/http/index.go
 
 package httpserver
 
-import "github.com/aaronlmathis/gosight/server/internal/store"
+import (
+	"net/http"
+)
 
-var tracker *store.AgentTracker
+func (s *HttpServer) HandleIndex(w http.ResponseWriter, r *http.Request) {
 
-func InitHandlers(t *store.AgentTracker) {
-	tracker = t
 }

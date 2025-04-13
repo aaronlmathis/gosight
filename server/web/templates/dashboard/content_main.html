@@ -1,0 +1,126 @@
+{{ define "content_main" }}
+<section class="flex-1 bg-white 2xl:col-span-2 dark:bg-gray-800">
+    <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 bg-white dark:bg-gray-800 pt-2 z-10">
+        Host: <span class="text-blue-500">
+            {{ with .Meta }}
+              {{ .Hostname }}
+            {{ else }}
+              <span class="text-gray-400">unknown</span>
+            {{ end }}
+          </span>
+    </h2>
+    <div class="flex items-center justify-between text-sm mb-4">
+        <div class="flex items-center space-x-3">
+  <!-- Status Dot -->
+  {{ $status := index .Labels "status" | trim }}
+
+  {{ if eq $status "online" }}
+    <span class="text-green-500 font-semibold">● Online</span>
+  {{ else if eq $status "offline" }}
+    <span class="text-red-500 font-semibold">● Offline</span>
+  {{ else }}
+    <span class="text-gray-400 font-semibold">● Unknown</span>
+  {{ end }}
+
+  <!-- Last Seen -->
+  {{ with $ts := index .Labels "last_report" }}
+    <span>Last report: {{ $ts | since }}</span>
+  {{ else }}
+    <span>Last report: unknown</span>
+  {{ end }}
+            {{ if .Tags }}
+                {{ range .Tags }}
+                <span
+                    class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">{{ . }}</span>
+                {{ end }}
+            {{ end }}
+        </div>
+        <button class="text-sm text-blue-500 hover:underline">↻ Refresh</button>
+    </div>
+
+
+    
+    <!-- Host Summary Inline Row (Responsive) -->
+    <div class="flex flex-wrap items-center gap-2 mt-2 text-sm text-gray-700 dark:text-gray-300">
+
+        <!-- Uptime -->
+        <div
+            class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+            <i class="fa-solid fa-clock text-blue-500 text-xs"></i>
+            <span class="font-medium">Uptime:</span>
+            {{ with index .Metrics "system.host.uptime" }}
+                <span>{{ . | uptime }}</span>
+            {{ else }}
+                <span class="text-gray-400">N/A</span>
+            {{ end }}
+        </div>
+
+        <!-- Processes -->
+        <div
+            class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+            <i class="fa-solid fa-microchip text-green-500 text-xs"></i>
+            <span class="font-medium">Procs:</span>
+            {{ with index .Metrics "system.host.procs" }}
+                <span>{{ . }}</span>
+            {{ else }}
+                <span class="text-gray-400">N/A</span>
+            {{ end }}
+        </div>
+
+        <!-- Logged-in Users -->
+        <div
+            class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+            <i class="fa-solid fa-user-group text-yellow-500 text-xs"></i>
+            <span class="font-medium">Users:</span>
+            {{ with index .Metrics "system.host.users_loggedin" }}
+                <span>{{ . }}</span>
+            {{ else }}
+                <span class="text-gray-400">N/A</span>
+            {{ end }}
+        </div>
+
+        <!-- OS Info -->
+        <div
+            class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+            <i class="fa-solid fa-server text-purple-500 text-xs"></i>
+            <span class="font-medium">OS:</span>
+            {{ with index .Labels "os" }}
+                <span>{{ . }}</span>
+            {{ else }}
+                <span class="text-gray-400">unknown</span>
+            {{ end }}
+        </div>
+
+    </div>
+    <p>CPU Usage: <span id="cpu-usage"></span>%</p>
+</section>
+    {{ block "page-scripts" .}}
+    <script>
+        async function updateEndpointData(endpointID) {
+          try {
+            const res = await fetch(`/api/endpoints/${endpointID}`);
+            const data = await res.json();
+        
+            document.getElementById('cpu-usage').textContent = data.metrics['system.cpu.usage_percent'].toFixed(1) + '%';
+            document.getElementById('memory-used').textContent = (data.metrics['system.memory.used'] / (1024**3)).toFixed(1) + ' GB';
+        
+            const statusDot = document.getElementById('status-dot');
+            statusDot.innerHTML = {
+              'online': '<span class="text-green-500">● Online</span>',
+              'offline': '<span class="text-red-500">● Offline</span>',
+            }[data.labels.status.toLowerCase()] || '<span class="text-gray-400">● Unknown</span>';
+        
+            document.getElementById('last-update').textContent = new Date(data.timestamp).toLocaleString();
+        
+          } catch (err) {
+            console.error('Auto-update error:', err);
+          }
+        }
+        
+        // auto-refresh every 10 seconds
+        const endpointID = '{{ index .Labels "EndpointID" }}';
+        updateEndpointData(endpointID);
+        setInterval(() => updateEndpointData(endpointID), 10000);
+        </script>
+    {{ end }}
+{{ end }}

@@ -135,7 +135,7 @@ func (v *VictoriaStore) collectorLoop() {
 			//utils.Debug("📥 Received payload with %d metrics", total)
 			pending = append(pending, batch...)
 			currentTotal := totalMetricCount(pending)
-			utils.Debug("📊 Total metrics pending: %d", currentTotal)
+			//utils.Debug("📊 Total metrics pending: %d", currentTotal)
 
 			if currentTotal >= v.batchSize {
 				//utils.Info("📦 Batch size reached: %d metrics, flushing now", currentTotal)
@@ -157,8 +157,7 @@ func (v *VictoriaStore) collectorLoop() {
 }
 
 func (v *VictoriaStore) enqueue(batch []model.MetricPayload) {
-	utils.Debug("📦 Enqueue called with %d payloads / %d metrics",
-		len(batch), totalMetricCount(batch))
+	//utils.Debug("📦 Enqueue called with %d payloads / %d metrics",		len(batch), totalMetricCount(batch))
 	select {
 	case v.queue <- batch:
 	default:
@@ -545,6 +544,14 @@ func (v *VictoriaStore) QueryMultiInstant(metricNames []string, filters map[stri
 	// Convert to MetricRow
 	var rows []model.MetricRow
 	for _, item := range vmResp.Data.Result {
+		// Extract timestamp
+		tsFloat, ok := item.Value[0].(float64)
+		if !ok {
+			continue
+		}
+		timestamp := int64(tsFloat * 1000) // seconds → milliseconds
+
+		// Extract metric value
 		valStr, ok := item.Value[1].(string)
 		if !ok {
 			continue
@@ -555,8 +562,9 @@ func (v *VictoriaStore) QueryMultiInstant(metricNames []string, filters map[stri
 		}
 
 		rows = append(rows, model.MetricRow{
-			Value: val,
-			Tags:  item.Metric,
+			Value:     val,
+			Tags:      item.Metric,
+			Timestamp: timestamp,
 		})
 	}
 

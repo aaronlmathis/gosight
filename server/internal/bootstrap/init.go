@@ -30,6 +30,7 @@ import (
 	"fmt"
 
 	"github.com/aaronlmathis/gosight/server/internal/config"
+	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
 	"github.com/aaronlmathis/gosight/server/internal/store"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/aaronlmathis/gosight/shared/utils"
@@ -57,4 +58,11 @@ func InitMetricIndex() (*store.MetricIndex, error) {
 
 func InitMetaStore() *metastore.MetaTracker {
 	return metastore.NewMetaTracker()
+}
+
+func InitWebSocketHub() *websocket.Hub {
+	ws := websocket.NewHub()
+	// Start WebSocket server
+	go ws.Run()
+	return ws
 }

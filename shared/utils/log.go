@@ -124,3 +124,9 @@ func Debug(format string, args ...any) {
 func Access(format string, args ...any) {
 	accessLog.Printf(format, args...)
 }
+
+func Must(label string, err error) {
+	if err != nil {
+		Fatal("%s init failed: %v", label, err)
+	}
+}
