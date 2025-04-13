@@ -1,4 +1,4 @@
-{{ define "content" }}
+{{ define "contents" }}
 <section class="flex-1 bg-white 2xl:col-span-2 dark:bg-gray-800">
     <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 bg-white dark:bg-gray-800 pt-2 z-10">
         Host: <span class="text-blue-500">
@@ -94,10 +94,11 @@
         </div>
 
     </div>
-    {{ template "dashboard/tabs" . }}
+
 </section>
     {{ block "page-scripts" .}}
-         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
         <script src="/js/tabs/overview.js"></script>
         <script src="/js/tabs/compute.js"></script>
         <script src="/js/tabs/disk.js"></script>

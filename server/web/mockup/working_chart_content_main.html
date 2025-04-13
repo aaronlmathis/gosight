@@ -1,0 +1,164 @@
+{{ define "content_main" }}
+<style>
+  .stat-card {
+    @apply bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm;
+  }
+  .stat-card > p:first-child {
+    @apply text-sm text-gray-500 dark:text-gray-400;
+  }
+  .stat-card > p:last-child {
+    @apply text-xl font-bold text-blue-600 dark:text-blue-400;
+  }
+</style>
+<section class="flex-1 bg-white 2xl:col-span-2 dark:bg-gray-800">
+    <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 bg-white dark:bg-gray-800 pt-2 z-10">
+        Host: <span id="meta-hostname" class="text-blue-500"></span>
+    </h2>
+    <div class="flex items-center justify-between text-sm mb-4">
+        <div class="flex items-center space-x-3">
+  <!-- Status Dot -->
+  {{ $status := index .Labels "status" | trim }}
+
+  {{ if eq $status "online" }}
+    <span class="text-green-500 font-semibold">● Online</span>
+  {{ else if eq $status "offline" }}
+    <span class="text-red-500 font-semibold">● Offline</span>
+  {{ else }}
+    <span class="text-gray-400 font-semibold">● Unknown</span>
+  {{ end }}
+
+  <!-- Last Seen -->
+  {{ with $ts := index .Labels "last_report" }}
+    <span>Last report: {{ $ts | since }}</span>
+  {{ else }}
+    <span>Last report: unknown</span>
+  {{ end }}
+            {{ if .Tags }}
+                {{ range .Tags }}
+                <span
+                    class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">{{ . }}</span>
+                {{ end }}
+            {{ end }}
+        </div>
+        <button class="text-sm text-blue-500 hover:underline">↻ Refresh</button>
+    </div>
+
+
+    
+    <!-- Host Summary Inline Row (Responsive) -->
+    <div class="flex flex-wrap items-center gap-2 mt-2 text-sm text-gray-700 dark:text-gray-300">
+
+<!-- Uptime -->
+<div
+  class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+  <i class="fa-solid fa-clock text-blue-500 text-xs"></i>
+  <span class="font-medium">Uptime:</span>
+  <span id="live-uptime" class="text-gray-900">Loading...</span>
+</div>
+
+        <!-- Processes -->
+        <div
+            class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+            <i class="fa-solid fa-microchip text-green-500 text-xs"></i>
+            <span class="font-medium">Procs:</span>
+            {{ with index .Metrics "system.host.procs" }}
+                <span>{{ . }}</span>
+            {{ else }}
+                <span class="text-gray-400">N/A</span>
+            {{ end }}
+        </div>
+
+        <!-- Logged-in Users -->
+        <div
+            class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+            <i class="fa-solid fa-user-group text-yellow-500 text-xs"></i>
+            <span class="font-medium">Users:</span>
+            {{ with index .Metrics "system.host.users_loggedin" }}
+                <span>{{ . }}</span>
+            {{ else }}
+                <span class="text-gray-400">N/A</span>
+            {{ end }}
+        </div>
+        <div
+            class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+            <i class="fa-solid fa-server text-purple-500 text-xs"></i>
+            <span class="font-medium">IPv4:</span>
+            <span id="meta-ip" class="text-gray-900">Loading...</span>
+        </div>
+        <!-- OS Info -->
+        <div
+            class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+            <i class="fa-solid fa-server text-purple-500 text-xs"></i>
+            <span class="font-medium">OS:</span>
+            <span id="meta-os" class="text-gray-900">Loading...</span>
+        </div>
+        <div
+            class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+            <i class="fa-solid fa-server text-purple-500 text-xs"></i>
+            <span class="font-medium">Arch:</span>
+            <span id="meta-arch" class="text-gray-900">Loading...</span>
+        </div>
+
+
+    </div>
+    <section class="space-y-6">
+
+      <!-- Top Charts Row -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- CPU Usage Over Time -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <h3 class="text-md font-semibold text-gray-800 dark:text-white mb-2">CPU Usage Over Time</h3>
+          <canvas id="cpuUsageChart" height="180"></canvas>
+        </div>
+    
+        <!-- CPU Time Breakdown -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <h3 class="text-md font-semibold text-gray-800 dark:text-white mb-2">CPU Time Breakdown</h3>
+          <canvas id="cpuTimeChart" height="180"></canvas>
+        </div>
+      </div>
+    
+      <!-- CPU Load + Memory Charts -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Load Average -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <h3 class="text-md font-semibold text-gray-800 dark:text-white mb-2">CPU Load Avg</h3>
+          <canvas id="loadAvgChart" height="180"></canvas>
+        </div>
+    
+        <!-- Memory Usage -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <h3 class="text-md font-semibold text-gray-800 dark:text-white mb-2">Memory Usage</h3>
+          <canvas id="memChart" height="180"></canvas>
+        </div>
+      </div>
+    
+      <!-- Info Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4 text-sm text-gray-800 dark:text-white">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <div class="font-semibold">CPU Model</div>
+          <div id="model">-</div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <div class="font-semibold">Cores / Threads</div>
+          <div><span id="cores">-</span> cores / <span id="threads">-</span> threads</div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <div class="font-semibold">Base Clock</div>
+          <div id="baseclock">-</div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <div class="font-semibold">Memory (Used / Total)</div>
+          <div><span id="memUsed">-</span> / <span id="memTotal">-</span></div>
+        </div>
+      </div>
+    
+    </section>
+    
+
+    {{ block "page-scripts" .}}
+    <script>
+
+        </script>
+    {{ end }}
+{{ end }}

@@ -94,7 +94,7 @@ func InitTemplates(cfg *config.Config, funcMap template.FuncMap) error {
 		return err
 	}
 
-	//utils.Debug("📦 Total Templates loaded: %d", counter)
+	utils.Debug("📦 Total Templates loaded: %d", counter)
 	return nil
 }
 

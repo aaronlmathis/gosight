@@ -1,0 +1,137 @@
+{{ define "dashboard/layout_main" }}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/output.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.css" rel="stylesheet" />
+
+</head>
+
+<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-white font-sans antialiased">
+  <div class="flex min-h-screen">
+    {{ template "dashboard/partials/sidebar" . }}
+    <div class="flex-1 flex flex-col">
+      {{ template "dashboard/partials/topbar" . }}
+      <main class="flex-1 p-6 w-full pt-0">
+        {{ block "content_main" . }}{{ end }}
+      </main>
+    </div>
+  </div>
+  <!-- Shared Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
+  <script src="https://unpkg.com/@popperjs/core@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+  {{ block "scripts" . }}
+  <script src="/js/theme-toggle.js"></script>
+  <script src="/js/user-menu.js"></script>
+  <script>
+    const cpuUsageChart = new Chart(document.getElementById('cpuUsageChart'), {
+      type: 'line',
+      data: { labels: [], datasets: [{ label: 'CPU %', data: [], borderColor: '#3b82f6' }] },
+      options: { scales: { y: { min: 0, max: 100 } } }
+    });
+    
+    const cpuTimeChart = new Chart(document.getElementById('cpuTimeChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['User', 'System', 'Idle', 'Nice'],
+        datasets: [{ data: [0, 0, 0, 0], backgroundColor: ['#3b82f6', '#10b981', '#9ca3af', '#f59e0b'] }]
+      },
+      options: { cutout: '70%' }
+    });
+    
+    const loadAvgChart = new Chart(document.getElementById('loadAvgChart'), {
+      type: 'line',
+      data: { labels: [], datasets: [{ label: 'Load Avg', data: [], borderColor: '#10b981' }] },
+    });
+    
+    const memChart = new Chart(document.getElementById('memChart'), {
+      type: 'line',
+      data: { labels: [], datasets: [{ label: 'Used Mem (GB)', data: [], borderColor: '#6366f1' }] },
+    });
+    
+    const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+    const ws = new WebSocket(`${wsProtocol}${window.location.host}/ws/metrics`);
+    
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+    
+      // Normalize metrics using namespaced + scoped keys
+      const metrics = {};
+      for (const m of data.metrics) {
+        if (m.value === undefined) continue;
+    
+        const parts = [m.namespace, m.subnamespace, m.name];
+        if (m.dimensions?.scope) parts.push(m.dimensions.scope);
+        if (m.dimensions?.source) parts.push(m.dimensions.source);
+        const key = parts.join('.').toLowerCase();
+    
+        metrics[key] = m.value;
+      }
+    
+      // Log once if needed
+      // console.log(metrics);
+    
+      // Update CPU Usage Chart
+      cpuUsageChart.data.labels.push(new Date().toLocaleTimeString());
+      cpuUsageChart.data.datasets[0].data.push(metrics["system.cpu.usage_percent.total"] || 0);
+      if (cpuUsageChart.data.labels.length > 30) {
+        cpuUsageChart.data.labels.shift();
+        cpuUsageChart.data.datasets[0].data.shift();
+      }
+      cpuUsageChart.update();
+    
+      // CPU Time Breakdown
+      cpuTimeChart.data.datasets[0].data = [
+        metrics["system.cpu.time_user.total"] || 0,
+        metrics["system.cpu.time_system.total"] || 0,
+        metrics["system.cpu.time_idle.total"] || 0,
+        metrics["system.cpu.time_nice.total"] || 0
+      ];
+      cpuTimeChart.update();
+    
+      // Load Avg
+      loadAvgChart.data.labels.push(new Date().toLocaleTimeString());
+      loadAvgChart.data.datasets[0].data.push(metrics["system.cpu.load.1"] || 0);
+      if (loadAvgChart.data.labels.length > 30) {
+        loadAvgChart.data.labels.shift();
+        loadAvgChart.data.datasets[0].data.shift();
+      }
+      loadAvgChart.update();
+    
+      // Memory
+      const usedMem = (metrics["system.memory.used.physical"] || 0) / 1024 / 1024 / 1024;
+      const totalMem = (metrics["system.memory.total.physical"] || 0) / 1024 / 1024 / 1024;
+      memChart.data.labels.push(new Date().toLocaleTimeString());
+      memChart.data.datasets[0].data.push(usedMem);
+      if (memChart.data.labels.length > 30) {
+        memChart.data.labels.shift();
+        memChart.data.datasets[0].data.shift();
+      }
+      memChart.update();
+    
+      // Info Cards (assumes you set these IDs in HTML)
+      document.getElementById('model').textContent = data.meta?.tags?.model || 'n/a';
+      document.getElementById('cores').textContent = metrics["system.cpu.count_logical"] || '?';
+      document.getElementById('threads').textContent = metrics["system.cpu.count_physical"] || '?';
+      document.getElementById('baseclock').textContent = (metrics["system.cpu.clock_mhz.core0"] / 1000 || '?') + ' GHz';
+      document.getElementById('memUsed').textContent = usedMem.toFixed(1) + ' GB';
+      document.getElementById('memTotal').textContent = totalMem.toFixed(1) + ' GB';
+    };
+    </script>
+    
+
+
+  {{ block "page-scripts" . }}{{ end }}
+  {{ end }}
+</body>
+
+</html>
+{{ end }}

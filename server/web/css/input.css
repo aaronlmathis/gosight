@@ -1,21 +1,17 @@
 @import "tailwindcss";
 @layer components {
-    .stat-card {
-      @apply bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm;
-    }
-  
-    .stat-card .label {
-      @apply text-sm text-gray-500 dark:text-gray-400;
-    }
-  
-    .stat-card .value {
-      @apply text-xl font-bold text-blue-600 dark:text-blue-400;
-    }
-  
-    .stat-card .unit {
-      @apply text-xs text-gray-400 dark:text-gray-500;
-    }
+  .stat-card {
+    @apply bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm;
   }
+
+  .stat-card > p:first-child {
+    @apply text-sm text-gray-500 dark:text-gray-400;
+  }
+
+  .stat-card > p:last-child {
+    @apply text-xl font-bold text-blue-600 dark:text-blue-400;
+  }
+}
   @layer utilities {
     @keyframes shake {
       10%, 90% { transform: translateX(-1px); }

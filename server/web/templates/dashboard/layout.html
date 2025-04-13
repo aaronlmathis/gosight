@@ -1,5 +1,4 @@
-{{ define "dashboard/layout" }}
-<!DOCTYPE html>
+{{ define "dashboard/layout_old
 <html lang="en">
 
 <head>
@@ -19,7 +18,7 @@
     <div class="flex-1 flex flex-col">
       {{ template "dashboard/partials/topbar" . }}
       <main class="flex-1 p-6 w-full pt-0">
-        {{ block "content" . }}{{ end }}
+        {{ block "contents" . }}{{ end }}
       </main>
     </div>
   </div>

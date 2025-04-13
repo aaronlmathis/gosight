@@ -19,7 +19,7 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// File: server/internal/http/handleEndpoints.go
+// File: server/internal/http/handleEndpoint.go
 // Description: This file contains the handlers for the endpoint details page and API.
 // It includes the main endpoint details page and the API handler for fetching endpoint metrics.
 

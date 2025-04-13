@@ -1,0 +1,854 @@
+<script>
+    const charts = {};
+    const chartAnimation = {
+        tension: {
+            duration: 1000,
+            easing: "easeOutQuart",
+            from: 0.4,
+            to: 0,
+            loop: false,
+        },
+    };
+
+    const tooltipPlugin = {
+        enabled: true,
+        callbacks: {
+            label: function (context) {
+                return `${context.dataset.label || ""}: ${context.parsed.y}`;
+            },
+        },
+    };
+    const renderCpuCharts = () => {
+        console.log("🔧 renderCpuCharts() called");
+
+        charts.cpuUsageChart = new Chart(
+            document.getElementById("cpuUsageChart"),
+            {
+                type: "line",
+                data: {
+                    labels: [
+                        "10m",
+                        "9m",
+                        "8m",
+                        "7m",
+                        "6m",
+                        "5m",
+                        "4m",
+                        "3m",
+                        "2m",
+                        "1m",
+                    ],
+                    datasets: [
+                        {
+                            label: "CPU Usage %",
+                            data: [20, 23, 21, 25, 28, 26, 30, 27, 24, 22],
+                            borderColor: "#3b82f6",
+                            backgroundColor: "rgba(59, 130, 246, 0.1)",
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 2,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: (val) => val + "%",
+                            },
+                        },
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: "#4B5563" },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (ctx) {
+                                    return `${ctx.dataset.label}: ${ctx.parsed.y}%`;
+                                },
+                            },
+                        },
+                    },
+                    animations: {
+                        tension: {
+                            duration: 1000,
+                            easing: "easeInOutQuart",
+                            from: 0.3,
+                            to: 0,
+                            loop: false,
+                        },
+                    },
+                },
+            }
+        );
+        charts.cpuLoadChart = new Chart(
+            document.getElementById("cpuLoadChart"),
+            {
+                type: "line",
+                data: {
+                    labels: [
+                        "10m", "9m", "8m", "7m", "6m",
+                        "5m", "4m", "3m", "2m", "1m"
+                    ],
+                    datasets: [
+                        {
+                            label: "CPU Load Avg",
+                            data: [0.45, 0.50, 0.65, 0.60, 0.75, 0.90, 1.00, 0.80, 0.70, 0.60],
+                            borderColor: "#10b981", // teal-500
+                            backgroundColor: "rgba(16, 185, 129, 0.1)",
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 2,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            suggestedMax: 2.0, // assuming 1 core or more
+                            title: {
+                                display: true,
+                                text: "Load",
+                                color: "#6B7280",
+                            },
+                            ticks: {
+                                color: "#6B7280",
+                            },
+                        },
+                        x: {
+                            ticks: {
+                                color: "#6B7280",
+                            },
+                        },
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: "#4B5563" },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (ctx) {
+                                    return `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}`;
+                                },
+                            },
+                        },
+                    },
+                    animations: {
+                        tension: {
+                            duration: 1000,
+                            easing: "easeInOutQuart",
+                            from: 0.3,
+                            to: 0,
+                            loop: false,
+                        },
+                    },
+                },
+            }
+        );
+
+
+        charts.cpuDonutChart = new Chart(document.getElementById("cpuDonutChart"), {
+            type: "doughnut",
+            data: {
+                labels: ["User", "System", "Idle", "Nice"],
+                datasets: [
+                    {
+                        data: [20, 10, 60, 10],
+                        backgroundColor: [
+                            "#3b82f6", // User - blue-500
+                            "#10b981", // System - green-500
+                            "#9ca3af", // Idle - gray-400
+                            "#f59e0b", // Nice - amber-500
+                        ],
+                        borderWidth: 2,
+                        borderColor: "#ffffff",
+                        hoverOffset: 10,
+                    },
+                ],
+            },
+            options: {
+                cutout: "70%",
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: "bottom",
+                        labels: {
+                            color: "#6B7280", // gray-500
+                            boxWidth: 14,
+                            font: { size: 12, weight: "500" },
+                        },
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                return `${ctx.label}: ${ctx.parsed}%`;
+                            },
+                        },
+                    },
+                },
+            },
+        });
+        setInterval(() => {
+            if (!charts.cpuUsageChart) return;
+
+            const nextVal = Math.random() * 100;
+            const nextLabel = `${charts.cpuUsageChart.data.labels.length + 1}m`;
+
+            console.log(
+                `📊 Adding new CPU point: ${nextVal.toFixed(1)}% at ${nextLabel}`
+            );
+
+            charts.cpuUsageChart.data.datasets[0].data.push(nextVal);
+            charts.cpuUsageChart.data.labels.push(nextLabel);
+
+            if (charts.cpuUsageChart.data.labels.length > 60) {
+                charts.cpuUsageChart.data.datasets[0].data.shift();
+                charts.cpuUsageChart.data.labels.shift();
+            }
+
+            charts.cpuUsageChart.update();
+        }, 2000);
+        setInterval(() => {
+            if (!charts.cpuLoadChart) return;
+
+            // Simulate a new CPU load average between 0.4 and 2.0
+            const nextVal = (Math.random() * 1.6 + 0.4).toFixed(2);
+            const nextLabel = `${charts.cpuLoadChart.data.labels.length + 1}m`;
+
+            console.log(`📈 Adding new CPU Load point: ${nextVal} at ${nextLabel}`);
+
+            charts.cpuLoadChart.data.datasets[0].data.push(parseFloat(nextVal));
+            charts.cpuLoadChart.data.labels.push(nextLabel);
+
+            // Keep last 60 points
+            if (charts.cpuLoadChart.data.labels.length > 60) {
+                charts.cpuLoadChart.data.datasets[0].data.shift();
+                charts.cpuLoadChart.data.labels.shift();
+            }
+
+            charts.cpuLoadChart.update();
+        }, 2000);
+    };
+
+    const renderMemoryCharts = () => {
+        if (charts.memoryUsageChart) return;
+
+        charts.memoryUsageChart = new Chart(
+            document.getElementById("memoryUsageChart"),
+            {
+                type: "line",
+                data: {
+                    labels: [
+                        "10m",
+                        "9m",
+                        "8m",
+                        "7m",
+                        "6m",
+                        "5m",
+                        "4m",
+                        "3m",
+                        "2m",
+                        "1m",
+                    ],
+                    datasets: [
+                        {
+                            label: "Memory Used (GB)",
+                            data: [
+                                11.5, 11.7, 12.0, 12.2, 12.4, 12.3, 12.1, 12.3, 12.4, 12.4,
+                            ],
+                            borderColor: "#10b981",
+                            backgroundColor: "rgba(16, 185, 129, 0.1)",
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 2,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 800,
+                        easing: "easeOutExpo",
+                        animateScale: true,
+                        animateRotate: false,
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: (val) => val + " GB",
+                            },
+                        },
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: "#4B5563" },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (ctx) {
+                                    return `${ctx.dataset.label}: ${ctx.parsed.y} GB`;
+                                },
+                            },
+                        },
+                    },
+                },
+            }
+        );
+
+        charts.memoryDonutChart = new Chart(
+            document.getElementById("memoryDonutChart"),
+            {
+                type: "doughnut",
+                data: {
+                    labels: ["Used", "Free", "Buffers", "Cache"],
+                    datasets: [
+                        {
+                            label: "Memory Distribution",
+                            data: [12.4, 17.9, 0.8, 0.9],
+                            backgroundColor: ["#10b981", "#3b82f6", "#f59e0b", "#f87171"],
+                            borderWidth: 1,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                    },
+                },
+            }
+        );
+        setInterval(() => {
+            const nextVal = (11 + Math.random() * 2).toFixed(1);
+            charts.memoryUsageChart.data.datasets[0].data.push(parseFloat(nextVal));
+            charts.memoryUsageChart.data.labels.push(
+                `${charts.memoryUsageChart.data.labels.length + 1}m`
+            );
+            charts.memoryUsageChart.update();
+        }, 2500);
+    };
+
+    const renderMiniCharts = () => {
+        new Chart(document.getElementById("miniCpuChart"), {
+            type: "line",
+            data: {
+                labels: ["1m", "2m", "3m", "4m", "5m"],
+                datasets: [
+                    {
+                        data: [12, 18, 14, 20, 17],
+                        borderColor: "#3b82f6",
+                        backgroundColor: "rgba(59, 130, 246, 0.1)",
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: tooltipPlugin,
+                },
+                scales: { y: { display: true }, x: { display: true } },
+                elements: { line: { borderWidth: 2 } },
+                animations: chartAnimation,
+            },
+        });
+
+        new Chart(document.getElementById("miniMemoryChart"), {
+            type: "line",
+            data: {
+                labels: ["1m", "2m", "3m", "4m", "5m"],
+                datasets: [
+                    {
+                        data: [6.2, 6.3, 6.1, 6.4, 6.6],
+                        borderColor: "#10b981",
+                        backgroundColor: "rgba(16, 185, 129, 0.1)",
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: tooltipPlugin,
+                },
+                scales: { y: { display: true }, x: { display: true } },
+                elements: { line: { borderWidth: 2 } },
+                animations: chartAnimation,
+            },
+        });
+
+        new Chart(document.getElementById("miniDiskChart"), {
+            type: "line",
+            data: {
+                labels: ["1m", "2m", "3m", "4m", "5m"],
+                datasets: [
+                    {
+                        data: [110, 135, 90, 120, 140],
+                        borderColor: "#f59e0b",
+                        backgroundColor: "rgba(245, 158, 11, 0.1)",
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: tooltipPlugin,
+                },
+                scales: { y: { display: true }, x: { display: true } },
+                elements: { line: { borderWidth: 2 } },
+                animations: chartAnimation,
+            },
+        });
+    };
+    document.addEventListener("DOMContentLoaded", function () {
+        console.log("📦 DOMContentLoaded triggered");
+
+        renderMiniCharts(); // always render mini charts
+        renderCpuCharts(); // optional preload
+        renderMemoryCharts(); // optional preload
+
+        // Flowbite manual init in case tabs are not registering
+        window.Flowbite?.initTabs?.();
+
+        console.log("✅ DOM ready. Tabs initialized.");
+    });
+
+    
+</script>
+<script>
+    const themeToggleBtn = document.getElementById("theme-toggle");
+    const lightIcon = document.getElementById("theme-toggle-light-icon");
+    const darkIcon = document.getElementById("theme-toggle-dark-icon");
+
+    // Load stored theme
+    if (
+        localStorage.getItem("color-theme") === "dark" ||
+        (!localStorage.getItem("color-theme") &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches)
+    ) {
+        document.documentElement.classList.add("dark");
+        lightIcon.classList.remove("hidden");
+    } else {
+        document.documentElement.classList.remove("dark");
+        darkIcon.classList.remove("hidden");
+    }
+
+    themeToggleBtn?.addEventListener("click", function () {
+        lightIcon.classList.toggle("hidden");
+        darkIcon.classList.toggle("hidden");
+
+        // Toggle and store
+        if (document.documentElement.classList.contains("dark")) {
+            document.documentElement.classList.remove("dark");
+            localStorage.setItem("color-theme", "light");
+        } else {
+            document.documentElement.classList.add("dark");
+            localStorage.setItem("color-theme", "dark");
+        }
+    });
+</script>
+<script>
+    const inputEl = document.getElementById("console-input");
+    const fakeCommand = "uptime";
+    let idx = 0;
+
+    const typeCommand = () => {
+        if (idx < fakeCommand.length) {
+            inputEl.classList.remove("animate-pulse");
+            inputEl.innerText = fakeCommand.slice(0, idx + 1);
+            idx++;
+            setTimeout(typeCommand, 120);
+        } else {
+            inputEl.classList.add("animate-pulse");
+        }
+    };
+
+    // Trigger typing after a short delay
+    setTimeout(typeCommand, 1000);
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const ctx = document.getElementById("networkChart").getContext("2d");
+        new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: ["10m", "9m", "8m", "7m", "6m", "5m", "4m", "3m", "2m", "1m"],
+                datasets: [
+                    {
+                        label: "Bytes Sent",
+                        data: [100, 120, 150, 170, 130, 180, 160, 190, 200, 210],
+                        borderColor: "#3b82f6",
+                        backgroundColor: "rgba(59, 130, 246, 0.1)",
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 2,
+                    },
+                    {
+                        label: "Bytes Received",
+                        data: [80, 90, 140, 160, 120, 170, 150, 180, 190, 220],
+                        borderColor: "#10b981",
+                        backgroundColor: "rgba(16, 185, 129, 0.1)",
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 2,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (val) => `${val} KB`,
+                        },
+                    },
+                },
+                plugins: {
+                    legend: { labels: { color: "#4B5563" } },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y} KB`,
+                        },
+                    },
+                },
+            },
+        });
+    });
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const ctx = document.getElementById("networkChart").getContext("2d");
+        new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: ["10m", "9m", "8m", "7m", "6m", "5m", "4m", "3m", "2m", "1m"],
+                datasets: [
+                    {
+                        label: "Upload (Mbps)",
+                        data: [4.2, 5.3, 6.7, 7.8, 9.1, 10.2, 11.4, 12.2, 11.9, 12.4],
+                        borderColor: "#3b82f6",
+                        backgroundColor: "rgba(59, 130, 246, 0.1)",
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2,
+                    },
+                    {
+                        label: "Download (Mbps)",
+                        data: [3.6, 4.1, 5.2, 6.0, 7.3, 8.4, 9.7, 9.9, 10.1, 10.2],
+                        borderColor: "#10b981",
+                        backgroundColor: "rgba(16, 185, 129, 0.1)",
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (val) => `${val} Mbps`,
+                        },
+                    },
+                },
+                plugins: {
+                    legend: {
+                        labels: { color: "#4B5563" },
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: (ctx) => {
+                                const index = ctx[0].dataIndex;
+                                const now = new Date();
+                                const minutesAgo = 10 - index;
+                                const ts = new Date(now.getTime() - minutesAgo * 60 * 1000);
+                                return ts.toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                });
+                            },
+                            label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y} Mbps`,
+                        },
+                    },
+                },
+            },
+        });
+    });
+</script>
+<script>
+    // Chart unit toggle logic
+    document.getElementById("chart-unit").addEventListener("change", (e) => {
+        const unit = e.target.value;
+        const labels = {
+            mbps: "Mbps",
+            kbps: "KBps",
+            bytes: "Bytes/sec",
+        };
+        const multiplier = {
+            mbps: 1,
+            kbps: 1000,
+            bytes: 1000000,
+        };
+
+        const chart = Chart.getChart("networkChart");
+        chart.data.datasets.forEach((ds) => {
+            ds.label = ds.label.includes("Upload")
+                ? `Upload (${labels[unit]})`
+                : `Download (${labels[unit]})`;
+            ds.data = ds.data.map((val) =>
+                unit === "mbps"
+                    ? val
+                    : unit === "kbps"
+                        ? (val * 1000).toFixed(1)
+                        : (val * 1000000).toFixed(0)
+            );
+        });
+        chart.options.scales.y.ticks.callback = (val) => `${val} ${labels[unit]}`;
+        chart.update();
+    });
+
+    // Table filter logic
+    document
+        .getElementById("filter-interface")
+        .addEventListener("input", (e) => {
+            const filter = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll("#interface-table-body tr");
+            rows.forEach((row) => {
+                row.style.display = row.innerText.toLowerCase().includes(filter)
+                    ? ""
+                    : "none";
+            });
+        });
+
+    // Export CSV logic
+    document.getElementById("export-csv").addEventListener("click", () => {
+        const rows = document.querySelectorAll("#interface-table tr");
+        const csv = Array.from(rows)
+            .map((row) =>
+                Array.from(row.querySelectorAll("td,th"))
+                    .map((cell) => `"${cell.innerText.trim()}"`)
+                    .join(",")
+            )
+            .join("\n");
+
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.download = "network_interfaces.csv";
+        link.href = url;
+        link.click();
+
+        URL.revokeObjectURL(url);
+    });
+</script>
+<script>
+    function getRandomItem(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function formatDateUS(date) {
+        return new Intl.DateTimeFormat('en-US', {
+            dateStyle: 'short',
+            timeStyle: 'short'
+        }).format(date);
+    }
+
+    function generateFakeActivity(count = 25) {
+        const categories = ["Info", "Warning", "Error"];
+        const messages = [
+            "Donec mattis erat vel mi tristique, eget feugiat urna mattis. Fusce at efficitur risus. Nulla consectetur, ligula sed tincidunt iaculis, justo mi luctus sapien, non sollicitudin dolor eros eu metus. Donec sed iaculis est, in elementum velit. Pellentesque suscipit augue ipsum, non vestibulum lorem finibus a. Fusce vestibulum magna eget nisi aliquam varius. Duis posuere et enim in dictum. Suspendisse vitae est tristique, ullamcorper purus in, tincidunt quam. Mauris vel sapien ac neque ultricies faucibus. Etiam tristique urna a dolor sodales faucibus. Sed mattis, dolor pulvinar viverra facilisis, ante dolor laoreet ex, id semper augue nibh nec elit.",
+            "High memory usage detected",
+            "Disk space exceeded threshold on /dev/sda1",
+            "New SSH login from 192.168.1.20",
+            "Service `postgresql` stopped unexpectedly",
+            "Swap usage crossed 75% threshold",
+            "System time synchronized",
+            "Kernel update available",
+            "Firewall rules reloaded",
+        ];
+
+        const logs = [];
+
+        for (let i = 0; i < count; i++) {
+            const timeOffset = Math.floor(Math.random() * 60 * 24 * 10); // up to 10 days ago
+            const date = new Date();
+            date.setMinutes(date.getMinutes() - timeOffset);
+
+            logs.push({
+                date: formatDateUS(date),
+                category: getRandomItem(categories),
+                message: getRandomItem(messages),
+            });
+        }
+
+        return logs;
+    }
+
+    function renderActivityLogs(logs) {
+        const tbody = document.getElementById("activity-log-body");
+        tbody.innerHTML = "";
+
+        logs.forEach(log => {
+
+            const iconMap = {
+                "Info": `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"><i class="mr-1 fa fa-info-circle"></i> Info</span>`,
+                "Warning": `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"><i class="mr-1 fa fa-exclamation-triangle"></i> Warning</span>`,
+                "Error": `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"><i class="mr-1 fa fa-times-circle"></i> Error</span>`,
+            };
+
+            const row = document.createElement("tr");
+
+            row.innerHTML = `
+                <td class="px-4 py-2 align-top  whitespace-nowrap">${iconMap[log.category]}</td>
+                <td class="px-4 py-2 align-top whitespace-nowrap">${log.date}</td>
+                <td class="px-4 py-2">${log.message}</td>
+                `;
+            tbody.appendChild(row);
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const logs = generateFakeActivity(50);
+        renderActivityLogs(logs);
+    });
+</script>
+<script>
+    // Disk Usage Donut
+    new Chart(document.getElementById('diskUsageDonutChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Used', 'Free'],
+            datasets: [{
+                data: [312, 200],
+                backgroundColor: ['#3b82f6', '#10b981'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        color: getComputedStyle(document.documentElement).getPropertyValue('--tw-text-opacity') === '1' ? '#1f2937' : '#d1d5db'
+                    }
+                }
+            }
+        }
+    });
+
+    // Inode Usage Bar Chart
+    new Chart(document.getElementById('inodeUsageBarChart'), {
+        type: 'bar',
+        data: {
+            labels: ['Used', 'Free'],
+            datasets: [{
+                label: 'Inodes (in millions)',
+                data: [3.2, 1.8],
+                backgroundColor: ['#6366f1', '#34d399']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            scales: {
+                x: {
+                    ticks: {
+                        color: getComputedStyle(document.documentElement).getPropertyValue('--tw-text-opacity') === '1' ? '#1f2937' : '#d1d5db'
+                    }
+                },
+                y: {
+                    ticks: {
+                        color: getComputedStyle(document.documentElement).getPropertyValue('--tw-text-opacity') === '1' ? '#1f2937' : '#d1d5db'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+</script>
+<script>
+const mockData = {
+    Agents: ["deepthought", "hal9000", "marvin"],
+    Hosts: ["prod-host-01", "db-server", "k8s-node-2"],
+    Containers: ["nginx-proxy", "web-app", "postgres-db"],
+    Logs: ["syslog", "app.log", "error.log"],
+    Metrics: ["cpu.usage", "mem.free", "container.uptime"],
+};
+
+const input = document.getElementById("global-search");
+const results = document.getElementById("search-results");
+
+input.addEventListener("input", () => {
+    const term = input.value.toLowerCase().trim();
+    results.innerHTML = "";
+
+    if (!term) {
+        results.classList.add("hidden");
+        return;
+    }
+
+    let found = false;
+    for (const [section, items] of Object.entries(mockData)) {
+        const matches = items.filter((i) => i.toLowerCase().includes(term));
+        if (matches.length > 0) {
+            found = true;
+            const sectionHeader = document.createElement("li");
+            sectionHeader.className =
+                "px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400";
+            sectionHeader.textContent = section;
+            results.appendChild(sectionHeader);
+
+            matches.forEach((match) => {
+                const item = document.createElement("li");
+                item.className =
+                    "px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer";
+                item.textContent = match;
+                results.appendChild(item);
+            });
+        }
+    }
+
+    results.classList.toggle("hidden", !found);
+});
+
+document.addEventListener("click", (e) => {
+    if (!input.contains(e.target) && !results.contains(e.target)) {
+        results.classList.add("hidden");
+    }
+});
+</script>
