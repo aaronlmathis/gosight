@@ -37,9 +37,10 @@ type Config struct {
 	}
 
 	Logs struct {
-		ErrorLogFile string `yaml:"error_log_file"`
-		AppLogFile   string `yaml:"app_log_file"`
-		LogLevel     string `yaml:"log_level"`
+		ErrorLogFile  string `yaml:"error_log_file"`
+		AppLogFile    string `yaml:"app_log_file"`
+		AccessLogFile string `yaml:"access_log_file"`
+		LogLevel      string `yaml:"log_level"`
 	}
 
 	Podman struct {
@@ -54,6 +55,7 @@ type Config struct {
 		Environment    string            `yaml:"environment"`
 		AppLogFile     string            `yaml:"app_log_file"`
 		ErrorLogFile   string            `yaml:"error_log_file"`
+		AccessLogFile  string            `yaml:"access_log_file"`
 		LogLevel       string            `yaml:"log_level"`
 		CustomTags     map[string]string `yaml:"custom_tags"` // static tags to be sent with every metric
 	}
@@ -95,6 +97,9 @@ func ApplyEnvOverrides(cfg *Config) {
 		cfg.Logs.ErrorLogFile = val
 	}
 	if val := os.Getenv("GOSIGHT_APP_LOG_FILE"); val != "" {
+		cfg.Logs.ErrorLogFile = val
+	}
+	if val := os.Getenv("GOSIGHT_ACCESS_LOG_FILE"); val != "" {
 		cfg.Logs.ErrorLogFile = val
 	}
 	if val := os.Getenv("GOSIGHT_LOG_LEVEL"); val != "" {

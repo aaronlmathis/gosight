@@ -45,7 +45,7 @@ func LoadServerConfig() *config.Config {
 	flag.Parse()
 
 	// Resolve config path
-	configPath := resolvePath(*configFlag, "SERVER_CONFIG", "config.yaml")
+	configPath := resolvePath(*configFlag, "GOSIGHT_SERVER_CONFIG", "config.yaml")
 
 	if err := config.EnsureDefaultConfig(configPath); err != nil {
 		log.Fatalf("Could not create default config: %v", err)

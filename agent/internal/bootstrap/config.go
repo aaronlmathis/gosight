@@ -45,12 +45,13 @@ func LoadAgentConfig() *config.Config {
 	logLevel := flag.String("log-level", "", "Log level (debug, info, warn, error)")
 	errorLogFile := flag.String("error_log", "", "Path to error log file")
 	appLogFile := flag.String("app_log", "", "Path to app log file")
+	accessLogFile := flag.String("access_log", "", "Path to access file")
 	customTags := flag.String("tags", "", "Comma-separated list of custom tags")
 
 	flag.Parse()
 
 	// Resolve config path
-	configPath := resolvePath(*configFlag, "AGENT_CONFIG", "config.yaml")
+	configPath := resolvePath(*configFlag, "GOSIGHT_AGENT_CONFIG", "config.yaml")
 	log.Printf("📄 Loaded config file from: %s", configPath)
 	if err := config.EnsureDefaultConfig(configPath); err != nil {
 		log.Fatalf("Could not create default config: %v", err)
@@ -87,6 +88,9 @@ func LoadAgentConfig() *config.Config {
 	}
 	if *errorLogFile != "" {
 		cfg.Logs.ErrorLogFile = *errorLogFile
+	}
+	if *accessLogFile != "" {
+		cfg.Logs.AccessLogFile = *errorLogFile
 	}
 	if *customTags != "" {
 		cfg.Agent.CustomTags = utils.ParseTagString(*customTags)
