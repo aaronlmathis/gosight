@@ -7,8 +7,8 @@ import (
 
 	"github.com/aaronlmathis/gosight/agent/internal/config"
 	"github.com/aaronlmathis/gosight/agent/internal/meta"
-	metriccollector "github.com/aaronlmathis/gosight/agent/internal/metriccollector"
-	"github.com/aaronlmathis/gosight/agent/internal/metricsender"
+	"github.com/aaronlmathis/gosight/agent/internal/metrics/metriccollector"
+	"github.com/aaronlmathis/gosight/agent/internal/metrics/metricsender"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )

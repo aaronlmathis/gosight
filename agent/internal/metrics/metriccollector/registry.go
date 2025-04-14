@@ -28,8 +28,8 @@ import (
 	"context"
 
 	"github.com/aaronlmathis/gosight/agent/internal/config"
-	"github.com/aaronlmathis/gosight/agent/internal/metriccollector/container"
-	"github.com/aaronlmathis/gosight/agent/internal/metriccollector/system"
+	"github.com/aaronlmathis/gosight/agent/internal/metrics/metriccollector/container"
+	"github.com/aaronlmathis/gosight/agent/internal/metrics/metriccollector/system"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )

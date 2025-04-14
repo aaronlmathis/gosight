@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/aaronlmathis/gosight/agent/internal/config"
-	metricrunner "github.com/aaronlmathis/gosight/agent/internal/metricrunner"
+	metricrunner "github.com/aaronlmathis/gosight/agent/internal/metrics/metricrunner"
 )
 
 type Agent struct {
