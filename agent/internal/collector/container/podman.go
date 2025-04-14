@@ -107,6 +107,14 @@ type PodmanInspect struct {
 	} `json:"State"`
 }
 
+var prevStats = map[string]struct {
+	CPUUsage  uint64
+	SystemCPU uint64
+	NetRx     uint64
+	NetTx     uint64
+	Timestamp time.Time
+}{}
+
 func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	containers, err := fetchContainers(c.socketPath)
 	if err != nil {
@@ -130,7 +138,7 @@ func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 		}
 
 		uptime := 0.0
-		if !ctr.StartedAt.IsZero() {
+		if strings.ToLower(ctr.State) == "running" && !ctr.StartedAt.IsZero() {
 			uptime = now.Sub(ctr.StartedAt).Seconds()
 			if uptime > 1e6 || uptime < 0 {
 				uptime = 0
@@ -155,48 +163,52 @@ func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 		if ports := formatPorts(ctr.Ports); ports != "" {
 			dims["ports"] = ports
 		}
+		cpuPercent := calculateCPUPercent(ctr.ID, stats)
+		rxRate, txRate := calculateNetRate(ctr.ID, now, sumNetRxRaw(stats), sumNetTxRaw(stats))
 		//utils.Debug("Container dimensions: %+v", dims)
 		metrics = append(metrics,
 			agentutils.Metric("Container", "Podman", "uptime_seconds", uptime, "gauge", "seconds", dims, now),
 			agentutils.Metric("Container", "Podman", "running", running, "gauge", "bool", dims, now),
-			agentutils.Metric("Container", "Podman", "cpu_percent", calculateCPUPercent(stats), "gauge", "percent", dims, now),
+			agentutils.Metric("Container", "Podman", "cpu_percent", cpuPercent, "gauge", "percent", dims, now),
 			agentutils.Metric("Container", "Podman", "mem_usage_bytes", float64(stats.MemoryStats.Usage), "gauge", "bytes", dims, now),
 			agentutils.Metric("Container", "Podman", "mem_limit_bytes", float64(stats.MemoryStats.Limit), "gauge", "bytes", dims, now),
-			agentutils.Metric("Container", "Podman", "net_rx_bytes", sumNetRx(stats), "gauge", "bytes", dims, now),
-			agentutils.Metric("Container", "Podman", "net_tx_bytes", sumNetTx(stats), "gauge", "bytes", dims, now),
+			agentutils.Metric("Container", "Podman", "net_rx_bytes", rxRate, "gauge", "bytes", dims, now),
+			agentutils.Metric("Container", "Podman", "net_tx_bytes", txRate, "gauge", "bytes", dims, now),
 		)
+
 	}
 
 	return metrics, nil
 }
 
-func sumNetRx(stats *PodmanStats) float64 {
-	var rx uint64
-	for _, net := range stats.Networks {
-		rx += net.RxBytes
+/*
+	func sumNetRx(stats *PodmanStats) float64 {
+		var rx uint64
+		for _, net := range stats.Networks {
+			rx += net.RxBytes
+		}
+		return float64(rx)
 	}
-	return float64(rx)
-}
 
-func sumNetTx(stats *PodmanStats) float64 {
-	var tx uint64
-	for _, net := range stats.Networks {
-		tx += net.TxBytes
+	func sumNetTx(stats *PodmanStats) float64 {
+		var tx uint64
+		for _, net := range stats.Networks {
+			tx += net.TxBytes
+		}
+		return float64(tx)
 	}
-	return float64(tx)
-}
 
-func calculateCPUPercent(stats *PodmanStats) float64 {
-	cpuDelta := float64(stats.CPUStats.CPUUsage.TotalUsage - stats.PreCPUStats.CPUUsage.TotalUsage)
-	sysDelta := float64(stats.CPUStats.SystemCPUUsage - stats.PreCPUStats.SystemCPUUsage)
-	onlineCPUs := float64(stats.CPUStats.OnlineCPUs)
+	func calculateCPUPercent(stats *PodmanStats) float64 {
+		cpuDelta := float64(stats.CPUStats.CPUUsage.TotalUsage - stats.PreCPUStats.CPUUsage.TotalUsage)
+		sysDelta := float64(stats.CPUStats.SystemCPUUsage - stats.PreCPUStats.SystemCPUUsage)
+		onlineCPUs := float64(stats.CPUStats.OnlineCPUs)
 
-	if sysDelta > 0.0 && cpuDelta > 0.0 && onlineCPUs > 0.0 {
-		return (cpuDelta / sysDelta) * onlineCPUs * 100.0
+		if sysDelta > 0.0 && cpuDelta > 0.0 && onlineCPUs > 0.0 {
+			return (cpuDelta / sysDelta) * onlineCPUs * 100.0
+		}
+		return 0.0
 	}
-	return 0.0
-}
-
+*/
 func inspectContainer(socketPath, containerID string) (*PodmanInspect, error) {
 	client := &http.Client{
 		Transport: &http.Transport{
@@ -290,4 +302,67 @@ func formatPorts(ports []PortMapping) string {
 		}
 	}
 	return strings.Join(formatted, ",")
+}
+
+func calculateCPUPercent(containerID string, stats *PodmanStats) float64 {
+	now := time.Now()
+	prev, ok := prevStats[containerID]
+	currentCPU := stats.CPUStats.CPUUsage.TotalUsage
+	currentSystem := stats.CPUStats.SystemCPUUsage
+
+	var percent float64
+	if ok {
+		cpuDelta := float64(currentCPU - prev.CPUUsage)
+		sysDelta := float64(currentSystem - prev.SystemCPU)
+		if sysDelta > 0 && cpuDelta > 0 {
+			percent = (cpuDelta / sysDelta) * float64(stats.CPUStats.OnlineCPUs) * 100.0
+		}
+	}
+
+	// Update cache
+	prevStats[containerID] = struct {
+		CPUUsage  uint64
+		SystemCPU uint64
+		NetRx     uint64
+		NetTx     uint64
+		Timestamp time.Time
+	}{
+		CPUUsage:  currentCPU,
+		SystemCPU: currentSystem,
+		NetRx:     sumNetRxRaw(stats),
+		NetTx:     sumNetTxRaw(stats),
+		Timestamp: now,
+	}
+
+	return percent
+}
+
+func calculateNetRate(containerID string, now time.Time, rx, tx uint64) (float64, float64) {
+	prev, ok := prevStats[containerID]
+	if !ok || prev.Timestamp.IsZero() {
+		return 0, 0
+	}
+	seconds := now.Sub(prev.Timestamp).Seconds()
+	if seconds <= 0 {
+		return 0, 0
+	}
+	rxRate := float64(rx-prev.NetRx) / seconds
+	txRate := float64(tx-prev.NetTx) / seconds
+	return rxRate, txRate
+}
+
+func sumNetRxRaw(stats *PodmanStats) uint64 {
+	var rx uint64
+	for _, net := range stats.Networks {
+		rx += net.RxBytes
+	}
+	return rx
+}
+
+func sumNetTxRaw(stats *PodmanStats) uint64 {
+	var tx uint64
+	for _, net := range stats.Networks {
+		tx += net.TxBytes
+	}
+	return tx
 }

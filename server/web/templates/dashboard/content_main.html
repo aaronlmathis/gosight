@@ -158,13 +158,13 @@
                                 d="M20 12H4M20 12V6a2 2 0 00-2-2H6a2 2 0 00-2 2v6m16 0v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6" />
                         </svg>
                     </div>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Disk Used</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Swap Used</p>
                     <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-                        <span id="disk-used"></span>
+                        <span id="swap-percent-label"></span>
                     </p>
                     <p class="text-xs text-gray-400 dark:text-gray-500">GB</p>
                     <div class="mt-2">
-                        <canvas id="miniDiskChart" class="w-full h-20"></canvas>
+                        <canvas id="miniSwapChart" class="w-full h-20"></canvas>
                     </div>
                 </div>
             </div>
@@ -179,18 +179,13 @@
                         <li>✅ Pod restarted successfully</li>
                         <li>ℹ️ Sync completed at 12:42 PM</li>
                     </ul>
-                    <span id="hostname"></span>
 
 
 
 
 
-<span id="mem-used"></span>
 <span id="mem-total"></span>
-<span id="mem-percent"></span>
-<span id="disk-used"></span>
-<span id="disk-total"></span>
-<span id="disk-percent"></span>
+
 
                 </div>
 
@@ -198,7 +193,8 @@
                     class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full">
                     <p class="text-sm text-gray-500 dark:text-gray-400">Uptime</p>
                     <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-                        <span id="uptime"></span>>
+
+
                     </p>
                     <p class="text-xs text-gray-400 dark:text-gray-500">duration</p>
                 </div>
@@ -225,7 +221,7 @@
                             class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
                             <option value="">All Statuses</option>
                             <option value="running">Running</option>
-                            <option value="stopped">Stopped</option>
+                            <option value="exited">Exited</option>
                         </select>
                         <select id="filter-runtime"
                             class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
@@ -277,7 +273,7 @@
                     </div>
                 </div>
             </div>
-            
+
         </div>
         <div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="compute" role="tabpanel"
             aria-labelledby="compute-tab">
@@ -449,19 +445,23 @@
                         <div
                             class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
                             <p class="text-sm text-gray-500 dark:text-gray-400">Total Memory</p>
-                            <p class="text-xl font-bold text-blue-600 dark:text-blue-400">32.0</p>
+                            <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="mem-total"></span></p>
                             <p>GB</p>
                         </div>
                         <div
                             class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
                             <p class="text-sm text-gray-500 dark:text-gray-400">Used Memory</p>
-                            <p class="text-xl font-bold text-blue-600 dark:text-blue-400">12.4</p>
+                            <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="mem-used"></span></p>
                             <p>GB</p>
-                        </div>
+                        </div>                        
+
                         <div
                             class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
                             <p class="text-sm text-gray-500 dark:text-gray-400">Free Memory</p>
                             <p class="text-xl font-bold text-blue-600 dark:text-blue-400">17.9</p>
+                            <span id="mem-used"></span>
+                        <span id="mem-total"></span>
+                        <span id="mem-percent"></span>
                             <p>GB</p>
                         </div>
                         <div
@@ -489,18 +489,20 @@
         <div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="disk" role="tabpanel"
             aria-labelledby="disk-tab">
             <div class="space-y-8">
-
+                
+                
+                
                 <!-- Section: Disk Summary Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div
                         class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
                         <p class="text-sm text-gray-500 dark:text-gray-400">Total Disk Space</p>
-                        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">512 GB</p>
+                        <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="disk-total"></span></p>
                     </div>
                     <div
                         class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
                         <p class="text-sm text-gray-500 dark:text-gray-400">Used Disk Space</p>
-                        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">312 GB</p>
+                        <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="disk-used"></span></p>
                     </div>
                     <div
                         class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
@@ -510,7 +512,7 @@
                     <div
                         class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
                         <p class="text-sm text-gray-500 dark:text-gray-400">Disk Usage</p>
-                        <p class="text-xl font-bold text-yellow-500 dark:text-yellow-400">61%</p>
+                        <p class="text-xl font-bold text-yellow-500 dark:text-yellow-400"><span id="disk-percent"></span>%</p>
                     </div>
                 </div>
 

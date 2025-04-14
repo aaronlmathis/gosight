@@ -32,6 +32,13 @@ message Meta {
   string ip_address = 2;
   string os = 3;
   string os_version = 4;
+  string platform = 36;
+  string platform_family = 37;
+  string platform_version = 38;
+  string kernel_architecture = 39;
+  string virtualization_system = 40;
+  string virtualization_role = 41;
+  string host_id = 42;
   string kernel_version = 5;
   string architecture = 6;
   string endpoint_id = 35;
@@ -54,7 +61,7 @@ message Meta {
   string container_id = 19;
   string container_name = 20;
   string pod_name = 21;
-  string namespace = 22; // K8s namespace
+  string namespace = 22;
   string cluster_name = 23;
   string node_name = 24;
 
@@ -74,6 +81,7 @@ message Meta {
   // Custom Metadata
   map<string, string> tags = 34;
 }
+
 
 message MetricPayload {
   string host = 1;

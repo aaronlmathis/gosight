@@ -28,6 +28,7 @@ package system
 
 import (
 	"context"
+	"math"
 	"time"
 
 	agentutils "github.com/aaronlmathis/gosight/agent/internal/utils"
@@ -56,6 +57,7 @@ func (c *MEMCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 		utils.Warn("Error getting memory info: %v", err)
 	} else if memory != nil {
 		dims := map[string]string{"source": "physical"}
+
 		metrics = append(metrics,
 			agentutils.Metric("System", "Memory", "total", memory.Total, "gauge", "bytes", dims, now),
 			agentutils.Metric("System", "Memory", "available", memory.Available, "gauge", "bytes", dims, now),
@@ -70,12 +72,25 @@ func (c *MEMCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 		utils.Warn("Error getting swap memory info: %v", err)
 	} else if swap != nil {
 		dims := map[string]string{"source": "swap"}
+		usedPercent := swap.UsedPercent
+		utils.Debug(" 📊  Swap memory: total: %d, free: %d, used: %d, usedPercent: %.2f", swap.Total, swap.Free, swap.Used, usedPercent)
+		// If usedPercent is 0 and swap.Total > 0, calculate usedPercent
+
+		if usedPercent <= 0 && swap.Total > 0 {
+			usedPercent = (float64(swap.Total-swap.Free) / float64(swap.Total)) * 100
+			if math.IsNaN(usedPercent) || math.IsInf(usedPercent, 0) {
+				utils.Warn("🚨 Swap used_percent computed invalid value: %v", usedPercent)
+				usedPercent = 0
+			}
+		}
+
 		metrics = append(metrics,
 			agentutils.Metric("System", "Memory", "total", swap.Total, "gauge", "bytes", dims, now),
 			agentutils.Metric("System", "Memory", "used", swap.Used, "gauge", "bytes", dims, now),
 			agentutils.Metric("System", "Memory", "available", swap.Free, "gauge", "bytes", dims, now),
-			agentutils.Metric("System", "Memory", "used_percent", swap.UsedPercent, "gauge", "percent", dims, now),
+			agentutils.Metric("System", "Memory", "used_percent", usedPercent, "gauge", "percent", dims, now),
 		)
+
 	}
 
 	return metrics, nil

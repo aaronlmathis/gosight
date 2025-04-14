@@ -50,13 +50,20 @@ type Metric struct {
 
 type Meta struct {
 	// General Host Information
-	Hostname      string `json:"hostname,omitempty"`
-	IPAddress     string `json:"ip_address,omitempty"`
-	OS            string `json:"os,omitempty"`
-	OSVersion     string `json:"os_version,omitempty"`
-	KernelVersion string `json:"kernel_version,omitempty"`
-	Architecture  string `json:"architecture,omitempty"`
-	EndpointID    string `json:"endpoint_id,omitempty"` // Unique ID for the endpoint
+	Hostname             string `json:"hostname,omitempty"`
+	IPAddress            string `json:"ip_address,omitempty"`
+	OS                   string `json:"os,omitempty"`
+	OSVersion            string `json:"os_version,omitempty"`
+	Platform             string `json:"platform,omitempty"`
+	PlatformFamily       string `json:"platform_family,omitempty"`
+	PlatformVersion      string `json:"platform_version,omitempty"`
+	KernelArchitecture   string `json:"kernel_architecture,omitempty"`
+	VirtualizationSystem string `json:"virtualization_system,omitempty"`
+	VirtualizationRole   string `json:"virtualization_role,omitempty"`
+	HostID               string `json:"host_id,omitempty"`
+	KernelVersion        string `json:"kernel_version,omitempty"`
+	Architecture         string `json:"architecture,omitempty"`
+	EndpointID           string `json:"endpoint_id,omitempty"` // Unique ID for the endpoint
 
 	// Cloud Provider Specific
 	CloudProvider    string `json:"cloud_provider,omitempty"` // AWS, Azure, GCP

@@ -30,6 +30,7 @@ import (
 	"github.com/aaronlmathis/gosight/agent/internal/config"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
+	"github.com/shirou/gopsutil/v4/host"
 )
 
 func BuildHostMeta(cfg *config.Config, addTags map[string]string) *model.Meta {
@@ -44,16 +45,39 @@ func BuildHostMeta(cfg *config.Config, addTags map[string]string) *model.Meta {
 		ip = "unknown"
 		utils.Warn("⚠️ Failed to get local IP address")
 	}
+	hostInfo, err := host.Info()
+	if err != nil {
+		utils.Warn("⚠️ Failed to get host info: %v", err)
+		hostInfo = &host.InfoStat{}
+	}
 
 	tags := utils.MergeMaps(cfg.Agent.CustomTags, addTags)
 
+	// Add rich system info as tags
+	tags["host_id"] = hostInfo.HostID
+	tags["platform"] = hostInfo.Platform
+	tags["platform_family"] = hostInfo.PlatformFamily
+	tags["platform_version"] = hostInfo.PlatformVersion
+	tags["kernel_version"] = hostInfo.KernelVersion
+	tags["virtualization_system"] = hostInfo.VirtualizationSystem
+	tags["virtualization_role"] = hostInfo.VirtualizationRole
+
 	return &model.Meta{
-		Hostname:     hostname,
-		IPAddress:    ip,
-		OS:           runtime.GOOS,
-		Architecture: runtime.GOARCH,
-		Version:      "0.1", // you could inject this via build flags
-		Tags:         tags,
+		Hostname:             hostname,
+		IPAddress:            ip,
+		OS:                   hostInfo.OS,
+		OSVersion:            hostInfo.PlatformVersion,
+		Platform:             hostInfo.Platform,
+		PlatformFamily:       hostInfo.PlatformFamily,
+		PlatformVersion:      hostInfo.PlatformVersion,
+		KernelArchitecture:   hostInfo.KernelArch,
+		VirtualizationSystem: hostInfo.VirtualizationSystem,
+		VirtualizationRole:   hostInfo.VirtualizationRole,
+		HostID:               hostInfo.HostID,
+		KernelVersion:        hostInfo.KernelVersion,
+		Architecture:         runtime.GOARCH,
+		Version:              "0.1",
+		Tags:                 tags,
 	}
 }
 

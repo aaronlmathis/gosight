@@ -22,9 +22,11 @@ const tooltipPlugin = {
 const miniCharts = {
     cpu: null,
     memory: null,
+    swap: null,  // new
 };
 
 let latestCpuPercent = 0;
+
 let latestMemUsedPercent = 0;
 
 ws.onmessage = (event) => {
@@ -160,12 +162,41 @@ function renderMiniCharts() {
             animations: chartAnimation,
         },
     });
+    miniCharts.swap = new Chart(document.getElementById("miniSwapChart"), {
+        type: "line",
+        data: {
+            labels: [],
+            datasets: [{
+                data: [],
+                borderColor: "#f87171", // red-400
+                backgroundColor: "rgba(248, 113, 113, 0.1)",
+                tension: 0.4,
+                fill: true,
+                pointRadius: 0,
+            }],
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: tooltipPlugin,
+            },
+            scales: { y: { display: true }, x: { display: false } },
+            elements: { line: { borderWidth: 2 } },
+            animations: chartAnimation,
+        },
+    });
 }
 
 function updateMiniCharts(metrics) {
     let cpuVal = null;
     let memVal = null;
-
+    let swapVal = null;
+    metrics.forEach((m) => {
+        if (m.subnamespace === "Memory" && m.dimensions?.source === "swap") {
+            console.log("🟢 SWAP METRIC RECEIVED:", m.name, m.value);
+        }
+    });
     for (const m of metrics) {
         if (
             m.namespace === "System" &&
@@ -183,6 +214,14 @@ function updateMiniCharts(metrics) {
             m.dimensions?.source === "physical"
         ) {
             memVal = m.value;
+        }
+        if (
+            m.namespace === "System" &&
+            m.subnamespace === "Memory" &&
+            m.name === "used_percent" &&
+            m.dimensions?.source === "swap"
+        ) {
+            swapVal = m.value;
         }
     }
 
@@ -231,8 +270,49 @@ function updateMiniCharts(metrics) {
             if (label) label.textContent = `${val.toFixed(1)}%`;
         }
     }
-}
 
+    if (miniCharts.swap && typeof swapVal === "number" && !isNaN(swapVal)) {
+        const d = miniCharts.swap.data;
+        d.labels.push(timestamp);
+        d.datasets[0].data.push(swapVal);
+        if (d.labels.length > 30) {
+            d.labels.shift();
+            d.datasets[0].data.shift();
+        }
+        miniCharts.swap.update();
+    }
+    
+    
+}
+function setupContainerFilters() {
+    const statusFilter = document.getElementById("filter-container-status");
+    const runtimeFilter = document.getElementById("filter-runtime");
+    const hostFilter = document.getElementById("filter-host");
+
+    function applyContainerFilters() {
+        const statusVal = statusFilter.value.toLowerCase();
+        const runtimeVal = runtimeFilter.value.toLowerCase();
+        const hostVal = hostFilter.value.toLowerCase();
+
+        const rows = document.querySelectorAll("#container-table-body tr");
+
+        rows.forEach((row) => {
+            const status = row.getAttribute("data-status")?.toLowerCase() || "";
+            const runtime = row.getAttribute("data-runtime")?.toLowerCase() || "";
+            const host = row.getAttribute("data-host")?.toLowerCase() || "";
+
+            const matchStatus = !statusVal || status === statusVal;
+            const matchRuntime = !runtimeVal || runtime === runtimeVal;
+            const matchHost = !hostVal || host.includes(hostVal);
+
+            row.style.display = matchStatus && matchRuntime && matchHost ? "" : "none";
+        });
+    }
+
+    statusFilter.addEventListener("change", applyContainerFilters);
+    runtimeFilter.addEventListener("change", applyContainerFilters);
+    hostFilter.addEventListener("input", applyContainerFilters);
+}
 function renderOverviewSummary(summary) {
     document.getElementById("hostname").textContent = summary.hostname;
     document.getElementById("uptime").textContent = formatUptime(summary.uptime);
@@ -282,7 +362,7 @@ function updateContainerTable(payload) {
     for (const m of metrics) {
         switch (m.name) {
             case "cpu_percent":
-                container.cpu = m.value?.toFixed(1);
+                container.cpu = typeof m.value === "number" ? m.value : null;
                 break;
             case "mem_usage_bytes":
                 container.mem = formatBytes(m.value);
@@ -314,7 +394,7 @@ function updateContainerTable(payload) {
                 ${container.status}
             </span>
         </td>
-        <td class="px-4 py-2">${container.cpu !== null ? container.cpu + "%" : "—"}</td>
+<td class="px-4 py-2">${typeof container.cpu === "number" ? container.cpu.toFixed(1) + "%" : "0.0%"}</td>
         <td class="px-4 py-2">${container.mem || "—"}</td>
         <td class="px-4 py-2">${container.rx || "—"}</td>
         <td class="px-4 py-2">${container.tx || "—"}</td>
@@ -326,6 +406,9 @@ function updateContainerTable(payload) {
     } else {
         row = document.createElement("tr");
         row.setAttribute("data-id", `container-${id}`);
+        row.setAttribute("data-status", container.status);      // "running" or "stopped"
+        row.setAttribute("data-runtime", meta.subnamespace || ""); // "podman" or "docker"
+        row.setAttribute("data-host", container.host);           // e.g. "DeepThought"
         row.innerHTML = html;
         tbody.appendChild(row);
     }
@@ -345,12 +428,16 @@ function formatBytes(bytes) {
 }
 
 function formatUptime(seconds) {
+    if (typeof seconds !== "number" || isNaN(seconds) || seconds <= 0) return "—";
+
     const d = Math.floor(seconds / (3600 * 24));
     const h = Math.floor((seconds % (3600 * 24)) / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     return `${d}d ${h}h ${m}m`;
 }
 
+
 document.addEventListener("DOMContentLoaded", () => {
     renderMiniCharts();
+    setupContainerFilters(); // 👈 Add this line
 });
