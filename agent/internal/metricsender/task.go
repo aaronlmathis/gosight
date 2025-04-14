@@ -22,7 +22,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 // gosight/agent/internal/sender/task.go
 //
 
-package sender
+package metricsender
 
 import (
 	"context"
@@ -33,7 +33,7 @@ import (
 )
 
 // StartWorkerPool launches N workers and processes metric payloads with retries
-func StartWorkerPool(ctx context.Context, s *Sender, queue <-chan *model.MetricPayload, workerCount int) {
+func (s *MetricSender) StartWorkerPool(ctx context.Context, queue <-chan *model.MetricPayload, workerCount int) {
 	for i := 0; i < workerCount; i++ {
 		go func(id int) {
 			for {
@@ -42,7 +42,7 @@ func StartWorkerPool(ctx context.Context, s *Sender, queue <-chan *model.MetricP
 					utils.Info("Worker %d shutting down", id)
 					return
 				case payload := <-queue:
-					if err := trySendWithBackoff(s, payload); err != nil {
+					if err := s.trySendWithBackoff(payload); err != nil {
 						utils.Error("Worker %d failed to send payload: %v", id, err)
 					}
 				}
@@ -51,7 +51,7 @@ func StartWorkerPool(ctx context.Context, s *Sender, queue <-chan *model.MetricP
 	}
 }
 
-func trySendWithBackoff(s *Sender, payload *model.MetricPayload) error {
+func (s *MetricSender) trySendWithBackoff(payload *model.MetricPayload) error {
 	var err error
 	backoff := 500 * time.Millisecond
 	maxBackoff := 10 * time.Second

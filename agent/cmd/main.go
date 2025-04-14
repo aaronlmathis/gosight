@@ -30,8 +30,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	gosightagent "github.com/aaronlmathis/gosight/agent/internal/agent"
 	"github.com/aaronlmathis/gosight/agent/internal/bootstrap"
-	"github.com/aaronlmathis/gosight/agent/internal/runner"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
@@ -40,9 +40,10 @@ func main() {
 	// Bootstrap config loading (flags -> env -> file)
 	cfg := bootstrap.LoadAgentConfig()
 	fmt.Printf("🔧 About to init logger with level = %s\n", cfg.Logs.LogLevel)
+
 	bootstrap.SetupLogging(cfg)
-	utils.Debug("✅ Debug logging is active from main.go")
-	utils.Info("📡 Connecting to server at: %s", cfg.Agent.ServerURL)
+	utils.Debug("debug logging is active from main.go")
+
 	// Graceful shutdown context
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -51,10 +52,18 @@ func main() {
 	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-sigs
-		utils.Warn("🔌 Signal received, shutting down agent...")
+		utils.Warn("signal received, shutting down agent...")
 		cancel()
 	}()
 
-	// start streaming agent
-	runner.RunAgent(ctx, cfg)
+	agent, err := gosightagent.NewAgent(ctx, cfg)
+	if err != nil {
+		utils.Error("failed to initialize agent: %v", err)
+		os.Exit(1)
+	}
+
+	agent.Start(ctx)
+
+	<-ctx.Done()
+	utils.Info("agent shut down cleanly")
 }

@@ -22,26 +22,26 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 // gosight/agent/internal/collector/registry.go
 // registry.go - loads and initializes all enabled collectors at runtime.
 
-package collector
+package metriccollector
 
 import (
 	"context"
 
-	"github.com/aaronlmathis/gosight/agent/internal/collector/container"
-	"github.com/aaronlmathis/gosight/agent/internal/collector/system"
 	"github.com/aaronlmathis/gosight/agent/internal/config"
+	"github.com/aaronlmathis/gosight/agent/internal/metriccollector/container"
+	"github.com/aaronlmathis/gosight/agent/internal/metriccollector/system"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 // Registry holds active collectors keyed by name
-type Registry struct {
-	Collectors map[string]Collector
+type MetricRegistry struct {
+	Collectors map[string]MetricCollector
 }
 
 // NewRegistry initializes and registers enabled collectors
-func NewRegistry(cfg *config.Config) *Registry {
-	reg := &Registry{Collectors: make(map[string]Collector)}
+func NewRegistry(cfg *config.Config) *MetricRegistry {
+	reg := &MetricRegistry{Collectors: make(map[string]MetricCollector)}
 
 	for _, name := range cfg.Agent.MetricsEnabled {
 		switch name {
@@ -67,7 +67,7 @@ func NewRegistry(cfg *config.Config) *Registry {
 }
 
 // Collect runs all active collectors and returns all collected metrics
-func (r *Registry) Collect(ctx context.Context) ([]model.Metric, error) {
+func (r *MetricRegistry) Collect(ctx context.Context) ([]model.Metric, error) {
 	var all []model.Metric
 
 	for name, collector := range r.Collectors {

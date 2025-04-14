@@ -22,7 +22,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 // gosight/agent/internal/collector/collector.go
 // Package collector provides the Collector interface for all metric collectors.
 
-package collector
+package metriccollector
 
 import (
 	"context"
@@ -31,7 +31,7 @@ import (
 )
 
 // Collector is the interface that all metric collectors must implement.
-type Collector interface {
+type MetricCollector interface {
 	Name() string
 	Collect(ctx context.Context) ([]model.Metric, error)
 }

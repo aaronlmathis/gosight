@@ -36,3 +36,4 @@ certs/
 launch_containers.sh
 tools/
 .vscode*
+configs/

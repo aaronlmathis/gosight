@@ -1,43 +1,60 @@
-package runner
+package metricrunner
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"github.com/aaronlmathis/gosight/agent/internal/collector"
 	"github.com/aaronlmathis/gosight/agent/internal/config"
 	"github.com/aaronlmathis/gosight/agent/internal/meta"
-	"github.com/aaronlmathis/gosight/agent/internal/sender"
+	metriccollector "github.com/aaronlmathis/gosight/agent/internal/metriccollector"
+	"github.com/aaronlmathis/gosight/agent/internal/metricsender"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-// RunAgent starts the agent's collection loop and sends tasks to the pool
-func RunAgent(ctx context.Context, cfg *config.Config) {
-	reg := collector.NewRegistry(cfg)
-	sndr, err := sender.NewSender(ctx, cfg)
+type MetricRunner struct {
+	Config         *config.Config
+	MetricSender   *metricsender.MetricSender
+	MetricRegistry *metriccollector.MetricRegistry
+}
+
+func NewRunner(ctx context.Context, cfg *config.Config) (*MetricRunner, error) {
+	metricRegistry := metriccollector.NewRegistry(cfg)
+	metricSender, err := metricsender.NewSender(ctx, cfg)
 	if err != nil {
-		utils.Fatal("❌ Failed to connect to server: %v", err)
+		return nil, fmt.Errorf("failed to create sender: %v", err)
 	}
-	defer sndr.Close()
+
+	return &MetricRunner{
+		Config:         cfg,
+		MetricSender:   metricSender,
+		MetricRegistry: metricRegistry,
+	}, nil
+}
+
+// RunAgent starts the agent's collection loop and sends tasks to the pool
+func (r *MetricRunner) Run(ctx context.Context) {
+
+	defer r.MetricSender.Close()
 
 	taskQueue := make(chan *model.MetricPayload, 500)
-	go sender.StartWorkerPool(ctx, sndr, taskQueue, 10)
+	go r.MetricSender.StartWorkerPool(ctx, taskQueue, 10)
 
-	ticker := time.NewTicker(cfg.Agent.Interval)
+	ticker := time.NewTicker(r.Config.Agent.Interval)
 	defer ticker.Stop()
 
-	utils.Info("🚀 Agent started. Sending metrics every %v", cfg.Agent.Interval)
+	utils.Info("Agent started. Sending metrics every %v", r.Config.Agent.Interval)
 
 	for {
 		select {
 		case <-ctx.Done():
-			utils.Warn("🔌 Agent shutting down...")
+			utils.Warn("agent shutting down...")
 			return
 		case <-ticker.C:
-			metrics, err := reg.Collect(ctx)
+			metrics, err := r.MetricRegistry.Collect(ctx)
 			if err != nil {
-				utils.Error("❌ Metric collection failed: %v", err)
+				utils.Error("metric collection failed: %v", err)
 				continue
 			}
 
@@ -57,7 +74,7 @@ func RunAgent(ctx context.Context, cfg *config.Config) {
 					// Initialize Meta only once per container ID
 					containerMeta, exists := containerMetas[id]
 					if !exists {
-						containerMeta = meta.BuildContainerMeta(cfg, nil)
+						containerMeta = meta.BuildContainerMeta(r.Config, nil)
 						containerMetas[id] = containerMeta
 					}
 
@@ -88,11 +105,11 @@ func RunAgent(ctx context.Context, cfg *config.Config) {
 
 			// Send host metrics as a single payload
 			if len(hostMetrics) > 0 {
-				hostMeta := meta.BuildHostMeta(cfg, nil)
+				hostMeta := meta.BuildHostMeta(r.Config, nil)
 				meta.BuildStandardTags(hostMeta, hostMetrics[0], false)
 
 				payload := model.MetricPayload{
-					Host:      cfg.Agent.HostOverride,
+					Host:      r.Config.Agent.HostOverride,
 					Timestamp: time.Now(),
 					Metrics:   hostMetrics,
 					Meta:      hostMeta,
@@ -108,7 +125,7 @@ func RunAgent(ctx context.Context, cfg *config.Config) {
 			// Send each container as a separate payload
 			for id, metrics := range containerBatches {
 				payload := model.MetricPayload{
-					Host:      cfg.Agent.HostOverride,
+					Host:      r.Config.Agent.HostOverride,
 					Timestamp: time.Now(),
 					Metrics:   metrics,
 					Meta:      containerMetas[id],

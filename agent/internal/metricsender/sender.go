@@ -21,7 +21,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 
 // gosight/agent/internal/sender/sender.go
 
-package sender
+package metricsender
 
 import (
 	"context"
@@ -41,14 +41,14 @@ import (
 )
 
 // Sender holds the gRPC client and connection
-type Sender struct {
+type MetricSender struct {
 	client proto.MetricsServiceClient
 	cc     *grpc.ClientConn
 	stream proto.MetricsService_SubmitStreamClient
 }
 
 // NewSender establishes a gRPC connection
-func NewSender(ctx context.Context, cfg *config.Config) (*Sender, error) {
+func NewSender(ctx context.Context, cfg *config.Config) (*MetricSender, error) {
 
 	// Load TLS config for agent
 	tlsCfg, err := loadTLSConfig(cfg)
@@ -58,9 +58,9 @@ func NewSender(ctx context.Context, cfg *config.Config) (*Sender, error) {
 
 	// add mTLS to degug log.
 	if len(tlsCfg.Certificates) > 0 {
-		utils.Info("🔐 Using mTLS for agent authentication")
+		utils.Info("using mTLS for agent authentication")
 	} else {
-		utils.Info("🔒 Using TLS only (no client certificate)")
+		utils.Info("Using TLS only (no client certificate)")
 	}
 
 	// Establish gRPC connection
@@ -70,11 +70,11 @@ func NewSender(ctx context.Context, cfg *config.Config) (*Sender, error) {
 	if err != nil {
 		return nil, err
 	}
-	utils.Info("📡 Connecting to server at: %s", cfg.Agent.ServerURL)
+	utils.Info("connecting to server at: %s", cfg.Agent.ServerURL)
 	// Create gRPC client
 	// and establish a stream for sending metrics
 	client := proto.NewMetricsServiceClient(clientConn)
-	utils.Info("📤 established gRPC Connection with %v", cfg.Agent.ServerURL)
+	utils.Info("established gRPC Connection with %v", cfg.Agent.ServerURL)
 
 	//
 	stream, err := client.SubmitStream(ctx)
@@ -82,7 +82,7 @@ func NewSender(ctx context.Context, cfg *config.Config) (*Sender, error) {
 		return nil, fmt.Errorf("failed to open stream: %w", err)
 	}
 
-	return &Sender{
+	return &MetricSender{
 		client: client,
 		cc:     clientConn,
 		stream: stream,
@@ -91,11 +91,11 @@ func NewSender(ctx context.Context, cfg *config.Config) (*Sender, error) {
 }
 
 // Close the gRPC connection
-func (s *Sender) Close() error {
+func (s *MetricSender) Close() error {
 	return s.cc.Close()
 }
 
-func (s *Sender) SendMetrics(payload *model.MetricPayload) error {
+func (s *MetricSender) SendMetrics(payload *model.MetricPayload) error {
 	pbMetrics := make([]*proto.Metric, 0, len(payload.Metrics))
 	for _, m := range payload.Metrics {
 		pbMetric := &proto.Metric{
@@ -126,7 +126,7 @@ func (s *Sender) SendMetrics(payload *model.MetricPayload) error {
 	if payload.Meta != nil {
 		convertedMeta = api.ConvertMetaToProtoMeta(payload.Meta)
 	}
-	//utils.Debug("🎯 Proto Meta Tags: %+v", convertedMeta)
+	//utils.Debug("Proto Meta Tags: %+v", convertedMeta)
 
 	req := &proto.MetricPayload{
 		Host:      payload.Host,
@@ -134,8 +134,8 @@ func (s *Sender) SendMetrics(payload *model.MetricPayload) error {
 		Metrics:   pbMetrics,
 		Meta:      convertedMeta,
 	}
-	//fmt.Printf("🚀 Sending proto.Meta: %+v\n", req.Meta)
-	//utils.Debug("📦 Sending %d metrics to server: %v", len(pbMetrics), pbMetrics)
+	//fmt.Printf("Sending proto.Meta: %+v\n", req.Meta)
+	//utils.Debug("Sending %d metrics to server: %v", len(pbMetrics), pbMetrics)
 	if err := s.stream.Send(req); err != nil {
 		return fmt.Errorf("stream send failed: %w", err)
 	}

@@ -104,6 +104,7 @@ func resolvePath(flagVal, envVar, fallback string) string {
 		return absPath(flagVal)
 	}
 	if val := os.Getenv(envVar); val != "" {
+		utils.Debug("Using %s from environment variable: %s", envVar, val)
 		return absPath(val)
 	}
 	return absPath(fallback)

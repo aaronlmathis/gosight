@@ -22,7 +22,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 // gosight/agent/internal/sender/tls.go
 // tls.go - loads TLS config for mTLS and CA certs
 
-package sender
+package metricsender
 
 import (
 	"crypto/tls"
