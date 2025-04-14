@@ -1,29 +1,58 @@
 server:
-  grpc_addr: ":50051"
-  http_addr: ":8080"
-  environment: prod
-  log_file: "./server.log"
-  log_level: "debug"           # Or "debug", etc.
+  grpc_addr: ":50051"     # domain/ip:port (ex, 10.10.10.1:50051 or myserver.com:84646)
+  http_addr: ":8080"      # domain/ip:port (ex, 10.10.10.1:50051 or myserver.com:84646)
+  environment: dev        # dev / prod
 
+
+# HTTP Server configuration
 web:
-  static_dir: "web"
-  template_dir: "web/templates"
-  default_title: "GoSight"
-  
+  static_dir: "web"              #  Relative to path of gosight server execution
+  template_dir: "web/templates"  #  Relative to path of gosight server executionosight/server/
+  default_title: "GoSight"       #  Default page title
+  auth_providers:                #  Auth providers. (local, google, aws, github, azure, etc)
+    - local
+    - google
+
+# TLS Configuration
 tls:
-  cert_file: "../certs/server.crt"
-  key_file: "../certs/server.key"
-  client_ca_file: "../certs/ca.crt"  # Leave empty if mTLS not used
+  cert_file: "../certs/server.crt"   # Relative to path of gosight server execution
+  key_file: "../certs/server.key"    # Relative to path of gosight server execution
+  client_ca_file: "../certs/ca.crt"  # Leave empty if mTLS not used - if empty, only server will present cert.
 
 debug:
   enable_reflection: true
 
+# Metric store config 
 storage:
   engine: "victoriametrics"
   url: "http://localhost:8428"
-  workers: 4
-  queue_size: 100
-  batch_size: 100
-  batch_timeout: 5000   # flush every 500ms if not full
-  batch_retry: 3
-  batch_interval: 1000 # 1s between retry attempts
+  workers: 8 
+  queue_size: 100         # Metric payloads in batch
+  batch_size: 100         # Metrics payloads in batch
+  batch_timeout: 5000     # flush every 500ms if not full
+  batch_retry: 3          # Number of retries before dropping
+  batch_interval: 1000    # 1s between retry attempts
+
+# User store config
+userstore:
+  type: "postgres"
+  dsn: "postgres://gosight:devpassword@localhost:5432/gosight?sslmode=disable"
+
+# Log configuration
+logs:
+  error_log_file: "./error.log"
+  app_log_file: "./server.log"
+  access_log_file: "./access.log"
+  log_level: "debug"               # Or "info", etc.
+
+# Auth Provider Configuration
+google:
+  client_id: ""
+  client_secret: ""
+  redirect_uri: "http://localhost:8080/callback?provider=google"
+
+# Auth Config
+auth:
+  sso_enabled: true                                                # Is SSO allowed for login?
+  mfa_secret_key: h5/dLmo1H/OFCjNs2SqTyD5XLL3u7EJy/ipHzf4Ej6c=     # Base64 encoded, at least length 32
+  jwt_secret: fV3kTO3e3sP/t+xCe4jC0fj76RSSg5WXRL7CcTGmzxo=         # Base64 encoded, at least length 32
