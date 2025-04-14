@@ -84,15 +84,15 @@ func NewServer(
 
 func (s *HttpServer) Start() error {
 
-	utils.Debug("🧠 HttpServer Init Check:\n"+
-		"  ✅ Config Loaded:           %v\n"+
-		"  ✅ MetricStore:             %T\n"+
-		"  ✅ MetricIndex:             %T\n"+
-		"  ✅ MetaTracker:             %T\n"+
-		"  ✅ AgentTracker:            %T\n"+
-		"  ✅ UserStore:               %T\n"+
-		"  ✅ Router Initialized:      %v\n"+
-		"  ✅ AuthProviders:           %v\n",
+	utils.Debug("HttpServer Init Check:\n"+
+		"   Config Loaded:           %v\n"+
+		"   MetricStore:             %T\n"+
+		"   MetricIndex:             %T\n"+
+		"   MetaTracker:             %T\n"+
+		"   AgentTracker:            %T\n"+
+		"   UserStore:               %T\n"+
+		"   Router Initialized:      %v\n"+
+		"   AuthProviders:           %v\n",
 		s.Config != nil,
 		s.MetricStore,
 		s.MetricIndex,
