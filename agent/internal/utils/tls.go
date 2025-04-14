@@ -22,7 +22,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 // gosight/agent/internal/sender/tls.go
 // tls.go - loads TLS config for mTLS and CA certs
 
-package metricsender
+package agentutils
 
 import (
 	"crypto/tls"
@@ -34,7 +34,7 @@ import (
 	"github.com/aaronlmathis/gosight/agent/internal/config"
 )
 
-func loadTLSConfig(cfg *config.Config) (*tls.Config, error) {
+func LoadTLSConfig(cfg *config.Config) (*tls.Config, error) {
 
 	caPath := filepath.Clean(cfg.TLS.CAFile)
 	if !filepath.IsAbs(caPath) {

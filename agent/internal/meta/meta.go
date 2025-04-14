@@ -33,7 +33,7 @@ import (
 	"github.com/shirou/gopsutil/v4/host"
 )
 
-func BuildHostMeta(cfg *config.Config, addTags map[string]string) *model.Meta {
+func BuildHostMeta(cfg *config.Config, addTags map[string]string, agentID, agentVersion string) *model.Meta {
 	hostname, err := os.Hostname()
 	if err != nil {
 		hostname = "unknown"
@@ -77,11 +77,13 @@ func BuildHostMeta(cfg *config.Config, addTags map[string]string) *model.Meta {
 		KernelVersion:        hostInfo.KernelVersion,
 		Architecture:         runtime.GOARCH,
 		Version:              "0.1",
+		AgentID:              agentID,
+		AgentVersion:         agentVersion,
 		Tags:                 tags,
 	}
 }
 
-func BuildContainerMeta(cfg *config.Config, addTags map[string]string) *model.Meta {
+func BuildContainerMeta(cfg *config.Config, addTags map[string]string, agentID, agentVersion string) *model.Meta {
 	hostname, err := os.Hostname()
 	if err != nil {
 		hostname = "unknown"
@@ -97,9 +99,10 @@ func BuildContainerMeta(cfg *config.Config, addTags map[string]string) *model.Me
 	tags := utils.MergeMaps(cfg.Agent.CustomTags, addTags)
 
 	return &model.Meta{
-		Hostname:  hostname,
-		IPAddress: ip,
-		Version:   "0.1", // you could inject this via build flags
-		Tags:      tags,
+		Hostname:     hostname,
+		IPAddress:    ip,
+		AgentID:      agentID,
+		AgentVersion: agentVersion,
+		Tags:         tags,
 	}
 }

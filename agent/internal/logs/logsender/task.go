@@ -19,10 +19,10 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// gosight/agent/internal/sender/task.go
+// gosight/agent/internal/logsender/task.go
 //
 
-package metricsender
+package logsender
 
 import (
 	"context"
@@ -33,7 +33,7 @@ import (
 )
 
 // StartWorkerPool launches N workers and processes metric payloads with retries
-func (s *MetricSender) StartWorkerPool(ctx context.Context, queue <-chan *model.MetricPayload, workerCount int) {
+func (s *LogSender) StartWorkerPool(ctx context.Context, queue <-chan *model.LogPayload, workerCount int) {
 	for i := 0; i < workerCount; i++ {
 		s.wg.Add(1) // track worker
 		go func(id int) {
@@ -53,13 +53,13 @@ func (s *MetricSender) StartWorkerPool(ctx context.Context, queue <-chan *model.
 	}
 }
 
-func (s *MetricSender) trySendWithBackoff(payload *model.MetricPayload) error {
+func (s *LogSender) trySendWithBackoff(payload *model.LogPayload) error {
 	var err error
 	backoff := 500 * time.Millisecond
 	maxBackoff := 10 * time.Second
 
 	for retries := 0; retries < 5; retries++ {
-		err = s.SendMetrics(payload)
+		err = s.SendLogs(payload)
 		if err == nil {
 			return nil
 		}

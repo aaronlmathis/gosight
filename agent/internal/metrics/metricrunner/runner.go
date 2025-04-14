@@ -17,9 +17,11 @@ type MetricRunner struct {
 	Config         *config.Config
 	MetricSender   *metricsender.MetricSender
 	MetricRegistry *metriccollector.MetricRegistry
+	AgentID        string
+	AgentVersion   string
 }
 
-func NewRunner(ctx context.Context, cfg *config.Config) (*MetricRunner, error) {
+func NewRunner(ctx context.Context, cfg *config.Config, agentID, agentVersion string) (*MetricRunner, error) {
 	metricRegistry := metriccollector.NewRegistry(cfg)
 	metricSender, err := metricsender.NewSender(ctx, cfg)
 	if err != nil {
@@ -30,7 +32,15 @@ func NewRunner(ctx context.Context, cfg *config.Config) (*MetricRunner, error) {
 		Config:         cfg,
 		MetricSender:   metricSender,
 		MetricRegistry: metricRegistry,
+		AgentID:        agentID,
+		AgentVersion:   agentVersion,
 	}, nil
+}
+
+func (r *MetricRunner) Close() {
+	if r.MetricSender != nil {
+		_ = r.MetricSender.Close()
+	}
 }
 
 // RunAgent starts the agent's collection loop and sends tasks to the pool
@@ -44,7 +54,7 @@ func (r *MetricRunner) Run(ctx context.Context) {
 	ticker := time.NewTicker(r.Config.Agent.Interval)
 	defer ticker.Stop()
 
-	utils.Info("Agent started. Sending metrics every %v", r.Config.Agent.Interval)
+	utils.Info("MetricRunner started. Sending metrics every %v", r.Config.Agent.Interval)
 
 	for {
 		select {
@@ -74,7 +84,7 @@ func (r *MetricRunner) Run(ctx context.Context) {
 					// Initialize Meta only once per container ID
 					containerMeta, exists := containerMetas[id]
 					if !exists {
-						containerMeta = meta.BuildContainerMeta(r.Config, nil)
+						containerMeta = meta.BuildContainerMeta(r.Config, nil, r.AgentID, r.AgentVersion)
 						containerMetas[id] = containerMeta
 					}
 
@@ -105,7 +115,7 @@ func (r *MetricRunner) Run(ctx context.Context) {
 
 			// Send host metrics as a single payload
 			if len(hostMetrics) > 0 {
-				hostMeta := meta.BuildHostMeta(r.Config, nil)
+				hostMeta := meta.BuildHostMeta(r.Config, nil, r.AgentID, r.AgentVersion)
 				meta.BuildStandardTags(hostMeta, hostMetrics[0], false)
 
 				payload := model.MetricPayload{

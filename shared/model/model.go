@@ -99,6 +99,8 @@ type Meta struct {
 	PrivateIP        string `json:"private_ip,omitempty"`
 	MACAddress       string `json:"mac_address,omitempty"`
 	NetworkInterface string `json:"network_interface,omitempty"`
+	AgentVersion     string `json:"agent_version,omitempty"` // Version of the agent running
+	AgentID          string `json:"agent_id,omitempty"`      // Unique ID for the agent
 
 	// Custom Metadata
 	Tags map[string]string `json:"tags,omitempty"` // Allow for arbitrary key-value pairs

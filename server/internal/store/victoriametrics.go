@@ -26,6 +26,7 @@ package store
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -47,7 +48,7 @@ type VictoriaStore struct {
 	incoming chan []model.MetricPayload
 	wg       sync.WaitGroup
 	client   *http.Client
-	stopChan chan struct{}
+	ctx      context.Context
 
 	// batching config
 	batchSize     int
@@ -56,21 +57,21 @@ type VictoriaStore struct {
 	batchInterval time.Duration
 }
 
-func NewVictoriaStore(url string, workers, queueSize, batchSize, timeoutMS, retry, retryIntervalMS int) *VictoriaStore {
-	utils.Info("📊 NewVictoriaStore received workers=%d", workers)
+func NewVictoriaStore(ctx context.Context, url string, workers, queueSize, batchSize, timeoutMS, retry, retryIntervalMS int) *VictoriaStore {
+	utils.Info("NewVictoriaStore received workers=%d", workers)
 	store := &VictoriaStore{
 		url:           url,
 		queue:         make(chan []model.MetricPayload, queueSize),
 		incoming:      make(chan []model.MetricPayload, queueSize),
 		client:        &http.Client{Timeout: 10 * time.Second},
-		stopChan:      make(chan struct{}),
+		ctx:           ctx,
 		batchSize:     batchSize,
 		batchTimeout:  time.Duration(timeoutMS) * time.Millisecond,
 		batchRetry:    retry,
 		batchInterval: time.Duration(retryIntervalMS) * time.Millisecond,
 	}
 	if workers == 0 {
-		utils.Warn("⚠️ VictoriaStore called with 0 workers!")
+		utils.Warn("VictoriaStore called with 0 workers!")
 	} else {
 		utils.Debug("🧵 Spawning %d workers now...", workers)
 	}
@@ -81,7 +82,7 @@ func NewVictoriaStore(url string, workers, queueSize, batchSize, timeoutMS, retr
 		go func(id int) {
 			defer func() {
 				if r := recover(); r != nil {
-					utils.Error("💥 Worker #%d panicked: %v", id, r)
+					utils.Error("Worker #%d panicked: %v", id, r)
 				}
 			}()
 			utils.Info("🧵 Started worker #%d", id)
@@ -92,20 +93,20 @@ func NewVictoriaStore(url string, workers, queueSize, batchSize, timeoutMS, retr
 	go store.collectorLoop()
 
 	utils.Info("VictoriaStore initialized with %d workers", workers)
-	utils.Debug("🏗️ NewVictoriaStore created at address: %p", store)
+	utils.Debug("NewVictoriaStore created at address: %p", store)
 
 	return store
 }
 
 func (v *VictoriaStore) Write(metrics []model.MetricPayload) error {
-	//utils.Debug("✉️ store.Write received: %d metrics (store addr: %p)", totalMetricCount(metrics), v)
+	//utils.Debug(" store.Write received: %d metrics (store addr: %p)", totalMetricCount(metrics), v)
 
 	select {
 	case v.incoming <- metrics:
-		//utils.Debug("✅ Write enqueued %d metrics", totalMetricCount(metrics))
+		//utils.Debug("Write enqueued %d metrics", totalMetricCount(metrics))
 		return nil
 	default:
-		utils.Warn("❌ Incoming buffer full: dropping metrics")
+		utils.Warn("Incoming buffer full: dropping metrics")
 		return fmt.Errorf("incoming buffer full")
 	}
 }
@@ -115,27 +116,26 @@ func (v *VictoriaStore) collectorLoop() {
 	ticker := time.NewTicker(v.batchTimeout)
 	defer ticker.Stop()
 
-	//utils.Info("⏱️ batchTimeout raw = %v\n", v.batchTimeout)
-	//utils.Debug("🕰️ collectorLoop started with timeout: %s", v.batchTimeout)
+	//utils.Info("⏱batchTimeout raw = %v\n", v.batchTimeout)
+	//utils.Debug("collectorLoop started with timeout: %s", v.batchTimeout)
 
 	var pending []model.MetricPayload
 
 	for {
 		select {
-		case <-v.stopChan:
-			utils.Debug("🛑 collectorLoop received stop signal")
+		case <-v.ctx.Done():
+			utils.Debug("VictoriaStore collector loop exiting")
 			if len(pending) > 0 {
-				//utils.Debug("🛑 Flushing %d pending payloads on shutdown", len(pending))
 				v.enqueue(pending)
 			}
 			return
 
 		case batch := <-v.incoming:
 			//total := totalMetricCount(batch)
-			//utils.Debug("📥 Received payload with %d metrics", total)
+			//utils.Debug(" Received payload with %d metrics", total)
 			pending = append(pending, batch...)
 			currentTotal := totalMetricCount(pending)
-			//utils.Debug("📊 Total metrics pending: %d", currentTotal)
+			//utils.Debug(" Total metrics pending: %d", currentTotal)
 
 			if currentTotal >= v.batchSize {
 				//utils.Info("📦 Batch size reached: %d metrics, flushing now", currentTotal)
@@ -145,10 +145,10 @@ func (v *VictoriaStore) collectorLoop() {
 
 		case <-ticker.C:
 			currentTotal := totalMetricCount(pending)
-			//utils.Debug("⏰ Timeout ticked. Pending payloads: %d, metrics: %d", len(pending), currentTotal)
+			//utils.Debug(" Timeout ticked. Pending payloads: %d, metrics: %d", len(pending), currentTotal)
 
 			if currentTotal > 0 {
-				//utils.Info("⏳ Timeout flush triggered for %d metrics", currentTotal)
+				//utils.Info(" Timeout flush triggered for %d metrics", currentTotal)
 				v.enqueue(pending)
 				pending = nil
 			}
@@ -157,7 +157,7 @@ func (v *VictoriaStore) collectorLoop() {
 }
 
 func (v *VictoriaStore) enqueue(batch []model.MetricPayload) {
-	//utils.Debug("📦 Enqueue called with %d payloads / %d metrics",		len(batch), totalMetricCount(batch))
+	//utils.Debug("Enqueue called with %d payloads / %d metrics",		len(batch), totalMetricCount(batch))
 	select {
 	case v.queue <- batch:
 	default:
@@ -175,7 +175,9 @@ func (v *VictoriaStore) worker() {
 		case batch := <-v.queue:
 			//utils.Debug("👷 Worker received batch with %d payloads / %d metrics", len(batch), totalMetricCount(batch))
 			v.flush(batch)
-		case <-v.stopChan:
+		case <-v.ctx.Done():
+			utils.Debug("VictoriaStore collector loop exiting")
+
 			return
 		}
 	}
@@ -213,7 +215,7 @@ func (v *VictoriaStore) flush(batch []model.MetricPayload) {
 }
 
 func (v *VictoriaStore) Close() error {
-	close(v.stopChan)
+	utils.Info("Waiting for VictoriaStore workers to finish...")
 	v.wg.Wait()
 	utils.Info("VictoriaStore shutdown complete")
 	return nil

@@ -35,6 +35,9 @@ import (
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
+var Version = "dev" // default
+// go build -ldflags "-X main.Version=0.3.2" -o gosight-agent ./cmd/agent
+
 func main() {
 
 	// Bootstrap config loading (flags -> env -> file)
@@ -56,14 +59,19 @@ func main() {
 		cancel()
 	}()
 
-	agent, err := gosightagent.NewAgent(ctx, cfg)
+	// Create Agent
+	agent, err := gosightagent.NewAgent(ctx, cfg, Version)
 	if err != nil {
 		utils.Error("failed to initialize agent: %v", err)
 		os.Exit(1)
 	}
 
+	// Start Agent
 	agent.Start(ctx)
 
 	<-ctx.Done()
-	utils.Info("agent shut down cleanly")
+
+	utils.Info("🔌 Context canceled, beginning agent shutdown...")
+
+	agent.Close(ctx)
 }

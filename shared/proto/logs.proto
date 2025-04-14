@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package proto;
+
+import "google/protobuf/timestamp.proto";
+import "metrics.proto";
+option go_package = "github.com/aaronlmathis/gosight/shared/proto";
+
+message LogMeta {
+  string os = 1;
+  string platform = 2;
+  string app_name = 3;
+  string app_version = 4;
+  string container_id = 5;
+  string container_name = 6;
+  string unit = 7;
+  string service = 8;
+  string event_id = 9;
+  string user = 10;
+  string executable = 11;
+  string path = 12;
+  map<string, string> extra = 13;
+  string endpoint_id = 14;
+}
+
+message LogEntry {
+  google.protobuf.Timestamp timestamp = 1;
+  string level = 2;
+  string message = 3;
+  string source = 4;
+  string category = 5;
+  string host = 6;
+  int32 pid = 7;
+  map<string, string> fields = 8;
+  map<string, string> tags = 9;
+  LogMeta meta = 10;
+}
+
+message LogPayload {
+  string endpoint_id = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  repeated LogEntry logs = 3;
+
+}
+message LogResponse {
+  string status = 1;
+  int32 status_code = 2; // 0=OK, 1=validation error, etc.
+}
+
+service LogService {
+  rpc SubmitMetrics (LogPayload) returns (LogResponse);        // Unary
+  rpc SubmitStream (stream LogPayload) returns (LogResponse);  // Client-streaming
+}

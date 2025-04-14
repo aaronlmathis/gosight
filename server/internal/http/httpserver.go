@@ -25,6 +25,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package httpserver
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -56,9 +57,11 @@ type HttpServer struct {
 	Router         *mux.Router
 	UserStore      userstore.UserStore
 	WebSocket      *websocket.Hub
+	httpServer     *http.Server
 }
 
 func NewServer(
+	ctx context.Context,
 	agentTracker *store.AgentTracker,
 	authProviders map[string]gosightauth.AuthProvider,
 	cfg *config.Config,
@@ -68,7 +71,9 @@ func NewServer(
 	userStore userstore.UserStore,
 	webSocket *websocket.Hub,
 ) *HttpServer {
-	return &HttpServer{
+	router := mux.NewRouter()
+
+	s := &HttpServer{
 		AgentTracker:   agentTracker,
 		APIMetricStore: &APIMetricStore{Store: metricStore},
 		AuthProviders:  authProviders,
@@ -76,10 +81,16 @@ func NewServer(
 		MetaTracker:    metaTracker,
 		MetricIndex:    metricIndex,
 		MetricStore:    metricStore,
-		Router:         mux.NewRouter(),
+		Router:         router,
 		UserStore:      userStore,
 		WebSocket:      webSocket,
+		httpServer: &http.Server{
+			Addr:    cfg.Server.HTTPAddr,
+			Handler: router,
+		},
 	}
+
+	return s
 }
 
 func (s *HttpServer) Start() error {
@@ -145,4 +156,16 @@ func (s *HttpServer) templateFuncs() template.FuncMap {
 		"uptime": templates.FormatUptime,
 		"trim":   strings.TrimSpace,
 	}
+}
+
+func (s *HttpServer) Shutdown(ctx context.Context) error {
+	utils.Info("Shutting down HTTP server...")
+
+	if err := s.httpServer.Shutdown(ctx); err != nil {
+		utils.Error("HTTP shutdown error: %v", err)
+		return err
+	}
+
+	utils.Info("HTTP server shut down cleanly")
+	return nil
 }

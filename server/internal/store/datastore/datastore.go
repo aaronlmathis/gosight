@@ -18,22 +18,20 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
-// Model for agent
-// shared/model/agent.go
 
-package model
+// gosight/agent/internal/store/datastore/datastore.go
+// datastore.go - defines the general relational db interface and types
 
-import "time"
+package datastore
 
-type AgentStatus struct {
-	Hostname string            `json:"hostname"`
-	IP       string            `json:"ip"`
-	OS       string            `json:"os"`
-	Arch     string            `json:"arch"`
-	Version  string            `json:"version"`
-	Labels   map[string]string `json:"labels"`
-	LastSeen time.Time         `json:"-"`
-	Status   string            `json:"status,omitempty"`
-	Since    string            `json:"since,omitempty"`
-	Updated  bool              `json:"-"`
+import (
+	"context"
+
+	"github.com/aaronlmathis/gosight/shared/model"
+)
+
+type DataStore interface {
+	UpsertAgent(ctx context.Context, agent *model.AgentStatus) error
+	GetAgentByHostname(ctx context.Context, hostname string) (*model.AgentStatus, error)
+	ListAgents(ctx context.Context) ([]*model.AgentStatus, error)
 }

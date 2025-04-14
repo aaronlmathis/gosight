@@ -24,9 +24,11 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package store
 
 import (
+	"context"
 	"sync"
 	"time"
 
+	"github.com/aaronlmathis/gosight/server/internal/store/datastore"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
@@ -42,6 +44,8 @@ func NewAgentTracker() *AgentTracker {
 		agents: make(map[string]*model.AgentStatus),
 	}
 }
+
+// Updates in memory store of Agent details
 func (t *AgentTracker) UpdateAgent(meta model.Meta) {
 
 	if meta.Hostname == "" {
@@ -59,9 +63,20 @@ func (t *AgentTracker) UpdateAgent(meta model.Meta) {
 			Hostname: meta.Hostname,
 			IP:       meta.IPAddress,
 			OS:       meta.OS,
+			Arch:     meta.Architecture,
+			Version:  meta.AgentVersion,
 			Labels:   meta.Tags,
+			Updated:  true,
 		}
 		t.agents[meta.Hostname] = agent
+	} else {
+		// Update any fields that may change
+		agent.IP = meta.IPAddress
+		agent.OS = meta.OS
+		agent.Arch = meta.Architecture
+		agent.Version = meta.AgentVersion
+		agent.Labels = meta.Tags
+		agent.Updated = true
 	}
 
 	agent.LastSeen = time.Now()
@@ -93,4 +108,24 @@ func (t *AgentTracker) GetAgents() []model.AgentStatus {
 		})
 	}
 	return list
+}
+
+// Syncs Agents from inmemory to persistant storage
+func (t *AgentTracker) SyncToStore(ctx context.Context, store datastore.DataStore) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	for _, agent := range t.agents {
+		if !agent.Updated {
+			continue
+		}
+
+		err := store.UpsertAgent(ctx, agent)
+		if err != nil {
+			utils.Error("❌ Agent sync failed for %s: %v", agent.Hostname, err)
+			continue
+		}
+
+		agent.Updated = false
+	}
 }

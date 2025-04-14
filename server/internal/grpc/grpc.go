@@ -19,33 +19,10 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-/*
-SPDX-License-Identifier: GPL-3.0-or-later
-
-Copyright (C) 2025 Aaron Mathis aaron.mathis@gmail.com
-
-This file is part of GoSight.
-
-GoSight is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-GoSight is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with GoSight. If not, see https://www.gnu.org/licenses/.
-*/
-
-// gosight/server/internal/server/
-// grpc.go - gRPC server setup and initialization
-
 package grpcserver
 
 import (
+	"context"
 	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
@@ -53,8 +30,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/aaronlmathis/gosight/server/internal/api"
 	"github.com/aaronlmathis/gosight/server/internal/config"
@@ -68,7 +43,7 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-func NewGRPCServer(cfg *config.Config, store store.MetricStore, tracker *store.AgentTracker, metricIndex *store.MetricIndex, metaTracker *metastore.MetaTracker, ws *websocket.Hub) (*grpc.Server, net.Listener, error) {
+func NewGRPCServer(ctx context.Context, cfg *config.Config, store store.MetricStore, tracker *store.AgentTracker, metricIndex *store.MetricIndex, metaTracker *metastore.MetaTracker, ws *websocket.Hub) (*grpc.Server, net.Listener, error) {
 	tlsCfg, err := loadTLSConfig(cfg)
 	if err != nil {
 		return nil, nil, fmt.Errorf("TLS config failed: %w", err)
@@ -85,16 +60,11 @@ func NewGRPCServer(cfg *config.Config, store store.MetricStore, tracker *store.A
 	proto.RegisterMetricsServiceServer(server, handler)
 
 	go func() {
-		sigCh := make(chan os.Signal, 1)
-		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-
-		sig := <-sigCh
-		utils.Info("🛑 Received signal: %s, shutting down gRPC server...", sig)
-
+		<-ctx.Done()
+		utils.Warn("Context canceled — shutting down gRPC server")
 		server.GracefulStop()
 		listener.Close()
-		utils.Info("✅ gRPC server stopped gracefully and listener closed")
-
+		utils.Info("gRPC server and listener shut down cleanly")
 	}()
 
 	utils.Debug("📨 NewGRPCServer received store at: %p", store)

@@ -27,6 +27,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package bootstrap
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/aaronlmathis/gosight/server/internal/config"
@@ -36,11 +37,11 @@ import (
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func InitMetricStore(cfg *config.Config) (store.MetricStore, error) {
+func InitMetricStore(ctx context.Context, cfg *config.Config) (store.MetricStore, error) {
 	engine := cfg.Storage.Engine
 	utils.Info("📦 Initializing metric store engine: %s", engine)
 
-	s, err := store.InitStore(cfg)
+	s, err := store.InitStore(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init metric store: %w", err)
 	}

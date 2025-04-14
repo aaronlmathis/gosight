@@ -48,16 +48,20 @@ type Config struct {
 	}
 
 	Agent struct {
-		ServerURL      string            `yaml:"server_url"`
-		Interval       time.Duration     `yaml:"interval"`
-		HostOverride   string            `yaml:"host"`
-		MetricsEnabled []string          `yaml:"metrics_enabled"`
-		Environment    string            `yaml:"environment"`
-		AppLogFile     string            `yaml:"app_log_file"`
-		ErrorLogFile   string            `yaml:"error_log_file"`
-		AccessLogFile  string            `yaml:"access_log_file"`
-		LogLevel       string            `yaml:"log_level"`
-		CustomTags     map[string]string `yaml:"custom_tags"` // static tags to be sent with every metric
+		ServerURL      string        `yaml:"server_url"`
+		Interval       time.Duration `yaml:"interval"`
+		HostOverride   string        `yaml:"host"`
+		MetricsEnabled []string      `yaml:"metrics_enabled"`
+		LogCollection  struct {
+			Sources  []string `yaml:"sources"`  // list of log sources to collect from
+			Services []string `yaml:"services"` // list of services to collect logs from
+		} `yaml:"log_collection"`
+		Environment   string            `yaml:"environment"`
+		AppLogFile    string            `yaml:"app_log_file"`
+		ErrorLogFile  string            `yaml:"error_log_file"`
+		AccessLogFile string            `yaml:"access_log_file"`
+		LogLevel      string            `yaml:"log_level"`
+		CustomTags    map[string]string `yaml:"custom_tags"` // static tags to be sent with every metric
 	}
 }
 

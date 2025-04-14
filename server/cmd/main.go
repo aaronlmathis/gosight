@@ -23,7 +23,11 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package main
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/aaronlmathis/gosight/server/internal/bootstrap"
 	grpcserver "github.com/aaronlmathis/gosight/server/internal/grpc"
@@ -33,11 +37,30 @@ import (
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
+var Version = "dev" // default
+// go build -ldflags "-X main.Version=0.3.2" -o gosight-agent ./cmd/agent
+
 func main() {
+
+	// Graceful Shutdown Context
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go func() {
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+		sig := <-sigCh
+		utils.Warn("Received signal: %s", sig)
+
+		cancel() // cancels context for all background loops
+
+		// Optional: close server listeners explicitly here
+	}()
 
 	// Bootstrap config loading (flags -> env -> file)
 	cfg := bootstrap.LoadServerConfig()
-	fmt.Printf("🔧 About to init logger with level = %s\n", cfg.Logs.LogLevel)
+	fmt.Printf("About to init logger with level = %s\n", cfg.Logs.LogLevel)
 
 	// Initialize logging
 	bootstrap.SetupLogging(cfg)
@@ -45,51 +68,64 @@ func main() {
 	// Initialize the websocket hub
 	wsHub := websocket.NewHub()
 	go func() {
-		utils.Info("🧬 Starting WebSocket hub...")
+		utils.Info("Starting WebSocket hub...")
 		wsHub.Run() // no error returned, but safe to log around
 	}()
 
 	// Init metric store
-	metricStore, err := bootstrap.InitMetricStore(cfg)
+	metricStore, err := bootstrap.InitMetricStore(ctx, cfg)
 	utils.Must("Metric store", err)
 
+	// Initialize user store
+	dataStore, err := bootstrap.InitDataStore(cfg)
+	utils.Must("Data store", err)
+
 	// Initialize agent tracker
-	agentTracker, err := bootstrap.InitAgentTracker(cfg.Server.Environment)
+	agentTracker, err := bootstrap.InitAgentTracker(ctx, cfg.Server.Environment, dataStore)
 	utils.Must("Agent tracker", err)
 
 	// Initialize metric index
 	metricIndex, err := bootstrap.InitMetricIndex()
 	utils.Must("Metric index", err)
 
+	// Initialize meta tracker
+	metaTracker := metastore.NewMetaTracker()
+
 	// Initialize user store
 	userStore, err := bootstrap.InitUserStore(cfg)
 	utils.Must("User store", err)
-
-	// Initialize meta tracker
-	metaTracker := metastore.NewMetaTracker()
 
 	// Initialize auth
 	authProviders, err := httpserver.InitAuth(cfg, userStore)
 	utils.Must("Auth providers", err)
 
 	// Start HTTP server for admin console/api
-	srv := httpserver.NewServer(agentTracker, authProviders, cfg, metaTracker, metricIndex, metricStore, userStore, wsHub)
+	srv := httpserver.NewServer(ctx, agentTracker, authProviders, cfg, metaTracker, metricIndex, metricStore, userStore, wsHub)
 
 	go func() {
 		if err := srv.Start(); err != nil {
 			utils.Fatal("HTTP server failed: %v", err)
 		} else {
-			utils.Info("🌐 HTTP server started successfully")
+			utils.Info("HTTP server started successfully")
 		}
 	}()
 
-	grpcServer, listener, err := grpcserver.NewGRPCServer(cfg, metricStore, agentTracker, metricIndex, metaTracker, wsHub)
+	grpcServer, listener, err := grpcserver.NewGRPCServer(ctx, cfg, metricStore, agentTracker, metricIndex, metaTracker, wsHub)
 	if err != nil {
 		utils.Fatal("Failed to start gRPC server: %v", err)
 	} else {
-		utils.Info("🚀 GoSight server listening on %s", cfg.Server.GRPCAddr)
-		if err := grpcServer.Serve(listener); err != nil {
-			utils.Fatal("Failed to serve: %v", err)
-		}
+		go func() {
+			utils.Info("GoSight server listening on %s", cfg.Server.GRPCAddr)
+			if err := grpcServer.Serve(listener); err != nil {
+				utils.Fatal("Failed to serve gRPC: %v", err)
+			}
+		}()
 	}
+
+	<-ctx.Done()
+	utils.Info("🧹 Shutting down GoSight...")
+
+	grpcServer.GracefulStop()
+	_ = srv.Shutdown(ctx)
+	_ = metricStore.Close()
 }

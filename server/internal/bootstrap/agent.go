@@ -25,38 +25,33 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package bootstrap
 
 import (
+	"context"
 	"time"
 
 	"github.com/aaronlmathis/gosight/server/internal/store"
-	"github.com/aaronlmathis/gosight/shared/model"
+	"github.com/aaronlmathis/gosight/server/internal/store/datastore"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func InitAgentTracker(env string) (*store.AgentTracker, error) {
+func InitAgentTracker(ctx context.Context, env string, dataStore datastore.DataStore) (*store.AgentTracker, error) {
 	tracker := store.NewAgentTracker()
 
-	if env == "dev" {
-		// Simulate agent data in dev mode
-		go func() {
-			for {
-				tracker.UpdateAgent(model.Meta{
-					Hostname:  "agent-01",
-					PrivateIP: "192.168.1.101",
-					Tags:      map[string]string{"zone": "DC-1"},
-				})
-				tracker.UpdateAgent(model.Meta{
-					Hostname:  "agent-02",
-					PrivateIP: "192.168.1.102",
-					Tags:      map[string]string{"zone": "DC-2"},
-				})
-				tracker.UpdateAgent(model.Meta{
-					Hostname:  "agent-03",
-					PrivateIP: "192.168.1.103",
-					Tags:      map[string]string{"zone": "Narnia"},
-				})
-				time.Sleep(5 * time.Second)
-			}
-		}()
-	}
+	//  Start sync loop to periodically push in-memory AgentTracker data into persistant store.
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
 
+		for {
+			select {
+			case <-ctx.Done():
+				utils.Info("Agent tracker sync loop shutting down")
+				return
+			case <-ticker.C:
+				utils.Debug("Syncing agent tracker to DB...")
+				tracker.SyncToStore(ctx, dataStore)
+				utils.Debug("Agent tracker sync complete")
+			}
+		}
+	}()
 	return tracker, nil
 }

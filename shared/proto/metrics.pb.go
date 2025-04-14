@@ -209,21 +209,12 @@ func (x *Metric) GetType() string {
 type Meta struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// General Host Information
-	Hostname             string `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
-	IpAddress            string `protobuf:"bytes,2,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
-	Os                   string `protobuf:"bytes,3,opt,name=os,proto3" json:"os,omitempty"`
-	OsVersion            string `protobuf:"bytes,4,opt,name=os_version,json=osVersion,proto3" json:"os_version,omitempty"`
-	Platform             string `protobuf:"bytes,36,opt,name=platform,proto3" json:"platform,omitempty"`
-	PlatformFamily       string `protobuf:"bytes,37,opt,name=platform_family,json=platformFamily,proto3" json:"platform_family,omitempty"`
-	PlatformVersion      string `protobuf:"bytes,38,opt,name=platform_version,json=platformVersion,proto3" json:"platform_version,omitempty"`
-	KernelArchitecture   string `protobuf:"bytes,39,opt,name=kernel_architecture,json=kernelArchitecture,proto3" json:"kernel_architecture,omitempty"`
-	VirtualizationSystem string `protobuf:"bytes,40,opt,name=virtualization_system,json=virtualizationSystem,proto3" json:"virtualization_system,omitempty"`
-	VirtualizationRole   string `protobuf:"bytes,41,opt,name=virtualization_role,json=virtualizationRole,proto3" json:"virtualization_role,omitempty"`
-	HostId               string `protobuf:"bytes,42,opt,name=host_id,json=hostId,proto3" json:"host_id,omitempty"`
-	KernelVersion        string `protobuf:"bytes,5,opt,name=kernel_version,json=kernelVersion,proto3" json:"kernel_version,omitempty"`
-	Architecture         string `protobuf:"bytes,6,opt,name=architecture,proto3" json:"architecture,omitempty"`
-	EndpointId           string `protobuf:"bytes,35,opt,name=endpoint_id,json=endpointId,proto3" json:"endpoint_id,omitempty"`
-	// Cloud Provider Specific
+	Hostname         string `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	IpAddress        string `protobuf:"bytes,2,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
+	Os               string `protobuf:"bytes,3,opt,name=os,proto3" json:"os,omitempty"`
+	OsVersion        string `protobuf:"bytes,4,opt,name=os_version,json=osVersion,proto3" json:"os_version,omitempty"`
+	KernelVersion    string `protobuf:"bytes,5,opt,name=kernel_version,json=kernelVersion,proto3" json:"kernel_version,omitempty"`
+	Architecture     string `protobuf:"bytes,6,opt,name=architecture,proto3" json:"architecture,omitempty"`
 	CloudProvider    string `protobuf:"bytes,7,opt,name=cloud_provider,json=cloudProvider,proto3" json:"cloud_provider,omitempty"`
 	Region           string `protobuf:"bytes,8,opt,name=region,proto3" json:"region,omitempty"`
 	AvailabilityZone string `protobuf:"bytes,9,opt,name=availability_zone,json=availabilityZone,proto3" json:"availability_zone,omitempty"`
@@ -255,7 +246,20 @@ type Meta struct {
 	MacAddress       string `protobuf:"bytes,32,opt,name=mac_address,json=macAddress,proto3" json:"mac_address,omitempty"`
 	NetworkInterface string `protobuf:"bytes,33,opt,name=network_interface,json=networkInterface,proto3" json:"network_interface,omitempty"`
 	// Custom Metadata
-	Tags          map[string]string `protobuf:"bytes,34,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Tags map[string]string `protobuf:"bytes,34,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Normalized Endpoint ID
+	EndpointId string `protobuf:"bytes,35,opt,name=endpoint_id,json=endpointId,proto3" json:"endpoint_id,omitempty"`
+	// Platform Details
+	Platform             string `protobuf:"bytes,36,opt,name=platform,proto3" json:"platform,omitempty"`
+	PlatformFamily       string `protobuf:"bytes,37,opt,name=platform_family,json=platformFamily,proto3" json:"platform_family,omitempty"`
+	PlatformVersion      string `protobuf:"bytes,38,opt,name=platform_version,json=platformVersion,proto3" json:"platform_version,omitempty"`
+	KernelArchitecture   string `protobuf:"bytes,39,opt,name=kernel_architecture,json=kernelArchitecture,proto3" json:"kernel_architecture,omitempty"`
+	VirtualizationSystem string `protobuf:"bytes,40,opt,name=virtualization_system,json=virtualizationSystem,proto3" json:"virtualization_system,omitempty"`
+	VirtualizationRole   string `protobuf:"bytes,41,opt,name=virtualization_role,json=virtualizationRole,proto3" json:"virtualization_role,omitempty"`
+	HostId               string `protobuf:"bytes,42,opt,name=host_id,json=hostId,proto3" json:"host_id,omitempty"`
+	// New additions
+	AgentVersion  string `protobuf:"bytes,43,opt,name=agent_version,json=agentVersion,proto3" json:"agent_version,omitempty"`
+	AgentId       string `protobuf:"bytes,44,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -318,55 +322,6 @@ func (x *Meta) GetOsVersion() string {
 	return ""
 }
 
-func (x *Meta) GetPlatform() string {
-	if x != nil {
-		return x.Platform
-	}
-	return ""
-}
-
-func (x *Meta) GetPlatformFamily() string {
-	if x != nil {
-		return x.PlatformFamily
-	}
-	return ""
-}
-
-func (x *Meta) GetPlatformVersion() string {
-	if x != nil {
-		return x.PlatformVersion
-	}
-	return ""
-}
-
-func (x *Meta) GetKernelArchitecture() string {
-	if x != nil {
-		return x.KernelArchitecture
-	}
-	return ""
-}
-
-func (x *Meta) GetVirtualizationSystem() string {
-	if x != nil {
-		return x.VirtualizationSystem
-	}
-	return ""
-}
-
-func (x *Meta) GetVirtualizationRole() string {
-	if x != nil {
-		return x.VirtualizationRole
-	}
-	return ""
-}
-
-func (x *Meta) GetHostId() string {
-	if x != nil {
-		return x.HostId
-	}
-	return ""
-}
-
 func (x *Meta) GetKernelVersion() string {
 	if x != nil {
 		return x.KernelVersion
@@ -377,13 +332,6 @@ func (x *Meta) GetKernelVersion() string {
 func (x *Meta) GetArchitecture() string {
 	if x != nil {
 		return x.Architecture
-	}
-	return ""
-}
-
-func (x *Meta) GetEndpointId() string {
-	if x != nil {
-		return x.EndpointId
 	}
 	return ""
 }
@@ -584,6 +532,76 @@ func (x *Meta) GetTags() map[string]string {
 	return nil
 }
 
+func (x *Meta) GetEndpointId() string {
+	if x != nil {
+		return x.EndpointId
+	}
+	return ""
+}
+
+func (x *Meta) GetPlatform() string {
+	if x != nil {
+		return x.Platform
+	}
+	return ""
+}
+
+func (x *Meta) GetPlatformFamily() string {
+	if x != nil {
+		return x.PlatformFamily
+	}
+	return ""
+}
+
+func (x *Meta) GetPlatformVersion() string {
+	if x != nil {
+		return x.PlatformVersion
+	}
+	return ""
+}
+
+func (x *Meta) GetKernelArchitecture() string {
+	if x != nil {
+		return x.KernelArchitecture
+	}
+	return ""
+}
+
+func (x *Meta) GetVirtualizationSystem() string {
+	if x != nil {
+		return x.VirtualizationSystem
+	}
+	return ""
+}
+
+func (x *Meta) GetVirtualizationRole() string {
+	if x != nil {
+		return x.VirtualizationRole
+	}
+	return ""
+}
+
+func (x *Meta) GetHostId() string {
+	if x != nil {
+		return x.HostId
+	}
+	return ""
+}
+
+func (x *Meta) GetAgentVersion() string {
+	if x != nil {
+		return x.AgentVersion
+	}
+	return ""
+}
+
+func (x *Meta) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
+}
+
 type MetricPayload struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Host          string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
@@ -730,25 +748,16 @@ const file_metrics_proto_rawDesc = "" +
 	" \x01(\tR\x04type\x1a=\n" +
 	"\x0fDimensionsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xcf\v\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8f\f\n" +
 	"\x04Meta\x12\x1a\n" +
 	"\bhostname\x18\x01 \x01(\tR\bhostname\x12\x1d\n" +
 	"\n" +
 	"ip_address\x18\x02 \x01(\tR\tipAddress\x12\x0e\n" +
 	"\x02os\x18\x03 \x01(\tR\x02os\x12\x1d\n" +
 	"\n" +
-	"os_version\x18\x04 \x01(\tR\tosVersion\x12\x1a\n" +
-	"\bplatform\x18$ \x01(\tR\bplatform\x12'\n" +
-	"\x0fplatform_family\x18% \x01(\tR\x0eplatformFamily\x12)\n" +
-	"\x10platform_version\x18& \x01(\tR\x0fplatformVersion\x12/\n" +
-	"\x13kernel_architecture\x18' \x01(\tR\x12kernelArchitecture\x123\n" +
-	"\x15virtualization_system\x18( \x01(\tR\x14virtualizationSystem\x12/\n" +
-	"\x13virtualization_role\x18) \x01(\tR\x12virtualizationRole\x12\x17\n" +
-	"\ahost_id\x18* \x01(\tR\x06hostId\x12%\n" +
+	"os_version\x18\x04 \x01(\tR\tosVersion\x12%\n" +
 	"\x0ekernel_version\x18\x05 \x01(\tR\rkernelVersion\x12\"\n" +
-	"\farchitecture\x18\x06 \x01(\tR\farchitecture\x12\x1f\n" +
-	"\vendpoint_id\x18# \x01(\tR\n" +
-	"endpointId\x12%\n" +
+	"\farchitecture\x18\x06 \x01(\tR\farchitecture\x12%\n" +
 	"\x0ecloud_provider\x18\a \x01(\tR\rcloudProvider\x12\x16\n" +
 	"\x06region\x18\b \x01(\tR\x06region\x12+\n" +
 	"\x11availability_zone\x18\t \x01(\tR\x10availabilityZone\x12\x1f\n" +
@@ -783,7 +792,18 @@ const file_metrics_proto_rawDesc = "" +
 	"\vmac_address\x18  \x01(\tR\n" +
 	"macAddress\x12+\n" +
 	"\x11network_interface\x18! \x01(\tR\x10networkInterface\x12)\n" +
-	"\x04tags\x18\" \x03(\v2\x15.proto.Meta.TagsEntryR\x04tags\x1a7\n" +
+	"\x04tags\x18\" \x03(\v2\x15.proto.Meta.TagsEntryR\x04tags\x12\x1f\n" +
+	"\vendpoint_id\x18# \x01(\tR\n" +
+	"endpointId\x12\x1a\n" +
+	"\bplatform\x18$ \x01(\tR\bplatform\x12'\n" +
+	"\x0fplatform_family\x18% \x01(\tR\x0eplatformFamily\x12)\n" +
+	"\x10platform_version\x18& \x01(\tR\x0fplatformVersion\x12/\n" +
+	"\x13kernel_architecture\x18' \x01(\tR\x12kernelArchitecture\x123\n" +
+	"\x15virtualization_system\x18( \x01(\tR\x14virtualizationSystem\x12/\n" +
+	"\x13virtualization_role\x18) \x01(\tR\x12virtualizationRole\x12\x17\n" +
+	"\ahost_id\x18* \x01(\tR\x06hostId\x12#\n" +
+	"\ragent_version\x18+ \x01(\tR\fagentVersion\x12\x19\n" +
+	"\bagent_id\x18, \x01(\tR\aagentId\x1a7\n" +
 	"\tTagsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa7\x01\n" +

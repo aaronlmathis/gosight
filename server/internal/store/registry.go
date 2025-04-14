@@ -25,18 +25,20 @@ along with GoBright. If not, see https://www.gnu.org/licenses/.
 package store
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func InitStore(cfg *config.Config) (MetricStore, error) {
+func InitStore(ctx context.Context, cfg *config.Config) (MetricStore, error) {
 	utils.Debug("🧠 InitMetricStore selected engine: %s", cfg.Storage.Engine)
 	switch cfg.Storage.Engine {
 	case "victoriametrics":
 		utils.Debug("📦 Bootstrapping VictoriaStore with %d workers", cfg.Storage.Workers)
 		s := NewVictoriaStore(
+			ctx,
 			cfg.Storage.URL,
 			cfg.Storage.Workers,
 			cfg.Storage.QueueSize,

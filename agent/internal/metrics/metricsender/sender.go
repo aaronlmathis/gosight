@@ -29,9 +29,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/aaronlmathis/gosight/agent/api"
 	"github.com/aaronlmathis/gosight/agent/internal/config"
+	agentutils "github.com/aaronlmathis/gosight/agent/internal/utils"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/proto"
 	"github.com/aaronlmathis/gosight/shared/utils"
@@ -45,13 +47,14 @@ type MetricSender struct {
 	client proto.MetricsServiceClient
 	cc     *grpc.ClientConn
 	stream proto.MetricsService_SubmitStreamClient
+	wg     sync.WaitGroup
 }
 
 // NewSender establishes a gRPC connection
 func NewSender(ctx context.Context, cfg *config.Config) (*MetricSender, error) {
 
 	// Load TLS config for agent
-	tlsCfg, err := loadTLSConfig(cfg)
+	tlsCfg, err := agentutils.LoadTLSConfig(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -90,8 +93,10 @@ func NewSender(ctx context.Context, cfg *config.Config) (*MetricSender, error) {
 
 }
 
-// Close the gRPC connection
 func (s *MetricSender) Close() error {
+	utils.Info("Closing MetricSender... waiting for workers")
+	s.wg.Wait()
+	utils.Info("All MetricSender workers finished")
 	return s.cc.Close()
 }
 
