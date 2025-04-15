@@ -46,14 +46,14 @@ func InitMetricIndex() (*store.MetricIndex, error) {
 }
 func InitMetricStore(ctx context.Context, cfg *config.Config, metricIndex *store.MetricIndex) (store.MetricStore, error) {
 	engine := cfg.Storage.Engine
-	utils.Info("📦 Initializing metric store engine: %s", engine)
+	utils.Info("Initializing metric store engine: %s", engine)
 
 	s, err := store.InitStore(ctx, cfg, metricIndex)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init metric store: %w", err)
 	}
 
-	utils.Info("✅ Metric store [%s] initialized successfully", engine)
+	utils.Info("Metric store [%s] initialized successfully", engine)
 	return s, nil
 }
 
