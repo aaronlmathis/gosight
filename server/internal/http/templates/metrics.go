@@ -185,7 +185,7 @@ func BuildHostDashboardData(ctx context.Context, ms store.MetricStore, metaTrack
 	labels["platform"] = tags["platform"]
 	labels["platform_version"] = tags["platform_version"]
 	labels["os"] = tags["os"]
-	utils.Debug("🧠 Labels %v", labels)
+	utils.Debug("Labels %v", labels)
 
 	breadcrumbs := []Breadcrumb{
 		{Label: "Endpoints", URL: "/endpoints"},
