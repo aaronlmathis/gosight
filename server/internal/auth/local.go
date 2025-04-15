@@ -26,11 +26,11 @@ func (l *LocalAuth) HandleCallback(w http.ResponseWriter, r *http.Request) (*use
 
 	user, err := l.Store.GetUserByUsername(ctx, username)
 	if err != nil {
-		utils.Debug("❌ User not found: %s", username)
+		utils.Debug("User not found: %s", username)
 		return nil, err
 	}
 	if !CheckPasswordHash(password, user.PasswordHash) {
-		utils.Debug("❌ Password Hash ain't right: ")
+		utils.Debug("Password Hash ain't right: ")
 		return nil, ErrInvalidPassword
 	}
 
