@@ -25,8 +25,8 @@ func InjectSessionContext(ctx context.Context, user *usermodel.User) context.Con
 		}
 	}
 	ctx = contextutil.SetUserPermissions(ctx, permNames)
-	utils.Debug("🔐 Injected user: %s", user.ID)
-	utils.Debug("🔐 Roles: %v", roleNames)
-	utils.Debug("🔐 Permissions: %v", permNames)
+	utils.Debug("Injected user: %s", user.ID)
+	utils.Debug("Roles: %v", roleNames)
+	utils.Debug("Permissions: %v", permNames)
 	return ctx
 }
