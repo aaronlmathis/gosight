@@ -91,7 +91,7 @@ func loadTLSConfig(cfg *config.Config) (*tls.Config, error) {
 			// Log CN and fingerprint
 			cn := cert.Subject.CommonName
 			fingerprint := sha256.Sum256(cert.Raw)
-			utils.Info("🔐 Agent connected: CN=%s, SHA256 Fingerprint=%s", cn, hex.EncodeToString(fingerprint[:]))
+			utils.Info("Agent connected: CN=%s, SHA256 Fingerprint=%s", cn, hex.EncodeToString(fingerprint[:]))
 
 			// Optional: Reject based on CN or SAN here
 
