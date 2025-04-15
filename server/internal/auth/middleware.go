@@ -76,7 +76,7 @@ func RequireAnyPermissionWithStore(store userstore.UserStore, required ...string
 }
 
 func AuthMiddleware(userStore userstore.UserStore) mux.MiddlewareFunc {
-	utils.Debug("🔑 AuthMiddleware: Injecting user context")
+	utils.Debug("AuthMiddleware: Injecting user context")
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token, err := GetSessionToken(r)
@@ -86,14 +86,14 @@ func AuthMiddleware(userStore userstore.UserStore) mux.MiddlewareFunc {
 				next.ServeHTTP(w, r)
 				return
 			}
-			utils.Debug("🔑 AuthMiddleware: Token found: %s", token)
+			utils.Debug("AuthMiddleware: Token found: %s", token)
 			claims, err := ValidateToken(token)
 			if err != nil {
-				utils.Debug("❌ AuthMiddleWare: ValidateToken failed: %v", err)
+				utils.Debug("AuthMiddleWare: ValidateToken failed: %v", err)
 				next.ServeHTTP(w, r)
 				return
 			}
-			utils.Debug("🔑 AuthMiddleware: Token claims: %v", claims)
+			utils.Debug("AuthMiddleware: Token claims: %v", claims)
 			userID := claims.UserID
 			traceID := claims.TraceID
 
@@ -112,7 +112,7 @@ func AuthMiddleware(userStore userstore.UserStore) mux.MiddlewareFunc {
 				}
 				roleNames = ExtractRoleNames(user.Roles)
 				perms = FlattenPermissions(user.Roles)
-				utils.Debug("🔐 Flattened permissions from DB: %v", perms)
+				utils.Debug("Flattened permissions from DB: %v", perms)
 			} else {
 				// Roles are fresh, use from token
 				roleNames = claims.Roles
@@ -145,25 +145,25 @@ func AccessLogMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
-		// 🔍 Use existing X-Trace-ID or generate one
+		// Use existing X-Trace-ID or generate one
 		traceID := r.Header.Get("X-Trace-ID")
 		if traceID == "" {
 			traceID = uuid.NewString()
 		}
 
-		// 🔁 Set trace ID into context and response header
+		// Set trace ID into context and response header
 		ctx := contextutil.SetTraceID(r.Context(), traceID)
 		w.Header().Set("X-Trace-ID", traceID)
 
-		// 🧱 Wrap writer to capture status code
+		// Wrap writer to capture status code
 		rr := &statusRecorder{ResponseWriter: w, status: 200}
 
-		// ⏱️ Call next handler
+		// ⏱Call next handler
 		next.ServeHTTP(rr, r.WithContext(ctx))
 
 		duration := time.Since(start)
 
-		// 📦 Structured fields
+		// Structured fields
 		userID, _ := contextutil.GetUserID(ctx)
 		roles, _ := contextutil.GetUserRoles(ctx)
 		perms, _ := contextutil.GetUserPermissions(ctx)
