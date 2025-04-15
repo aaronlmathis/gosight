@@ -123,7 +123,7 @@ func (t *AgentTracker) SyncToStore(ctx context.Context, store datastore.DataStor
 	defer t.mu.Unlock()
 
 	for hostname, agent := range t.agents {
-		utils.Debug("🧠 Syncing agent: %s | EndpointID: %s | IP: %s", hostname, agent.AgentID, agent.IP)
+		utils.Debug("Syncing agent: %s | EndpointID: %s | IP: %s", hostname, agent.AgentID, agent.IP)
 	}
 	for _, agent := range t.agents {
 		if !agent.Updated {

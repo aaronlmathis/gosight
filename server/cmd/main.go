@@ -99,7 +99,7 @@ func main() {
 	utils.Must("Auth providers", err)
 
 	// Start HTTP server for admin console/api
-	srv := httpserver.NewServer(ctx, agentTracker, authProviders, cfg, metaTracker, metricIndex, metricStore, userStore, wsHub)
+	srv := httpserver.NewServer(ctx, agentTracker, authProviders, cfg, metaTracker, metricIndex, metricStore, userStore, dataStore, wsHub)
 
 	go func() {
 		if err := srv.Start(); err != nil {

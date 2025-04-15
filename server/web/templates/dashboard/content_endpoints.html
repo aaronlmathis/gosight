@@ -1,0 +1,257 @@
+{{ define "title" }}Endpoints{{ end }}
+{{ template "dashboard/layout_endpoints" . }}
+
+{{ define "content_endpoints" }}
+<div class="space-y-4">
+    <div class="mb-4">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Endpoints</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Hosts and their active containers across your environment</p>
+      </div>
+      
+    <div class="overflow-x-auto shadow rounded-lg border border-gray-200 dark:border-gray-700">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-700 text-xs text-gray-500 dark:text-gray-300">
+                <tr>
+                    <th class="px-3 py-2 text-left cursor-pointer group" onclick="sortTableByColumn(0)">
+                        Status
+                        <span class="inline-block ml-1 transition-transform group-[data-sort='asc']:rotate-180">&#9660;</span>
+                      </th>
+                    <th class="px-3 py-2 text-left cursor-pointer group" onclick="sortTableByColumn(1)">
+                        Hostname
+                        <span class="inline-block ml-1 transition-transform group-[data-sort='asc']:rotate-180">&#9660;</span>
+                      </th>
+                      <th class="px-3 py-2 text-left cursor-pointer group" onclick="sortTableByColumn(3)">
+                        IP
+                        <span class="inline-block ml-1 transition-transform group-[data-sort='asc']:rotate-180">&#9660;</span>
+                      </th>
+
+
+                      <th class="px-3 py-2 text-left">OS</th>
+                      <th class="px-3 py-2 text-left">Platform</th>
+                    <th class="px-3 py-2 text-left">Architecture</th>
+
+                    <th class="px-3 py-2 text-left">CPU %</th>
+                    <th class="px-3 py-2 text-left">MEM %</th>
+                    <th class="px-3 py-2 text-left">Agent ID</th>
+                    <th class="px-3 py-2 text-left">Agent Version</th>
+                    <th class="px-3 py-2 text-left">Uptime</th>
+                    <th class="px-3 py-2 text-left">Expand</th>
+                </tr>
+            </thead>
+            <tbody id="host-table-body" class="divide-y divide-gray-100 dark:divide-gray-800 text-sm">
+                {{ range .Hosts }}
+<tr class="hover:bg-gray-50 dark:hover:bg-gray-800 host-row">
+    <td class="px-3 py-2">
+        {{ if eq .Agent.Status "Online" }}
+        <span class="text-green-500 font-medium">● Online</span>
+        {{ else }}
+        <span class="text-red-500 font-medium">● Offline</span>
+        {{ end }}
+    </td>
+
+    <td class="px-3 py-2"><a href="/endpoints/{{.Agent.EndpointID}}">{{ .Agent.Hostname }}</a></td>
+    <td class="px-3 py-2">{{ .Agent.IP }}</td>
+    <td class="px-3 py-2">{{ .Agent.OS }}</td>
+    <td class="px-3 py-2">{{ index .Metrics "platform" }}{{ index .Metrics "platform_version" }}</td>
+    <td class="px-3 py-2">{{ index .Metrics "arch" }}</td>
+
+    <td class="px-3 py-2">{{ index .Metrics "cpu" }}</td>
+    <td class="px-3 py-2">{{ index .Metrics "mem" }}</td>
+    <td class="px-3 py-2">{{ .Agent.AgentID }}</td>
+    <td class="px-3 py-2">{{ index .Metrics "version" }}</td>
+    <td class="px-3 py-2">{{ index .Metrics "uptime" }}</td>
+    <td class="px-3 py-2">
+        <button onclick="toggleContainerRow('{{ .Agent.Hostname }}')" class="text-blue-500 hover:underline">
+            <span id="expand-icon-{{ .Agent.Hostname }}" class="inline-block transform transition-transform">&#9654;</span>
+        </button>
+    </td>
+</tr>
+
+<tr id="containers-{{ .Agent.Hostname }}" class="container-subtable hidden bg-gray-50 dark:bg-gray-800">
+    <td colspan="12" class="px-4 py-3 text-sm text-gray-400">
+        Loading containers…
+    </td>
+</tr>
+{{ end }}
+            </tbody>
+        </table>
+    </div>
+
+
+</div>
+{{ end }}
+{{ define "endpoint-scripts" }}
+<script>
+    let sortState = {
+      column: null,
+      ascending: true,
+    };
+    
+    function sortTableByColumn(colIndex) {
+      const tableBody = document.querySelector("table tbody");
+      
+      const hostRows = allRows.filter(r => r.classList.contains("host-row"));
+
+    
+      // Toggle sort direction
+      if (sortState.column === colIndex) {
+        sortState.ascending = !sortState.ascending;
+      } else {
+        sortState.column = colIndex;
+        sortState.ascending = true;
+      }
+    
+      const getText = row => row.children[colIndex]?.innerText.trim().toLowerCase();
+      const isNumeric = val => !isNaN(parseFloat(val));
+    
+      hostRows.sort((a, b) => {
+        const valA = getText(a);
+        const valB = getText(b);
+    
+        if (isNumeric(valA) && isNumeric(valB)) {
+          return sortState.ascending ? valA - valB : valB - valA;
+        }
+        return sortState.ascending ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      });
+    
+      // Clear table, then re-append host + container rows in new order
+      tableBody.innerHTML = '';
+      hostRows.forEach(hostRow => {
+        const hostname = hostRow.children[1]?.innerText.trim();
+        const containerRow = document.getElementById(`containers-${hostname}`);
+        tableBody.appendChild(hostRow);
+        if (containerRow) tableBody.appendChild(containerRow);
+      });
+    
+      // Update sort arrows
+      document.querySelectorAll("th").forEach((th, i) => {
+        if (i === colIndex) {
+          th.setAttribute("data-sort", sortState.ascending ? "asc" : "desc");
+        } else {
+          th.removeAttribute("data-sort");
+        }
+      });
+    }
+    </script>
+<script>
+    function toggleContainerRow(hostname) {
+      const row = document.getElementById(`containers-${hostname}`);
+      const icon = document.getElementById(`expand-icon-${hostname}`);
+  
+      if (!row) return;
+  
+      const expanded = !row.classList.contains("hidden");
+      row.classList.toggle("hidden");
+      icon.classList.toggle("rotate-90");
+  
+      if (!expanded && !row.dataset.loaded) {
+        row.innerHTML = `<td colspan="13" class="p-4 text-gray-400">Loading...</td>`;
+        fetch(`/api/v1/query?hostname=${hostname}`)
+          .then(res => res.json())
+          .then(data => {
+            const grouped = groupContainers(data || []);
+            row.innerHTML = `<td colspan="13" class="p-4">${buildContainerTable(grouped)}</td>`;
+            row.dataset.loaded = "true";
+          })
+          .catch(err => {
+            row.innerHTML = `<td colspan="13" class="p-4 text-red-500">Container fetch failed: ${err}</td>`;
+          });
+      }
+    }
+  
+    function groupContainers(rows) {
+      if (!Array.isArray(rows)) return [];
+      const map = {};
+      rows.forEach(row => {
+        const tags = row.tags;
+        const id = tags?.container_id;
+        if (!id) return;
+  
+        if (!map[id]) {
+          map[id] = {
+            name: tags.container_name || "—",
+            image: tags.image || "—",
+            status: tags.status || "unknown",
+            cpu: "—",
+            mem: "—",
+            rx: "—",
+            tx: "—",
+            uptime: "—",
+          };
+        }
+  
+        const m = tags["__name__"];
+        const val = parseFloat(row.value).toFixed(1);
+  
+        if (m.includes("cpu_percent")) map[id].cpu = `${val}%`;
+        else if (m.includes("mem_usage_bytes")) map[id].mem = formatBytes(row.value);
+        else if (m.includes("net_rx_bytes")) map[id].rx = formatBytes(row.value);
+        else if (m.includes("net_tx_bytes")) map[id].tx = formatBytes(row.value);
+        else if (m.includes("uptime_seconds")) map[id].uptime = formatUptime(row.value);
+      });
+  
+      return Object.values(map);
+    }
+  
+    function buildContainerTable(containers) {
+  if (!containers.length)
+    return `<p class="text-sm italic text-gray-400">No containers found.</p>`;
+
+  const rows = containers.map((c, i) => `
+    <tr class="${i % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+      <td class="px-4 py-2">${statusBadge(c.status)}</td>
+      <td class="px-4 py-2 font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">${c.name}</td>
+      <td class="px-4 py-2 text-gray-700 dark:text-gray-300">${c.image}</td>
+      <td class="px-4 py-2 text-right">${c.cpu}</td>
+      <td class="px-4 py-2 text-right">${c.mem}</td>
+      <td class="px-4 py-2 text-right">${c.rx}</td>
+      <td class="px-4 py-2 text-right">${c.tx}</td>
+      <td class="px-4 py-2 text-right">${c.uptime}</td>
+    </tr>
+  `).join("");
+
+  return `
+    <div class="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+      <table class="min-w-full text-sm text-left">
+        <thead class="text-xs uppercase text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-300">
+          <tr>
+            <th class="px-4 py-2">Status</th>
+            <th class="px-4 py-2">Name</th>
+            <th class="px-4 py-2">Image</th>
+            <th class="px-4 py-2 text-right">CPU %</th>
+            <th class="px-4 py-2 text-right">Mem</th>
+            <th class="px-4 py-2 text-right">RX</th>
+            <th class="px-4 py-2 text-right">TX</th>
+            <th class="px-4 py-2 text-right">Uptime</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+  
+    function formatBytes(b) {
+      const n = parseFloat(b);
+      if (n > 1e9) return (n / 1e9).toFixed(1) + " GB";
+      if (n > 1e6) return (n / 1e6).toFixed(1) + " MB";
+      if (n > 1e3) return (n / 1e3).toFixed(1) + " KB";
+      return n.toFixed(0) + " B";
+    }
+  
+    function formatUptime(seconds) {
+      const d = Math.floor(seconds / 86400);
+      const h = Math.floor((seconds % 86400) / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      return `${d}d ${h}h ${m}m`;
+    }
+  
+    function statusBadge(state) {
+      const color = state === "running"
+        ? "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100"
+        : "bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100";
+      return `<span class="px-2 py-0.5 text-xs font-semibold rounded ${color}">${state}</span>`;
+    }
+  </script>
+    
+{{ end }}

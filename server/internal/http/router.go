@@ -93,6 +93,16 @@ func (s *HttpServer) setupIndexRoutes() {
 }
 
 func (s *HttpServer) setupEndpointRoutes() {
+	s.Router.Handle("/endpoints",
+		gosightauth.AuthMiddleware(s.UserStore)(
+			gosightauth.RequirePermission("gosight:dashboard:view",
+				gosightauth.AccessLogMiddleware(
+					http.HandlerFunc(s.HandleEndpointPage),
+				),
+				s.UserStore,
+			),
+		),
+	)
 	s.Router.Handle("/endpoints/{endpoint_id}",
 		gosightauth.AuthMiddleware(s.UserStore)(
 			gosightauth.RequirePermission("gosight:dashboard:view",
@@ -103,6 +113,7 @@ func (s *HttpServer) setupEndpointRoutes() {
 			),
 		),
 	)
+
 }
 
 // setupAPIRoutes sets up the API routes for the HTTP server.
@@ -112,8 +123,6 @@ func (s *HttpServer) setupAPIRoutes() {
 
 	api := s.Router.PathPrefix("/api/v1").Subrouter()
 	api.HandleFunc("/query", s.HandleAPIQuery).Methods("GET")
-	api.HandleFunc("/endpoints/hosts", s.NewHostsHandler).Methods("GET")
-	api.HandleFunc("/endpoints/{endpoint_id}", s.EndpointDetailsAPIHandler).Methods("GET")
 
 	api.HandleFunc("/", s.GetNamespaces).Methods("GET")
 	api.HandleFunc("/{namespace}/{sub}/{metric}/latest", s.GetLatestValue).Methods("GET")

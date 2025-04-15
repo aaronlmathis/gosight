@@ -29,13 +29,108 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
 	"github.com/aaronlmathis/gosight/server/internal/http/templates"
+	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/gorilla/mux"
 )
+
+type HostRow struct {
+	Agent   model.AgentStatus
+	Metrics map[string]string // uptime, cpu %, mem %, etc.
+}
+
+type ContainerRow struct {
+	ID     string
+	Name   string
+	Image  string
+	Status string
+	CPU    string
+	Mem    string
+	RX     string
+	TX     string
+	Uptime string
+}
+
+func (s *HttpServer) HandleEndpointPage(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	if forbidden, ok := ctx.Value("forbidden").(bool); ok && forbidden {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	userID, ok := contextutil.GetUserID(ctx)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	user, err := s.UserStore.GetUserWithPermissions(ctx, userID)
+	if err != nil {
+		utils.Error("Failed to load user %s: %v", userID, err)
+		http.Error(w, "failed to load user", http.StatusInternalServerError)
+		return
+	}
+
+	agents := s.AgentTracker.GetAgents()
+	active := map[string]bool{}
+	var hosts []HostRow
+
+	for _, agent := range agents {
+		if strings.HasPrefix(agent.EndpointID, "container-") {
+			continue
+		}
+		active[agent.AgentID] = true
+
+		hostMetrics, _ := s.MetricStore.QueryMultiInstant([]string{
+			"system.host.uptime", "system.host.procs", "system.mem.free",
+			"system.mem.used_percent", "system.cpu.percent",
+			"system.host.users_loggedin", "system.host.info",
+		}, map[string]string{"hostname": agent.Hostname})
+
+		hostMap := make(map[string]string)
+		for _, row := range hostMetrics {
+			switch row.Tags["__name__"] {
+			case "system.host.uptime":
+				hostMap["uptime"] = templates.FormatUptime(row.Value)
+			case "system.mem.free":
+				hostMap["mem_free"] = templates.HumanizeBytes(row.Value)
+			case "system.mem.used_percent":
+				hostMap["mem"] = fmt.Sprintf("%.1f%%", row.Value)
+			case "system.cpu.percent":
+				hostMap["cpu"] = fmt.Sprintf("%.1f%%", row.Value)
+			case "system.host.procs":
+				hostMap["procs"] = fmt.Sprintf("%.0f", row.Value)
+			case "system.host.users_loggedin":
+				hostMap["users"] = fmt.Sprintf("%.0f", row.Value)
+			case "system.host.info":
+				hostMap["arch"] = row.Tags["architecture"]
+				hostMap["os"] = row.Tags["os"]
+				hostMap["platform"] = fmt.Sprintf("%s %s", row.Tags["platform"], row.Tags["platform_version"])
+				hostMap["version"] = row.Tags["version"]
+			}
+		}
+
+		hosts = append(hosts, HostRow{
+			Agent:   agent,
+			Metrics: hostMap,
+		})
+	}
+
+	err = templates.RenderTemplate(w, "dashboard/layout_endpoints", map[string]any{
+		"Title": "Endpoints",
+		"User":  user,
+		"Hosts": hosts,
+	})
+	if err != nil {
+		http.Error(w, "template error", 500)
+	}
+}
 
 func (s *HttpServer) HandleEndpointDetail(w http.ResponseWriter, r *http.Request) {
 
@@ -58,7 +153,7 @@ func (s *HttpServer) HandleEndpointDetail(w http.ResponseWriter, r *http.Request
 	// Check if user has permission to view the dashboard
 	user, err := s.UserStore.GetUserWithPermissions(ctx, userID)
 	if err != nil {
-		utils.Error("❌ Failed to load user %s: %v", userID, err)
+		utils.Error("Failed to load user %s: %v", userID, err)
 		http.Error(w, "failed to load user", http.StatusInternalServerError)
 		return
 	}
@@ -68,14 +163,14 @@ func (s *HttpServer) HandleEndpointDetail(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		utils.Debug("failed to build host dashboard data: %v", err)
 	}
-	fmt.Printf("🧠 Template Meta: %+v\n", data.Meta)
+	fmt.Printf("Template Meta: %+v\n", data.Meta)
 	// Set breadcrumbs and endpoint id
 	data.Title = "Host: " + endpointID
 	data.Labels["EndpointID"] = endpointID
 
 	err = templates.RenderTemplate(w, "dashboard/layout_main", data)
 	if err != nil {
-		utils.Error("❌ Template error: %v", err)
+		utils.Error("Template error: %v", err)
 		http.Error(w, "template error", http.StatusInternalServerError)
 	}
 }
@@ -90,7 +185,7 @@ func (s *HttpServer) EndpointDetailsAPIHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	instantNames := templates.GetMetricNames(templates.HostMetrics, true)
-	fmt.Println("🧪 Querying instant metrics:", instantNames)
+	fmt.Println("Querying instant metrics:", instantNames)
 
 	rows, err := s.MetricStore.QueryMultiInstant(instantNames, labels)
 	if err != nil {
@@ -122,4 +217,37 @@ func (s *HttpServer) EndpointDetailsAPIHandler(w http.ResponseWriter, r *http.Re
 	// Set JSON response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+func GroupContainerMetrics(rows []model.MetricRow) map[string]*ContainerRow {
+	result := make(map[string]*ContainerRow)
+
+	for _, row := range rows {
+		id := row.Tags["container_id"]
+		if id == "" {
+			continue
+		}
+		if _, ok := result[id]; !ok {
+			result[id] = &ContainerRow{
+				ID:     id,
+				Name:   row.Tags["container_name"],
+				Image:  row.Tags["image"],
+				Status: row.Tags["status"],
+			}
+		}
+		cr := result[id]
+		switch row.Tags["__name__"] {
+		case "container.podman.cpu_percent":
+			cr.CPU = fmt.Sprintf("%.1f%%", row.Value)
+		case "container.podman.mem_usage_bytes":
+			cr.Mem = templates.HumanizeBytes(row.Value)
+		case "container.podman.net_rx_bytes":
+			cr.RX = templates.HumanizeBytes(row.Value)
+		case "container.podman.net_tx_bytes":
+			cr.TX = templates.HumanizeBytes(row.Value)
+		case "container.podman.uptime_seconds":
+			cr.Uptime = templates.FormatUptime(row.Value)
+		}
+	}
+	return result
 }

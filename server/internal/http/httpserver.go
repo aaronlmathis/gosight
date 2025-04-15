@@ -38,6 +38,7 @@ import (
 	"github.com/aaronlmathis/gosight/server/internal/http/templates"
 	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
 	"github.com/aaronlmathis/gosight/server/internal/store"
+	"github.com/aaronlmathis/gosight/server/internal/store/datastore"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
 	"github.com/aaronlmathis/gosight/shared/utils"
@@ -56,6 +57,7 @@ type HttpServer struct {
 	MetaTracker    *metastore.MetaTracker
 	Router         *mux.Router
 	UserStore      userstore.UserStore
+	DataStore      datastore.DataStore
 	WebSocket      *websocket.Hub
 	httpServer     *http.Server
 }
@@ -69,6 +71,7 @@ func NewServer(
 	metricIndex *store.MetricIndex,
 	metricStore store.MetricStore,
 	userStore userstore.UserStore,
+	dataStore datastore.DataStore,
 	webSocket *websocket.Hub,
 ) *HttpServer {
 	router := mux.NewRouter()
