@@ -71,9 +71,12 @@ func main() {
 		utils.Info("Starting WebSocket hub...")
 		wsHub.Run() // no error returned, but safe to log around
 	}()
+	// Initialize metric index
+	metricIndex, err := bootstrap.InitMetricIndex()
+	utils.Must("Metric index", err)
 
 	// Init metric store
-	metricStore, err := bootstrap.InitMetricStore(ctx, cfg)
+	metricStore, err := bootstrap.InitMetricStore(ctx, cfg, metricIndex)
 	utils.Must("Metric store", err)
 
 	// Initialize user store
@@ -83,10 +86,6 @@ func main() {
 	// Initialize agent tracker
 	agentTracker, err := bootstrap.InitAgentTracker(ctx, cfg.Server.Environment, dataStore)
 	utils.Must("Agent tracker", err)
-
-	// Initialize metric index
-	metricIndex, err := bootstrap.InitMetricIndex()
-	utils.Must("Metric index", err)
 
 	// Initialize meta tracker
 	metaTracker := metastore.NewMetaTracker()

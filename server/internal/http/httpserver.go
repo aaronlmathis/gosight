@@ -116,7 +116,7 @@ func (s *HttpServer) Start() error {
 	s.setupRoutes()
 	templates.InitTemplates(s.Config, s.templateFuncs())
 
-	utils.Info("🌐 HTTP server running at %s", s.Config.Server.HTTPAddr)
+	utils.Info("HTTP server running at %s", s.Config.Server.HTTPAddr)
 	if err := http.ListenAndServe(s.Config.Server.HTTPAddr, s.Router); err != nil {
 		utils.Error("HTTP server failed: %v", err)
 		return err

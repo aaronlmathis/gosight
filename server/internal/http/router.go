@@ -112,7 +112,9 @@ func (s *HttpServer) setupAPIRoutes() {
 
 	api := s.Router.PathPrefix("/api/v1").Subrouter()
 	api.HandleFunc("/query", s.HandleAPIQuery).Methods("GET")
+	api.HandleFunc("/endpoints/hosts", s.NewHostsHandler).Methods("GET")
 	api.HandleFunc("/endpoints/{endpoint_id}", s.EndpointDetailsAPIHandler).Methods("GET")
+
 	api.HandleFunc("/", s.GetNamespaces).Methods("GET")
 	api.HandleFunc("/{namespace}/{sub}/{metric}/latest", s.GetLatestValue).Methods("GET")
 	api.HandleFunc("/{namespace}/{sub}/{metric}/data", s.GetMetricData).Methods("GET")

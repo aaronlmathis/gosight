@@ -73,7 +73,7 @@ func (c *MEMCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	} else if swap != nil {
 		dims := map[string]string{"source": "swap"}
 		usedPercent := swap.UsedPercent
-		utils.Debug(" 📊  Swap memory: total: %d, free: %d, used: %d, usedPercent: %.2f", swap.Total, swap.Free, swap.Used, usedPercent)
+		//utils.Debug(" Swap memory: total: %d, free: %d, used: %d, usedPercent: %.2f", swap.Total, swap.Free, swap.Used, usedPercent)
 		// If usedPercent is 0 and swap.Total > 0, calculate usedPercent
 
 		if usedPercent <= 0 && swap.Total > 0 {

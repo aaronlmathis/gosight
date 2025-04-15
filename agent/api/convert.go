@@ -136,6 +136,8 @@ func ConvertMetaToProtoMeta(m *model.Meta) *proto.Meta {
 		MacAddress:           m.MACAddress,
 		NetworkInterface:     m.NetworkInterface,
 		Tags:                 m.Tags,
+		AgentId:              m.AgentID,
+		AgentVersion:         m.AgentVersion,
 	}
 }
 

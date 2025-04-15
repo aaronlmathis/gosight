@@ -55,9 +55,10 @@ type VictoriaStore struct {
 	batchTimeout  time.Duration
 	batchRetry    int
 	batchInterval time.Duration
+	MetricIndex   *MetricIndex
 }
 
-func NewVictoriaStore(ctx context.Context, url string, workers, queueSize, batchSize, timeoutMS, retry, retryIntervalMS int) *VictoriaStore {
+func NewVictoriaStore(ctx context.Context, url string, workers, queueSize, batchSize, timeoutMS, retry, retryIntervalMS int, metricIndex *MetricIndex) *VictoriaStore {
 	utils.Info("NewVictoriaStore received workers=%d", workers)
 	store := &VictoriaStore{
 		url:           url,
@@ -69,6 +70,7 @@ func NewVictoriaStore(ctx context.Context, url string, workers, queueSize, batch
 		batchTimeout:  time.Duration(timeoutMS) * time.Millisecond,
 		batchRetry:    retry,
 		batchInterval: time.Duration(retryIntervalMS) * time.Millisecond,
+		MetricIndex:   metricIndex,
 	}
 	if workers == 0 {
 		utils.Warn("VictoriaStore called with 0 workers!")
@@ -377,7 +379,7 @@ func totalMetricCount(payloads []model.MetricPayload) int {
 
 // / QueryInstant fetches the latest data points for a given metric with optional label filters.
 func (v *VictoriaStore) QueryInstant(metric string, filters map[string]string) ([]model.MetricRow, error) {
-	query := buildPromQL(metric, filters)
+	query := BuildPromQL(metric, filters)
 
 	fullURL := fmt.Sprintf("%s/api/v1/query?query=%s", v.url, url.QueryEscape(query))
 	//utils.Debug("📡 QueryInstant URL: %s", fullURL)
@@ -431,7 +433,7 @@ func (v *VictoriaStore) QueryInstant(metric string, filters map[string]string) (
 
 // QueryRange fetches time series data for a metric over a time range with optional label filters.
 func (v *VictoriaStore) QueryRange(metric string, start, end time.Time, filters map[string]string) ([]model.Point, error) {
-	query := buildPromQL(metric, filters)
+	query := BuildPromQL(metric, filters)
 
 	params := url.Values{}
 	params.Set("query", query)
@@ -493,9 +495,11 @@ func (v *VictoriaStore) QueryRange(metric string, start, end time.Time, filters 
 }
 
 func (v *VictoriaStore) QueryMultiInstant(metricNames []string, filters map[string]string) ([]model.MetricRow, error) {
-	//utils.Debug("🧠 Executing VictoriaStore.QueryMultiInstant")
+	//utils.Debug("Executing VictoriaStore.QueryMultiInstant")
 	if len(metricNames) == 0 {
-		return nil, nil
+		// Default to all known metric names if available
+		metricNames = v.GetAllKnownMetricNames()
+		//utils.Debug("No metric names provided, using all known metric names: %v", metricNames)
 	}
 
 	// Build metric regex selector
@@ -515,7 +519,7 @@ func (v *VictoriaStore) QueryMultiInstant(metricNames []string, filters map[stri
 
 	// Build full URL
 	reqURL := fmt.Sprintf("%s/api/v1/query?query=%s", v.url, url.QueryEscape(query))
-	//utils.Debug("📡 QueryMultiInstant URL: %s", reqURL)
+	//utils.Debug("QueryMultiInstant URL: %s", reqURL)
 	// Make HTTP request
 	resp, err := http.Get(reqURL)
 	if err != nil {
@@ -648,7 +652,7 @@ func (v *VictoriaStore) QueryMultiRange(metrics []string, start, end time.Time, 
 	return rows, nil
 }
 
-func buildPromQL(metric string, filters map[string]string) string {
+func BuildPromQL(metric string, filters map[string]string) string {
 	if len(filters) == 0 {
 		return metric
 	}
@@ -658,4 +662,8 @@ func buildPromQL(metric string, filters map[string]string) string {
 	}
 	sort.Strings(parts)
 	return fmt.Sprintf(`%s{%s}`, metric, strings.Join(parts, ","))
+}
+
+func (v *VictoriaStore) GetAllKnownMetricNames() []string {
+	return v.MetricIndex.GetAllMetricNames()
 }

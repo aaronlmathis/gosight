@@ -46,7 +46,8 @@ func NewAgentTracker() *AgentTracker {
 }
 
 // Updates in memory store of Agent details
-func (t *AgentTracker) UpdateAgent(meta model.Meta) {
+func (t *AgentTracker) UpdateAgent(meta *model.Meta) {
+	//utils.Debug("📡 UpdateAgent called with: Hostname=%s AgentID=%s", meta.Hostname, meta.AgentID)
 
 	if meta.Hostname == "" {
 		// Don't track nameless agents
@@ -57,7 +58,7 @@ func (t *AgentTracker) UpdateAgent(meta model.Meta) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	agent, exists := t.agents[meta.Hostname]
+	agent, exists := t.agents[meta.AgentID]
 	if !exists {
 		agent = &model.AgentStatus{
 			Hostname: meta.Hostname,
@@ -67,8 +68,9 @@ func (t *AgentTracker) UpdateAgent(meta model.Meta) {
 			Version:  meta.AgentVersion,
 			Labels:   meta.Tags,
 			Updated:  true,
+			AgentID:  meta.AgentID,
 		}
-		t.agents[meta.Hostname] = agent
+		t.agents[meta.AgentID] = agent
 	} else {
 		// Update any fields that may change
 		agent.IP = meta.IPAddress
@@ -77,6 +79,7 @@ func (t *AgentTracker) UpdateAgent(meta model.Meta) {
 		agent.Version = meta.AgentVersion
 		agent.Labels = meta.Tags
 		agent.Updated = true
+		agent.AgentID = meta.AgentID
 	}
 
 	agent.LastSeen = time.Now()
@@ -99,13 +102,17 @@ func (t *AgentTracker) GetAgents() []model.AgentStatus {
 		}
 
 		list = append(list, model.AgentStatus{
+			AgentID:  a.AgentID,
 			Hostname: a.Hostname,
 			IP:       a.IP,
 			OS:       a.OS,
+			Arch:     a.Arch,
+			Version:  a.Version,
 			Labels:   a.Labels,
 			Status:   status,
 			Since:    elapsed.Truncate(time.Second).String(),
 		})
+
 	}
 	return list
 }
@@ -115,6 +122,9 @@ func (t *AgentTracker) SyncToStore(ctx context.Context, store datastore.DataStor
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
+	for hostname, agent := range t.agents {
+		utils.Debug("🧠 Syncing agent: %s | EndpointID: %s | IP: %s", hostname, agent.AgentID, agent.IP)
+	}
 	for _, agent := range t.agents {
 		if !agent.Updated {
 			continue
@@ -122,7 +132,7 @@ func (t *AgentTracker) SyncToStore(ctx context.Context, store datastore.DataStor
 
 		err := store.UpsertAgent(ctx, agent)
 		if err != nil {
-			utils.Error("❌ Agent sync failed for %s: %v", agent.Hostname, err)
+			utils.Error("Agent sync failed for %s: %v", agent.Hostname, err)
 			continue
 		}
 

@@ -28,6 +28,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/google/uuid"
 )
 
@@ -37,11 +38,12 @@ func LoadOrCreateAgentID() (string, error) {
 	path := getAgentIDPath()
 
 	if data, err := os.ReadFile(path); err == nil && len(data) > 0 {
+		utils.Debug("Loaded agent ID from disk: %s", string(data))
 		return string(data), nil
 	}
 
 	id := uuid.NewString()
-
+	utils.Debug("Generated new agent ID: %s", id)
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return "", err
 	}

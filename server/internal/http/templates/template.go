@@ -84,7 +84,7 @@ func InitTemplates(cfg *config.Config, funcMap template.FuncMap) error {
 		}
 
 		counter++
-		//utils.Debug("📦 Template loaded: %v - %v - %d", path, templateName, counter)
+		//utils.Debug("Template loaded: %v - %v - %d", path, templateName, counter)
 
 		return nil
 	})
@@ -94,7 +94,7 @@ func InitTemplates(cfg *config.Config, funcMap template.FuncMap) error {
 		return err
 	}
 
-	utils.Debug("📦 Total Templates loaded: %d", counter)
+	//utils.Debug("Total Templates loaded: %d", counter)
 	return nil
 }
 
@@ -104,7 +104,7 @@ func RenderTemplate(w http.ResponseWriter, layout string, data any) error {
 
 	err := Tmpl.ExecuteTemplate(w, layout, data)
 	if err != nil {
-		utils.Debug("🔴 ExecuteTemplate failed: %v", err)
+		utils.Debug("ExecuteTemplate failed: %v", err)
 	}
 	return err
 }

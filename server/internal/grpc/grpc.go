@@ -59,14 +59,6 @@ func NewGRPCServer(ctx context.Context, cfg *config.Config, store store.MetricSt
 	handler := api.NewMetricsHandler(store, tracker, metricIndex, metaTracker, ws)
 	proto.RegisterMetricsServiceServer(server, handler)
 
-	go func() {
-		<-ctx.Done()
-		utils.Warn("Context canceled — shutting down gRPC server")
-		server.GracefulStop()
-		listener.Close()
-		utils.Info("gRPC server and listener shut down cleanly")
-	}()
-
 	utils.Debug("📨 NewGRPCServer received store at: %p", store)
 
 	if cfg.Debug.EnableReflection {

@@ -29,22 +29,28 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 type MetricIndex struct {
-	mu            sync.RWMutex
-	Namespaces    map[string]struct{}
-	SubNamespaces map[string]map[string]struct{}            // namespace → subnamespace
-	MetricNames   map[string]map[string]map[string]struct{} // ns → sub → metric names
-	Dimensions    map[string]map[string]struct{}            // dim key → value set
+	mu               sync.RWMutex
+	Namespaces       map[string]struct{}
+	SubNamespaces    map[string]map[string]struct{}            // namespace → subnamespace
+	MetricNames      map[string]map[string]map[string]struct{} // ns → sub → metric names
+	Dimensions       map[string]map[string]struct{}            // dim key → value set
+	MetricDimensions map[string]map[string]string              // metricFullName → dim key → value
+
 }
 
 func NewMetricIndex() *MetricIndex {
 	return &MetricIndex{
-		Namespaces:    make(map[string]struct{}),
-		SubNamespaces: make(map[string]map[string]struct{}),
-		MetricNames:   make(map[string]map[string]map[string]struct{}),
-		Dimensions:    make(map[string]map[string]struct{}),
+		Namespaces:       make(map[string]struct{}),
+		SubNamespaces:    make(map[string]map[string]struct{}),
+		MetricNames:      make(map[string]map[string]map[string]struct{}),
+		Dimensions:       make(map[string]map[string]struct{}),
+		MetricDimensions: make(map[string]map[string]string), // metricFullName → dim key → value
+
 	}
 }
 
@@ -78,6 +84,12 @@ func (idx *MetricIndex) Add(namespace, sub, name string, dims map[string]string)
 		}
 		idx.Dimensions[k][v] = struct{}{}
 	}
+
+	if idx.MetricDimensions == nil {
+		idx.MetricDimensions = make(map[string]map[string]string)
+	}
+	idx.MetricDimensions[fullName] = dims
+	//utils.Debug("🔢 Indexed metric %s with dimensions: %+v", fullName, dims)
 }
 
 func (idx *MetricIndex) GetNamespaces() []string {
@@ -100,6 +112,25 @@ func (idx *MetricIndex) GetSubNamespaces(ns string) []string {
 	out := make([]string, 0, len(sub))
 	for s := range sub {
 		out = append(out, s)
+	}
+	return out
+}
+
+func (idx *MetricIndex) GetAllMetricNames() []string {
+	idx.mu.RLock()
+	defer idx.mu.RUnlock()
+
+	seen := make(map[string]struct{})
+	for _, subMap := range idx.MetricNames {
+		for _, nameSet := range subMap {
+			for n := range nameSet {
+				seen[n] = struct{}{}
+			}
+		}
+	}
+	var out []string
+	for n := range seen {
+		out = append(out, n)
 	}
 	return out
 }
@@ -128,4 +159,46 @@ func (idx *MetricIndex) GetDimensions() map[string][]string {
 		}
 	}
 	return out
+}
+
+// FilterMetricNames returns all metric names that match given label filters
+func (idx *MetricIndex) FilterMetricNames(filters map[string]string) []string {
+	idx.mu.RLock()
+	defer idx.mu.RUnlock()
+
+	matched := make(map[string]struct{})
+
+	for _, subMap := range idx.MetricNames {
+		for _, nameSet := range subMap {
+			for name := range nameSet {
+				// name is already fullName
+				if idx.matchesAnyDimension(name, filters) {
+					matched[name] = struct{}{}
+				}
+			}
+		}
+	}
+
+	var result []string
+	for name := range matched {
+		result = append(result, name)
+	}
+	return result
+}
+
+func (idx *MetricIndex) matchesAnyDimension(name string, filters map[string]string) bool {
+
+	dims, ok := idx.MetricDimensions[name]
+	if !ok {
+		utils.Debug("❌ No dimensions found for %s", name)
+		return false
+	}
+	//utils.Debug("🔍 Comparing dims=%v with filters=%v", dims, filters)
+
+	for k, v := range filters {
+		if dims[k] != v {
+			return false
+		}
+	}
+	return true
 }

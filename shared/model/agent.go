@@ -26,14 +26,16 @@ package model
 import "time"
 
 type AgentStatus struct {
-	Hostname string            `json:"hostname"`
-	IP       string            `json:"ip"`
-	OS       string            `json:"os"`
-	Arch     string            `json:"arch"`
-	Version  string            `json:"version"`
-	Labels   map[string]string `json:"labels"`
-	LastSeen time.Time         `json:"-"`
-	Status   string            `json:"status,omitempty"`
-	Since    string            `json:"since,omitempty"`
-	Updated  bool              `json:"-"`
+	Hostname   string            `json:"hostname"`
+	IP         string            `json:"ip"`
+	OS         string            `json:"os"`
+	Arch       string            `json:"arch"`
+	Version    string            `json:"version"`
+	Labels     map[string]string `json:"labels"`
+	LastSeen   time.Time         `json:"-"`
+	Status     string            `json:"status,omitempty"`
+	Since      string            `json:"since,omitempty"`
+	Updated    bool              `json:"-"`
+	EndpointID string            `json:"endpoint_id,omitempty"`
+	AgentID    string            `json:"agent_id,omitempty"`
 }

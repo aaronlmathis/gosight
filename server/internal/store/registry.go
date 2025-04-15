@@ -29,11 +29,12 @@ import (
 	"fmt"
 
 	"github.com/aaronlmathis/gosight/server/internal/config"
+
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func InitStore(ctx context.Context, cfg *config.Config) (MetricStore, error) {
-	utils.Debug("🧠 InitMetricStore selected engine: %s", cfg.Storage.Engine)
+func InitStore(ctx context.Context, cfg *config.Config, metricIndex *MetricIndex) (MetricStore, error) {
+	utils.Debug("InitMetricStore selected engine: %s", cfg.Storage.Engine)
 	switch cfg.Storage.Engine {
 	case "victoriametrics":
 		utils.Debug("📦 Bootstrapping VictoriaStore with %d workers", cfg.Storage.Workers)
@@ -46,6 +47,7 @@ func InitStore(ctx context.Context, cfg *config.Config) (MetricStore, error) {
 			cfg.Storage.BatchTimeout,
 			cfg.Storage.BatchRetry,
 			cfg.Storage.BatchInterval,
+			metricIndex,
 		)
 		utils.Debug("✅ Returning VictoriaStore at: %p", s)
 		return s, nil

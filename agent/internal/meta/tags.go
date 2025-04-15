@@ -36,6 +36,10 @@ func BuildStandardTags(meta *model.Meta, m model.Metric, isContainer bool) {
 	if meta.Tags == nil {
 		meta.Tags = make(map[string]string)
 	}
+	if m.Dimensions == nil {
+		m.Dimensions = make(map[string]string)
+	}
+
 	// Contextual source of the metric
 	meta.Tags["namespace"] = strings.ToLower(m.Namespace)
 	meta.Tags["subnamespace"] = strings.ToLower(m.SubNamespace)
@@ -43,23 +47,48 @@ func BuildStandardTags(meta *model.Meta, m model.Metric, isContainer bool) {
 	// Producer of metric becomes the "job"
 	if isContainer {
 		meta.Tags["job"] = "gosight-container"
+		m.Dimensions["job"] = "gosight-container"
 
 		if meta.ContainerName != "" {
 			meta.Tags["instance"] = meta.ContainerName
+			m.Dimensions["instance"] = meta.ContainerName
 		} else if meta.ContainerID != "" {
 			meta.Tags["container_id"] = meta.ContainerID
+			m.Dimensions["container_id"] = meta.ContainerID
 		} else if meta.ImageID != "" {
 			meta.Tags["image"] = meta.ImageID
+			m.Dimensions["image"] = meta.ImageID
 		} else {
 			meta.Tags["instance"] = "unknown-container"
+			m.Dimensions["instance"] = "unknown-container"
 		}
 	} else {
-		meta.Tags["instance"] = meta.Hostname
 		meta.Tags["job"] = "gosight-agent"
+		meta.Tags["instance"] = meta.Hostname
+		m.Dimensions["job"] = "gosight-agent"
+		m.Dimensions["instance"] = meta.Hostname
+	}
+
+	// Inject standard meta fields into dimensions
+	if meta.Hostname != "" {
+		m.Dimensions["hostname"] = meta.Hostname
+	}
+	if meta.IPAddress != "" {
+		m.Dimensions["ip_address"] = meta.IPAddress
+	}
+	if meta.OS != "" {
+		m.Dimensions["os"] = meta.OS
+	}
+	if meta.Architecture != "" {
+		m.Dimensions["arch"] = meta.Architecture
+	}
+	if meta.AgentID != "" {
+		m.Dimensions["agent_id"] = meta.AgentID
 	}
 
 	// Final identity key
 	endpointID := utils.GenerateEndpointID(meta)
 	meta.Tags["endpoint_id"] = endpointID
+	m.Dimensions["endpoint_id"] = endpointID
 	meta.EndpointID = endpointID
 }

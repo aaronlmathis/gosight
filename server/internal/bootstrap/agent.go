@@ -38,7 +38,7 @@ func InitAgentTracker(ctx context.Context, env string, dataStore datastore.DataS
 
 	//  Start sync loop to periodically push in-memory AgentTracker data into persistant store.
 	go func() {
-		ticker := time.NewTicker(5 * time.Minute)
+		ticker := time.NewTicker(1 * time.Minute)
 		defer ticker.Stop()
 
 		for {
