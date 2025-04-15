@@ -70,7 +70,7 @@ func ConvertToProtoPayload(payload model.MetricPayload) *proto.MetricPayload {
 
 func ConvertLogMetaToProto(m *model.LogMeta) *proto.LogMeta {
 	if m == nil {
-		return nil
+		return &proto.LogMeta{}
 	}
 	return &proto.LogMeta{
 		Os:            m.OS,
@@ -86,6 +86,8 @@ func ConvertLogMetaToProto(m *model.LogMeta) *proto.LogMeta {
 		Executable:    m.Executable,
 		Path:          m.Path,
 		Extra:         m.Extra,
+		AgentId:       m.AgentID,
+		EndpointId:    m.EndPointID,
 	}
 }
 
@@ -138,54 +140,5 @@ func ConvertMetaToProtoMeta(m *model.Meta) *proto.Meta {
 		Tags:                 m.Tags,
 		AgentId:              m.AgentID,
 		AgentVersion:         m.AgentVersion,
-	}
-}
-
-func ConvertLogToProtoPayload(payload model.LogPayload) *proto.LogPayload {
-	logs := make([]*proto.LogEntry, 0, len(payload.Logs))
-
-	for _, l := range payload.Logs {
-		entry := &proto.LogEntry{
-			Timestamp: timestamppb.New(l.Timestamp),
-			Level:     l.Level,
-			Message:   l.Message,
-			Source:    l.Source,
-			Category:  l.Category,
-			Host:      l.Host,
-			Pid:       int32(l.PID),
-			Fields:    l.Fields,
-			Tags:      l.Tags,
-		}
-
-		if l.Meta != nil {
-			entry.Meta = &proto.LogMeta{
-				Os:            l.Meta.OS,
-				Platform:      l.Meta.Platform,
-				AppName:       l.Meta.AppName,
-				AppVersion:    l.Meta.AppVersion,
-				ContainerId:   l.Meta.ContainerID,
-				ContainerName: l.Meta.ContainerName,
-				Unit:          l.Meta.Unit,
-				Service:       l.Meta.Service,
-				EventId:       l.Meta.EventID,
-				User:          l.Meta.User,
-				Executable:    l.Meta.Executable,
-				Path:          l.Meta.Path,
-				Extra:         l.Meta.Extra,
-			}
-		}
-
-		logs = append(logs, entry)
-	}
-
-	meta := ConvertLogMetaToProto(payload.Meta)
-	if meta == nil {
-		meta = &proto.LogMeta{}
-	}
-	// TODO fix meta
-	return &proto.LogPayload{
-		EndpointId: payload.EndpointID,
-		Timestamp:  timestamppb.New(payload.Timestamp),
-		Logs:       logs,
 	}
 }

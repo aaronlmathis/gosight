@@ -30,6 +30,7 @@ import (
 
 	"github.com/aaronlmathis/gosight/agent/internal/config"
 	agentidentity "github.com/aaronlmathis/gosight/agent/internal/identity"
+	"github.com/aaronlmathis/gosight/agent/internal/logs/logrunner"
 	metricrunner "github.com/aaronlmathis/gosight/agent/internal/metrics/metricrunner"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
@@ -39,6 +40,7 @@ type Agent struct {
 	MetricRunner *metricrunner.MetricRunner
 	AgentID      string
 	AgentVersion string
+	LogRunner    *logrunner.LogRunner
 }
 
 func NewAgent(ctx context.Context, cfg *config.Config, agentVersion string) (*Agent, error) {
@@ -48,26 +50,35 @@ func NewAgent(ctx context.Context, cfg *config.Config, agentVersion string) (*Ag
 	}
 	metricRunner, err := metricrunner.NewRunner(ctx, cfg, agentID, agentVersion)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create runner: %v", err)
+		return nil, fmt.Errorf("failed to create metric runner: %v", err)
+	}
+	logRunner, err := logrunner.NewRunner(ctx, cfg, agentID, agentVersion)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create log runner: %v", err)
 	}
 	return &Agent{
 		Config:       cfg,
 		MetricRunner: metricRunner,
 		AgentID:      agentID,
 		AgentVersion: agentVersion,
+		LogRunner:    logRunner,
 	}, nil
 }
 
 func (a *Agent) Start(ctx context.Context) {
 
 	// Start runner.
-	a.MetricRunner.Run(ctx)
+	utils.Debug("Agent attempting to start metricrunner.")
+	go a.MetricRunner.Run(ctx)
+
+	utils.Debug("Agent attempting to start metricrunner.")
+	go a.LogRunner.Run(ctx)
 }
 
 func (a *Agent) Close(ctx context.Context) {
 	// Stop the metric runner
 	a.MetricRunner.Close()
-
+	a.LogRunner.Close()
 	utils.Info("Agent shutdown complete")
 
 }

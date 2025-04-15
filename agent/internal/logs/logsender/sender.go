@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/aaronlmathis/gosight/agent/api"
 	"github.com/aaronlmathis/gosight/agent/internal/config"
 	agentutils "github.com/aaronlmathis/gosight/agent/internal/utils"
 	"github.com/aaronlmathis/gosight/shared/model"
@@ -21,6 +22,7 @@ type LogSender struct {
 	cc     *grpc.ClientConn
 	stream proto.LogService_SubmitStreamClient
 	wg     sync.WaitGroup
+	Config *config.Config
 }
 
 // NewSender establishes a gRPC connection
@@ -61,6 +63,7 @@ func NewSender(ctx context.Context, cfg *config.Config) (*LogSender, error) {
 		client: client,
 		cc:     clientConn,
 		stream: stream,
+		Config: cfg,
 	}, nil
 
 }
@@ -86,44 +89,32 @@ func (s *LogSender) SendLogs(payload *model.LogPayload) error {
 			Pid:       int32(log.PID),
 			Fields:    log.Fields,
 			Tags:      log.Tags,
+			Meta:      api.ConvertLogMetaToProto(log.Meta),
 		}
-
-		// If meta is present, convert it
-		if log.Meta != nil {
-			pbLog.Meta = &proto.LogMeta{
-				Os:            log.Meta.OS,
-				Platform:      log.Meta.Platform,
-				AppName:       log.Meta.AppName,
-				AppVersion:    log.Meta.AppVersion,
-				ContainerId:   log.Meta.ContainerID,
-				ContainerName: log.Meta.ContainerName,
-				Unit:          log.Meta.Unit,
-				Service:       log.Meta.Service,
-				EventId:       log.Meta.EventID,
-				User:          log.Meta.User,
-				Executable:    log.Meta.Executable,
-				Path:          log.Meta.Path,
-				Extra:         log.Meta.Extra,
-			}
-		}
+		utils.Debug("Sender: LogEntry: %v", pbLog)
+		utils.Debug("Sender:LogMeta: %v", pbLog.Meta)
 
 		pbLogs = append(pbLogs, pbLog)
 	}
 
-	// Convert outer Meta
-	//var convertedMeta *proto.LogMeta
-	//if payload.Meta != nil {
-	//		convertedMeta = api.ConvertLogMetaToProto(payload.Meta)
-	//	}
+	var convertedMeta *proto.Meta
+
+	// Convert meta to proto
+	if payload.Meta != nil {
+		convertedMeta = api.ConvertMetaToProtoMeta(payload.Meta)
+	}
 
 	req := &proto.LogPayload{
 		EndpointId: payload.EndpointID,
 		Timestamp:  timestamppb.New(payload.Timestamp),
 		Logs:       pbLogs,
+		Meta:       convertedMeta,
 	}
 
 	if err := s.stream.Send(req); err != nil {
 		return fmt.Errorf("log stream send failed: %w", err)
+	} else {
+		utils.Debug("Streamed %d logs", len(pbLogs))
 	}
 
 	return nil

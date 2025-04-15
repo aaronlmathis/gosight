@@ -124,11 +124,11 @@ func (r *MetricRunner) Run(ctx context.Context) {
 					Metrics:   hostMetrics,
 					Meta:      hostMeta,
 				}
-				//utils.Info("📦 META Payload for: %s - %v", payload.Host, payload.Meta)
+				//utils.Info("META Payload for: %s - %v", payload.Host, payload.Meta)
 				select {
 				case taskQueue <- &payload:
 				default:
-					utils.Warn("⚠️ Host task queue full! Dropping host metrics")
+					utils.Warn("Host task queue full! Dropping host metrics")
 				}
 			}
 
@@ -140,12 +140,12 @@ func (r *MetricRunner) Run(ctx context.Context) {
 					Metrics:   metrics,
 					Meta:      containerMetas[id],
 				}
-				//utils.Info("📦 META Payload for: %s - %v", payload.Host, payload.Meta)
+				//utils.Info("META Payload for: %s - %v", payload.Host, payload.Meta)
 
 				select {
 				case taskQueue <- &payload:
 				default:
-					utils.Warn("⚠️ Task queue full! Dropping container metrics for %s", id)
+					utils.Warn("Task queue full! Dropping container metrics for %s", id)
 				}
 			}
 		}

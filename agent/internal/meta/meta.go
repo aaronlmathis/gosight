@@ -37,17 +37,17 @@ func BuildHostMeta(cfg *config.Config, addTags map[string]string, agentID, agent
 	hostname, err := os.Hostname()
 	if err != nil {
 		hostname = "unknown"
-		utils.Warn("⚠️ Failed to get hostname: %v", err)
+		utils.Warn("Failed to get hostname: %v", err)
 	}
 
 	ip := utils.GetLocalIP()
 	if ip == "" {
 		ip = "unknown"
-		utils.Warn("⚠️ Failed to get local IP address")
+		utils.Warn("Failed to get local IP address")
 	}
 	hostInfo, err := host.Info()
 	if err != nil {
-		utils.Warn("⚠️ Failed to get host info: %v", err)
+		utils.Warn("Failed to get host info: %v", err)
 		hostInfo = &host.InfoStat{}
 	}
 
@@ -76,7 +76,7 @@ func BuildHostMeta(cfg *config.Config, addTags map[string]string, agentID, agent
 		HostID:               hostInfo.HostID,
 		KernelVersion:        hostInfo.KernelVersion,
 		Architecture:         runtime.GOARCH,
-		Version:              "0.1",
+		Version:              agentVersion,
 		AgentID:              agentID,
 		AgentVersion:         agentVersion,
 		Tags:                 tags,
@@ -87,13 +87,13 @@ func BuildContainerMeta(cfg *config.Config, addTags map[string]string, agentID, 
 	hostname, err := os.Hostname()
 	if err != nil {
 		hostname = "unknown"
-		utils.Warn("⚠️ Failed to get hostname: %v", err)
+		utils.Warn("Failed to get hostname: %v", err)
 	}
 
 	ip := utils.GetLocalIP()
 	if ip == "" {
 		ip = "unknown"
-		utils.Warn("⚠️ Failed to get local IP address")
+		utils.Warn("Failed to get local IP address")
 	}
 
 	tags := utils.MergeMaps(cfg.Agent.CustomTags, addTags)

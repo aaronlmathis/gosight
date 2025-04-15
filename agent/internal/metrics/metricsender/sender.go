@@ -144,8 +144,8 @@ func (s *MetricSender) SendMetrics(payload *model.MetricPayload) error {
 	if err := s.stream.Send(req); err != nil {
 		return fmt.Errorf("stream send failed: %w", err)
 	}
-	AppendMetricsToFile(payload, "metrics_debug.jsonl")
-	//utils.Info("📤 Streamed %d metrics", len(pbMetrics))
+
+	//utils.Info("Streamed %d metrics", len(pbMetrics))
 	return nil
 }
 

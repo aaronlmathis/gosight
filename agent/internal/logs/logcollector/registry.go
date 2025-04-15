@@ -63,7 +63,7 @@ func (r *LogRegistry) Collect(ctx context.Context) ([]model.LogEntry, error) {
 	for name, collector := range r.LogCollectors {
 		logs, err := collector.Collect(ctx)
 		if err != nil {
-			utils.Error("❌ Error collecting %s: %v\n", name, err)
+			utils.Error("Error collecting %s: %v\n", name, err)
 			continue
 		}
 		all = append(all, logs...)

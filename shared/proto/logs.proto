@@ -2,25 +2,26 @@ syntax = "proto3";
 
 package proto;
 
-import "google/protobuf/timestamp.proto";
-import "metrics.proto";
 option go_package = "github.com/aaronlmathis/gosight/shared/proto";
+import "google/protobuf/timestamp.proto";
+import "metrics.proto"; // for Meta
 
 message LogMeta {
-  string os = 1;
-  string platform = 2;
-  string app_name = 3;
-  string app_version = 4;
-  string container_id = 5;
-  string container_name = 6;
-  string unit = 7;
-  string service = 8;
-  string event_id = 9;
-  string user = 10;
-  string executable = 11;
-  string path = 12;
-  map<string, string> extra = 13;
-  string endpoint_id = 14;
+  string endpoint_id = 1;
+  string os = 2;
+  string platform = 3;
+  string app_name = 4;
+  string app_version = 5;
+  string container_id = 6;
+  string container_name = 7;
+  string unit = 8;
+  string service = 9;
+  string event_id = 10;
+  string user = 11;
+  string executable = 12;
+  string path = 13;
+  map<string, string> extra = 14;
+  string agent_id = 15;
 }
 
 message LogEntry {
@@ -40,14 +41,15 @@ message LogPayload {
   string endpoint_id = 1;
   google.protobuf.Timestamp timestamp = 2;
   repeated LogEntry logs = 3;
-
+  Meta meta = 4; // shared model.Meta from metrics.proto
 }
+
 message LogResponse {
   string status = 1;
-  int32 status_code = 2; // 0=OK, 1=validation error, etc.
+  int32 status_code = 2;
 }
 
 service LogService {
-  rpc SubmitMetrics (LogPayload) returns (LogResponse);        // Unary
-  rpc SubmitStream (stream LogPayload) returns (LogResponse);  // Client-streaming
+  rpc SubmitMetrics (LogPayload) returns (LogResponse);
+  rpc SubmitStream (stream LogPayload) returns (LogResponse);
 }
