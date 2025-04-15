@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "🔐 GoSight TLS Cert Generator (with SANs)"
+echo "GoSight TLS Cert Generator (with SANs)"
 mkdir -p certs && cd certs
 
 # === 1. Generate CA ===
@@ -59,5 +59,5 @@ openssl req -new -key client.key -out client.csr -config client.cnf
 openssl x509 -req -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
   -out client.crt -days 365 -sha256 -extensions req_ext -extfile client.cnf
 
-echo "✅ All certs generated in ./certs/"
+echo "All certs generated in ./certs/"
 ls -l
