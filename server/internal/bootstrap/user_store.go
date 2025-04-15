@@ -57,6 +57,6 @@ func InitUserStore(cfg *config.Config) (userstore.UserStore, error) {
 		return nil, fmt.Errorf("unsupported userstore type: %s", cfg.UserStore.Type)
 	}
 
-	utils.Info("✅ User store [%s] initialized successfully", userStoreType)
+	utils.Info("User store [%s] initialized successfully", userStoreType)
 	return userStore, nil
 }
