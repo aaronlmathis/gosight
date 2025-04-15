@@ -1,4 +1,4 @@
-Write-Host "🔐 GoSight TLS Cert Generator (with SANs for Windows)" -ForegroundColor Cyan
+Write-Host "GoSight TLS Cert Generator (with SANs for Windows)" -ForegroundColor Cyan
 
 # Create working dir
 $certsPath = Join-Path -Path $PSScriptRoot -ChildPath "certs"
@@ -60,5 +60,5 @@ openssl req -new -key client.key -out client.csr -config client.cnf
 openssl x509 -req -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial `
   -out client.crt -days 365 -sha256 -extensions req_ext -extfile client.cnf
 
-Write-Host "`n✅ All certs generated in $certsPath" -ForegroundColor Green
+Write-Host "`n All certs generated in $certsPath" -ForegroundColor Green
 Get-ChildItem -Name
