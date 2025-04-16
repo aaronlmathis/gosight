@@ -9,6 +9,26 @@
       </div>
       
     <div class="overflow-x-auto shadow rounded-lg border border-gray-200 dark:border-gray-700">
+      <div class="flex flex-wrap gap-4 p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <input id="filter-hostname" type="text" placeholder="Filter by Hostname"
+          class="text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      
+        <input id="filter-ip" type="text" placeholder="Filter by IP"
+          class="text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      
+        <input id="filter-os" type="text" placeholder="Filter by OS"
+          class="text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      
+        <input id="filter-arch" type="text" placeholder="Filter by Arch"
+          class="text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      
+        <select id="filter-status"
+          class="text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">All Statuses</option>
+          <option value="online">Online</option>
+          <option value="offline">Offline</option>
+        </select>
+      </div>
         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700 text-xs text-gray-500 dark:text-gray-300">
                 <tr>
@@ -49,7 +69,7 @@
         {{ end }}
     </td>
 
-    <td class="px-3 py-2"><a href="/endpoints/{{.Agent.EndpointID}}">{{ .Agent.Hostname }}</a></td>
+    <td class="px-3 py-2"><a href="/endpoints/{{ .Agent.EndpointID }}">{{ .Agent.Hostname }}</a></td>
     <td class="px-3 py-2">{{ .Agent.IP }}</td>
     <td class="px-3 py-2">{{ .Agent.OS }}</td>
     <td class="px-3 py-2">{{ index .Metrics "platform" }}{{ index .Metrics "platform_version" }}</td>

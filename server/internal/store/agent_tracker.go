@@ -61,14 +61,15 @@ func (t *AgentTracker) UpdateAgent(meta *model.Meta) {
 	agent, exists := t.agents[meta.AgentID]
 	if !exists {
 		agent = &model.AgentStatus{
-			Hostname: meta.Hostname,
-			IP:       meta.IPAddress,
-			OS:       meta.OS,
-			Arch:     meta.Architecture,
-			Version:  meta.AgentVersion,
-			Labels:   meta.Tags,
-			Updated:  true,
-			AgentID:  meta.AgentID,
+			Hostname:   meta.Hostname,
+			IP:         meta.IPAddress,
+			OS:         meta.OS,
+			Arch:       meta.Architecture,
+			Version:    meta.AgentVersion,
+			Labels:     meta.Tags,
+			Updated:    true,
+			AgentID:    meta.AgentID,
+			EndpointID: meta.EndpointID,
 		}
 		t.agents[meta.AgentID] = agent
 	} else {
@@ -80,6 +81,7 @@ func (t *AgentTracker) UpdateAgent(meta *model.Meta) {
 		agent.Labels = meta.Tags
 		agent.Updated = true
 		agent.AgentID = meta.AgentID
+		agent.EndpointID = meta.EndpointID
 	}
 
 	agent.LastSeen = time.Now()
