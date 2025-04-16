@@ -62,10 +62,14 @@ func InitMetaStore() *metastore.MetaTracker {
 	return metastore.NewMetaTracker()
 }
 
-func InitWebSocketHub() *websocket.Hub {
-	ws := websocket.NewHub()
+func InitWebSocketHub(metaStore *metastore.MetaTracker) *websocket.Hub {
+	ws := websocket.NewHub(metaStore)
 	// Start WebSocket server
-	go ws.Run()
+
+	go func() {
+		utils.Info("Starting WebSocket hub...")
+		ws.Run() // no error returned, but safe to log around
+	}()
 	return ws
 }
 

@@ -32,7 +32,6 @@ import (
 	"github.com/aaronlmathis/gosight/server/internal/bootstrap"
 	grpcserver "github.com/aaronlmathis/gosight/server/internal/grpc"
 	httpserver "github.com/aaronlmathis/gosight/server/internal/http"
-	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
@@ -65,12 +64,6 @@ func main() {
 	// Initialize logging
 	bootstrap.SetupLogging(cfg)
 
-	// Initialize the websocket hub
-	wsHub := websocket.NewHub()
-	go func() {
-		utils.Info("Starting WebSocket hub...")
-		wsHub.Run() // no error returned, but safe to log around
-	}()
 	// Initialize metric index
 	metricIndex, err := bootstrap.InitMetricIndex()
 	utils.Must("Metric index", err)
@@ -93,6 +86,9 @@ func main() {
 
 	// Initialize meta tracker
 	metaTracker := metastore.NewMetaTracker()
+
+	// Initialize the websocket hub
+	wsHub := bootstrap.InitWebSocketHub(metaTracker)
 
 	// Initialize user store
 	userStore, err := bootstrap.InitUserStore(cfg)

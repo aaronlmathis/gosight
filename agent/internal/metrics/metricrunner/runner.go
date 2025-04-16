@@ -73,6 +73,7 @@ func (r *MetricRunner) Run(ctx context.Context) {
 			containerMetas := make(map[string]*model.Meta)
 
 			for _, m := range metrics {
+
 				if len(m.Dimensions) > 0 && m.Dimensions["container_id"] != "" {
 					id := m.Dimensions["container_id"]
 					if id == "" {

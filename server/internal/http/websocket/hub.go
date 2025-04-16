@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/gorilla/websocket"
@@ -13,13 +14,15 @@ import (
 
 // Hub manages WebSocket connections and broadcasts.
 type Hub struct {
-	clients   map[*Client]bool
-	broadcast chan BroadcastEnvelope
-	lock      sync.Mutex
+	clients     map[*Client]bool
+	broadcast   chan BroadcastEnvelope
+	lock        sync.Mutex
+	MetaTracker *metastore.MetaTracker
 }
 type Client struct {
 	Conn       *websocket.Conn
 	EndpointID string
+	AgentID    string
 }
 
 type BroadcastEnvelope struct {
@@ -27,17 +30,18 @@ type BroadcastEnvelope struct {
 	Data interface{} `json:"data"`
 }
 
-func NewHub() *Hub {
+func NewHub(metaTracker *metastore.MetaTracker) *Hub {
 	return &Hub{
-		clients:   make(map[*Client]bool),
-		broadcast: make(chan BroadcastEnvelope, 100),
+		clients:     make(map[*Client]bool),
+		broadcast:   make(chan BroadcastEnvelope, 100),
+		MetaTracker: metaTracker,
 	}
 }
 
 func (h *Hub) Run() {
 
 	for envelope := range h.broadcast {
-		utils.Debug("📣 Hub.Run() received message of type: %s", envelope.Type)
+
 		data, _ := json.Marshal(envelope)
 
 		h.lock.Lock()
@@ -55,8 +59,8 @@ func (h *Hub) Run() {
 						} else if strings.HasPrefix(payload.EndpointID, "container-") &&
 							payload.Meta != nil &&
 							payload.Meta.Tags != nil &&
-							payload.Meta.Tags["host_id"] == client.EndpointID {
-							// ✅ container linked to this host
+							payload.Meta.AgentID == client.AgentID {
+
 						} else {
 							continue
 						}
@@ -89,7 +93,7 @@ func (h *Hub) BroadcastMetric(payload model.MetricPayload) {
 	defer h.lock.Unlock()
 
 	for client := range h.clients {
-		if h.shouldDeliver(payload.EndpointID, payload.Meta, client.EndpointID) {
+		if h.shouldDeliver(payload.EndpointID, payload.Meta, client) {
 			client.Conn.WriteMessage(websocket.TextMessage, data)
 		}
 	}
@@ -105,24 +109,24 @@ func (h *Hub) BroadcastLog(payload model.LogPayload) {
 	defer h.lock.Unlock()
 
 	for client := range h.clients {
-		if h.shouldDeliver(payload.EndpointID, payload.Meta, client.EndpointID) {
+		if h.shouldDeliver(payload.EndpointID, payload.Meta, client) {
 			client.Conn.WriteMessage(websocket.TextMessage, data)
 		}
 	}
 }
-func (h *Hub) shouldDeliver(payloadID string, meta *model.Meta, clientID string) bool {
-	if clientID == "" {
+
+func (h *Hub) shouldDeliver(payloadID string, meta *model.Meta, client *Client) bool {
+	if client.EndpointID == "" {
 		return true // no filtering
 	}
 
-	if payloadID == clientID {
+	if payloadID == client.EndpointID {
 		return true // direct match
 	}
 
 	if strings.HasPrefix(payloadID, "container-") &&
 		meta != nil &&
-		meta.Tags != nil &&
-		meta.Tags["host_id"] == clientID {
+		meta.AgentID == client.AgentID {
 		return true // container belongs to host
 	}
 
@@ -148,30 +152,20 @@ func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	endpointID := r.URL.Query().Get("endpointID")
-	client := &Client{Conn: conn, EndpointID: endpointID}
-	utils.Debug("New WebSocket client connected: %p (endpointID=%q)", client, endpointID)
+
+	// Pull Meta for that endpoint to link AgentID with container agent_id
+	meta, ok := h.MetaTracker.Get(endpointID)
+	if !ok {
+		utils.Warn("No meta found for endpoint: %s", endpointID)
+	}
+
+	client := &Client{
+		Conn:       conn,
+		EndpointID: endpointID,
+		AgentID:    meta.AgentID,
+	}
+
 	h.lock.Lock()
 	h.clients[client] = true
 	h.lock.Unlock()
 }
-
-/*
-if client.EndpointID != "" {
-	switch envelope.Type {
-	case "metrics":
-		if payload, ok := envelope.Data.(*model.MetricPayload); ok {
-			if payload.EndpointID == client.EndpointID {
-				// exact match ✅
-			} else if payload.Meta != nil && payload.Meta.Tags != nil {
-				// match container payload if its host_id matches client's endpoint
-				if payload.Meta.Tags["host_id"] == client.EndpointID {
-					// linked container ✅
-				} else {
-					continue
-				}
-			} else {
-				continue
-			}
-		}
-	}
-*/
