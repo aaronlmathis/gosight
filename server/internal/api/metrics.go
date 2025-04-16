@@ -72,12 +72,8 @@ func (h *MetricsHandler) SubmitStream(stream pb.MetricsService_SubmitStreamServe
 		converted := ConvertToModelPayload(req)
 		h.AgentTracker.UpdateAgent(converted.Meta)
 
-		utils.Debug("EndpointID is %s", converted.EndpointID)
 		// Broadcast to WebSocket clients
-		h.websocket.Broadcast(websocket.BroadcastEnvelope{
-			Type: "metrics",
-			Data: converted, // already a *model.MetricPayload
-		})
+		h.websocket.BroadcastMetric(converted)
 
 		//fmt.Printf("Server received proto.Meta: %+v\n", req.Meta)
 		if err := h.store.Write([]model.MetricPayload{converted}); err != nil {

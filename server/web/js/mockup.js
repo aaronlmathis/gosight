@@ -51,7 +51,7 @@ socket.onmessage = (event) => {
 
         if (envelope.type === "logs") {
             const logPayload = envelope.data;
-            console.log("📨 Logs:", logPayload);
+            //console.log("📨 Logs:", logPayload);
             // You can render logs with a renderLogs(logPayload.logs) here
         }
 
@@ -204,7 +204,7 @@ function updateMiniCharts(metrics) {
     let swapVal = null;
     metrics.forEach((m) => {
         if (m.subnamespace === "Memory" && m.dimensions?.source === "swap") {
-            console.log("🟢 SWAP METRIC RECEIVED:", m.name, m.value);
+            //console.log("🟢 SWAP METRIC RECEIVED:", m.name, m.value);
         }
     });
     for (const m of metrics) {
@@ -350,10 +350,10 @@ function updateContainerTable(payload) {
     const metrics = payload.metrics;
     const id = meta.container_id;
     if (!id) return;
-    console.log("📦 Incoming container metrics for:", meta.container_name);
+    //console.log("📦 Incoming container metrics for:", meta.container_name);
     metrics.forEach(m => {
         if (["cpu_percent", "mem_usage_bytes", "net_rx_bytes", "net_tx_bytes"].includes(m.name)) {
-            console.log(`🔧 ${m.name}:`, m.value);
+            //console.log(`🔧 ${m.name}:`, m.value);
         }
     });
     const container = {

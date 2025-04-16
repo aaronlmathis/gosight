@@ -3,6 +3,7 @@ package websocket
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/aaronlmathis/gosight/shared/model"
@@ -34,17 +35,29 @@ func NewHub() *Hub {
 }
 
 func (h *Hub) Run() {
+
 	for envelope := range h.broadcast {
+		utils.Debug("📣 Hub.Run() received message of type: %s", envelope.Type)
 		data, _ := json.Marshal(envelope)
 
 		h.lock.Lock()
 		for client := range h.clients {
-			// If filtering by endpoint
+			// Only filter if the client registered an endpoint
 			if client.EndpointID != "" {
 				switch envelope.Type {
 				case "metrics":
 					if payload, ok := envelope.Data.(*model.MetricPayload); ok {
-						if payload.EndpointID != client.EndpointID {
+						utils.Debug("🔎 Filtering for client: %s | payload from: %s | host_id: %s",
+							client.EndpointID, payload.EndpointID, payload.Meta.Tags["host_id"])
+						// Exact match (host or container directly watched)
+						if payload.EndpointID == client.EndpointID {
+							// ✅ direct match
+						} else if strings.HasPrefix(payload.EndpointID, "container-") &&
+							payload.Meta != nil &&
+							payload.Meta.Tags != nil &&
+							payload.Meta.Tags["host_id"] == client.EndpointID {
+							// ✅ container linked to this host
+						} else {
 							continue
 						}
 					}
@@ -66,7 +79,55 @@ func (h *Hub) Run() {
 		h.lock.Unlock()
 	}
 }
+func (h *Hub) BroadcastMetric(payload model.MetricPayload) {
+	data, _ := json.Marshal(BroadcastEnvelope{
+		Type: "metrics",
+		Data: payload,
+	})
 
+	h.lock.Lock()
+	defer h.lock.Unlock()
+
+	for client := range h.clients {
+		if h.shouldDeliver(payload.EndpointID, payload.Meta, client.EndpointID) {
+			client.Conn.WriteMessage(websocket.TextMessage, data)
+		}
+	}
+}
+
+func (h *Hub) BroadcastLog(payload model.LogPayload) {
+	data, _ := json.Marshal(BroadcastEnvelope{
+		Type: "logs",
+		Data: payload,
+	})
+
+	h.lock.Lock()
+	defer h.lock.Unlock()
+
+	for client := range h.clients {
+		if h.shouldDeliver(payload.EndpointID, payload.Meta, client.EndpointID) {
+			client.Conn.WriteMessage(websocket.TextMessage, data)
+		}
+	}
+}
+func (h *Hub) shouldDeliver(payloadID string, meta *model.Meta, clientID string) bool {
+	if clientID == "" {
+		return true // no filtering
+	}
+
+	if payloadID == clientID {
+		return true // direct match
+	}
+
+	if strings.HasPrefix(payloadID, "container-") &&
+		meta != nil &&
+		meta.Tags != nil &&
+		meta.Tags["host_id"] == clientID {
+		return true // container belongs to host
+	}
+
+	return false
+}
 func (h *Hub) Broadcast(envelope BroadcastEnvelope) {
 	select {
 	case h.broadcast <- envelope:
