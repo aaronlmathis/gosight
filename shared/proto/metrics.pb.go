@@ -604,7 +604,7 @@ func (x *Meta) GetAgentId() string {
 
 type MetricPayload struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Host          string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
+	EndpointId    string                 `protobuf:"bytes,1,opt,name=endpoint_id,json=endpointId,proto3" json:"endpoint_id,omitempty"`
 	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	Metrics       []*Metric              `protobuf:"bytes,3,rep,name=metrics,proto3" json:"metrics,omitempty"`
 	Meta          *Meta                  `protobuf:"bytes,4,opt,name=meta,proto3" json:"meta,omitempty"`
@@ -642,9 +642,9 @@ func (*MetricPayload) Descriptor() ([]byte, []int) {
 	return file_metrics_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *MetricPayload) GetHost() string {
+func (x *MetricPayload) GetEndpointId() string {
 	if x != nil {
-		return x.Host
+		return x.EndpointId
 	}
 	return ""
 }
@@ -806,9 +806,10 @@ const file_metrics_proto_rawDesc = "" +
 	"\bagent_id\x18, \x01(\tR\aagentId\x1a7\n" +
 	"\tTagsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa7\x01\n" +
-	"\rMetricPayload\x12\x12\n" +
-	"\x04host\x18\x01 \x01(\tR\x04host\x128\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb4\x01\n" +
+	"\rMetricPayload\x12\x1f\n" +
+	"\vendpoint_id\x18\x01 \x01(\tR\n" +
+	"endpointId\x128\n" +
 	"\ttimestamp\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12'\n" +
 	"\ametrics\x18\x03 \x03(\v2\r.proto.MetricR\ametrics\x12\x1f\n" +
 	"\x04meta\x18\x04 \x01(\v2\v.proto.MetaR\x04meta\"I\n" +

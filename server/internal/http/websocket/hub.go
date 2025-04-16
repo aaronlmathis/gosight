@@ -13,7 +13,7 @@ import (
 // Hub manages WebSocket connections and broadcasts.
 type Hub struct {
 	clients   map[*Client]bool
-	broadcast chan model.MetricPayload
+	broadcast chan BroadcastEnvelope
 	lock      sync.Mutex
 }
 type Client struct {
@@ -21,23 +21,42 @@ type Client struct {
 	EndpointID string
 }
 
+type BroadcastEnvelope struct {
+	Type string      `json:"type"` // "metrics" or "logs"
+	Data interface{} `json:"data"`
+}
+
 func NewHub() *Hub {
 	return &Hub{
 		clients:   make(map[*Client]bool),
-		broadcast: make(chan model.MetricPayload, 100),
+		broadcast: make(chan BroadcastEnvelope, 100),
 	}
 }
 
 func (h *Hub) Run() {
-	for payload := range h.broadcast {
-		data, _ := json.Marshal(payload)
+	for envelope := range h.broadcast {
+		data, _ := json.Marshal(envelope)
+
 		h.lock.Lock()
 		for client := range h.clients {
-			utils.Debug("Checking client: %p (client.EndpointID=%q, payload.EndpointID=%q)", client, client.EndpointID, payload.EndpointID)
-
-			if client.EndpointID != payload.EndpointID {
-				continue // skip non-matching clients
+			// If filtering by endpoint
+			if client.EndpointID != "" {
+				switch envelope.Type {
+				case "metrics":
+					if payload, ok := envelope.Data.(*model.MetricPayload); ok {
+						if payload.EndpointID != client.EndpointID {
+							continue
+						}
+					}
+				case "logs":
+					if payload, ok := envelope.Data.(*model.LogPayload); ok {
+						if payload.EndpointID != client.EndpointID {
+							continue
+						}
+					}
+				}
 			}
+
 			err := client.Conn.WriteMessage(websocket.TextMessage, data)
 			if err != nil {
 				client.Conn.Close()
@@ -48,9 +67,9 @@ func (h *Hub) Run() {
 	}
 }
 
-func (h *Hub) Broadcast(payload model.MetricPayload) {
+func (h *Hub) Broadcast(envelope BroadcastEnvelope) {
 	select {
-	case h.broadcast <- payload:
+	case h.broadcast <- envelope:
 	default:
 		// drop message if channel full
 	}
@@ -74,3 +93,24 @@ func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
 	h.clients[client] = true
 	h.lock.Unlock()
 }
+
+/*
+if client.EndpointID != "" {
+	switch envelope.Type {
+	case "metrics":
+		if payload, ok := envelope.Data.(*model.MetricPayload); ok {
+			if payload.EndpointID == client.EndpointID {
+				// exact match ✅
+			} else if payload.Meta != nil && payload.Meta.Tags != nil {
+				// match container payload if its host_id matches client's endpoint
+				if payload.Meta.Tags["host_id"] == client.EndpointID {
+					// linked container ✅
+				} else {
+					continue
+				}
+			} else {
+				continue
+			}
+		}
+	}
+*/

@@ -42,6 +42,11 @@ func (h *LogsHandler) SubmitStream(stream pb.LogService_SubmitStreamServer) erro
 
 		payload := ConvertToModelLogPayload(pbPayload)
 
+		// Websocket broadcast
+		h.websocket.Broadcast(websocket.BroadcastEnvelope{
+			Type: "logs",
+			Data: payload,
+		})
 		err = h.logstore.Write([]model.LogPayload{payload}, stream.Context())
 		if err != nil {
 			utils.Error("Failed to store logs from host %s: %v", payload.EndpointID, err)

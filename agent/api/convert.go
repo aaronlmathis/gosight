@@ -61,10 +61,10 @@ func ConvertToProtoPayload(payload model.MetricPayload) *proto.MetricPayload {
 	}
 
 	return &proto.MetricPayload{
-		Host:      payload.Host,
-		Timestamp: timestamppb.New(payload.Timestamp),
-		Metrics:   metrics,
-		Meta:      pbMeta,
+		EndpointId: payload.EndpointID,
+		Timestamp:  timestamppb.New(payload.Timestamp),
+		Metrics:    metrics,
+		Meta:       pbMeta,
 	}
 }
 

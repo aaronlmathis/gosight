@@ -119,10 +119,10 @@ func (r *MetricRunner) Run(ctx context.Context) {
 				meta.BuildStandardTags(hostMeta, hostMetrics[0], false)
 
 				payload := model.MetricPayload{
-					Host:      r.Config.Agent.HostOverride,
-					Timestamp: time.Now(),
-					Metrics:   hostMetrics,
-					Meta:      hostMeta,
+					EndpointID: hostMeta.EndpointID,
+					Timestamp:  time.Now(),
+					Metrics:    hostMetrics,
+					Meta:       hostMeta,
 				}
 				//utils.Info("META Payload for: %s - %v", payload.Host, payload.Meta)
 				select {
@@ -135,10 +135,10 @@ func (r *MetricRunner) Run(ctx context.Context) {
 			// Send each container as a separate payload
 			for id, metrics := range containerBatches {
 				payload := model.MetricPayload{
-					Host:      r.Config.Agent.HostOverride,
-					Timestamp: time.Now(),
-					Metrics:   metrics,
-					Meta:      containerMetas[id],
+					EndpointID: containerMetas[id].EndpointID,
+					Timestamp:  time.Now(),
+					Metrics:    metrics,
+					Meta:       containerMetas[id],
 				}
 				//utils.Info("META Payload for: %s - %v", payload.Host, payload.Meta)
 

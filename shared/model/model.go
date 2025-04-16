@@ -107,10 +107,10 @@ type Meta struct {
 }
 
 type MetricPayload struct {
-	Host      string    `json:"host"`
-	Timestamp time.Time `json:"timestamp"`
-	Metrics   []Metric  `json:"metrics"`
-	Meta      *Meta     `json:"meta,omitempty"`
+	EndpointID string    `json:"endpoint_id"`
+	Timestamp  time.Time `json:"timestamp"`
+	Metrics    []Metric  `json:"metrics"`
+	Meta       *Meta     `json:"meta,omitempty"`
 }
 
 type MetricRow struct {

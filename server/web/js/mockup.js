@@ -31,18 +31,28 @@ let latestMemUsedPercent = 0;
 
 socket.onmessage = (event) => {
     try {
-        const data = JSON.parse(event.data);
-        console.log("🧩 WebSocket payload:", data);
-        if (!data.metrics || !data.meta) return;
+        const envelope = JSON.parse(event.data);
+        console.log("📦 WebSocket message:", envelope);
 
-        if (data.meta.endpoint_id?.startsWith("host-")) {
-            updateMiniCharts(data.metrics);
-            const summary = extractHostSummary(data.metrics, data.meta);
-            renderOverviewSummary(summary);
+        if (envelope.type === "metrics") {
+            const payload = envelope.data;
+            if (!payload?.metrics || !payload?.meta) return;
+
+            if (payload.meta.endpoint_id?.startsWith("host-")) {
+                updateMiniCharts(payload.metrics);
+                const summary = extractHostSummary(payload.metrics, payload.meta);
+                renderOverviewSummary(summary);
+            }
+
+            if (payload.meta.endpoint_id?.startsWith("container-")) {
+                updateContainerTable(payload);
+            }
         }
 
-        if (data.meta.endpoint_id?.startsWith("container-")) {
-            updateContainerTable(data);
+        if (envelope.type === "logs") {
+            const logPayload = envelope.data;
+            console.log("📨 Logs:", logPayload);
+            // You can render logs with a renderLogs(logPayload.logs) here
         }
 
     } catch (err) {

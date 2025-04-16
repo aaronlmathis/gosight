@@ -37,3 +37,4 @@ launch_containers.sh
 tools/
 .vscode*
 configs/
+server/logstore

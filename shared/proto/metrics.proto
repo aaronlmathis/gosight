@@ -91,7 +91,7 @@ message Meta {
 
 
 message MetricPayload {
-  string host = 1;
+  string endpoint_id = 1;
   google.protobuf.Timestamp timestamp = 2;
   repeated Metric metrics = 3;
   Meta meta = 4; 

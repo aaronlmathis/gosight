@@ -134,10 +134,10 @@ func (s *MetricSender) SendMetrics(payload *model.MetricPayload) error {
 	//utils.Debug("Proto Meta Tags: %+v", convertedMeta)
 
 	req := &proto.MetricPayload{
-		Host:      payload.Host,
-		Timestamp: timestamppb.New(payload.Timestamp),
-		Metrics:   pbMetrics,
-		Meta:      convertedMeta,
+		EndpointId: payload.EndpointID,
+		Timestamp:  timestamppb.New(payload.Timestamp),
+		Metrics:    pbMetrics,
+		Meta:       convertedMeta,
 	}
 	//fmt.Printf("Sending proto.Meta: %+v\n", req.Meta)
 	//utils.Debug("Sending %d metrics to server: %v", len(pbMetrics), pbMetrics)
