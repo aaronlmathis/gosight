@@ -9,6 +9,11 @@ agent:
     - disk
     - net
     - podman
+  log_collection:
+    sources:
+      - journald
+    batch_size:  50     # Number of log entries to send in a payload
+    message_max: 1000   # Max size of messages before truncating (like in journald)
   environment: "dev" # (dev/prod)
 
 # Log Config

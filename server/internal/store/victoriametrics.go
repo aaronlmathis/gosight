@@ -75,7 +75,7 @@ func NewVictoriaStore(ctx context.Context, url string, workers, queueSize, batch
 	if workers == 0 {
 		utils.Warn("VictoriaStore called with 0 workers!")
 	} else {
-		utils.Debug("🧵 Spawning %d workers now...", workers)
+		utils.Debug("Spawning %d workers now...", workers)
 	}
 
 	for i := 0; i < workers; i++ {

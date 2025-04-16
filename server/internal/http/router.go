@@ -125,6 +125,7 @@ func (s *HttpServer) setupAPIRoutes() {
 	api.HandleFunc("/query", s.HandleAPIQuery).Methods("GET")
 
 	api.HandleFunc("/", s.GetNamespaces).Methods("GET")
+	api.HandleFunc("/logs/latest", s.HandleRecentLogs).Methods("GET")
 	api.HandleFunc("/{namespace}/{sub}/{metric}/latest", s.GetLatestValue).Methods("GET")
 	api.HandleFunc("/{namespace}/{sub}/{metric}/data", s.GetMetricData).Methods("GET")
 	api.HandleFunc("/{namespace}/{sub}/dimensions", s.GetDimensions).Methods("GET")

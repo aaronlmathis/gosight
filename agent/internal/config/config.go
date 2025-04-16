@@ -53,8 +53,10 @@ type Config struct {
 		HostOverride   string        `yaml:"host"`
 		MetricsEnabled []string      `yaml:"metrics_enabled"`
 		LogCollection  struct {
-			Sources  []string `yaml:"sources"`  // list of log sources to collect from
-			Services []string `yaml:"services"` // list of services to collect logs from
+			Sources    []string `yaml:"sources"`     // list of log sources to collect from
+			Services   []string `yaml:"services"`    // list of services to collect logs from
+			BatchSize  int      `yaml:"batch_size"`  // batch size to send logentries.
+			MessageMax int      `yaml:"message_max"` // max length of messages before truncating.
 		} `yaml:"log_collection"`
 		Environment   string            `yaml:"environment"`
 		AppLogFile    string            `yaml:"app_log_file"`

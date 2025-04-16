@@ -33,6 +33,11 @@ storage:
   batch_retry: 3          # Number of retries before dropping
   batch_interval: 1000    # 1s between retry attempts
 
+
+# Log Store Config
+logstore:
+  engine: file
+  
 # User store config
 userstore:
   type: "postgres"

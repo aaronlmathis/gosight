@@ -414,6 +414,50 @@ func (x *LogResponse) GetStatusCode() int32 {
 	return 0
 }
 
+type Ack struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Ack) Reset() {
+	*x = Ack{}
+	mi := &file_logs_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Ack) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Ack) ProtoMessage() {}
+
+func (x *Ack) ProtoReflect() protoreflect.Message {
+	mi := &file_logs_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Ack.ProtoReflect.Descriptor instead.
+func (*Ack) Descriptor() ([]byte, []int) {
+	return file_logs_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *Ack) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
 var File_logs_proto protoreflect.FileDescriptor
 
 const file_logs_proto_rawDesc = "" +
@@ -473,7 +517,9 @@ const file_logs_proto_rawDesc = "" +
 	"\vLogResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\x1f\n" +
 	"\vstatus_code\x18\x02 \x01(\x05R\n" +
-	"statusCode2}\n" +
+	"statusCode\"\x1d\n" +
+	"\x03Ack\x12\x16\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status2}\n" +
 	"\n" +
 	"LogService\x126\n" +
 	"\rSubmitMetrics\x12\x11.proto.LogPayload\x1a\x12.proto.LogResponse\x127\n" +
@@ -491,27 +537,28 @@ func file_logs_proto_rawDescGZIP() []byte {
 	return file_logs_proto_rawDescData
 }
 
-var file_logs_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_logs_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_logs_proto_goTypes = []any{
 	(*LogMeta)(nil),               // 0: proto.LogMeta
 	(*LogEntry)(nil),              // 1: proto.LogEntry
 	(*LogPayload)(nil),            // 2: proto.LogPayload
 	(*LogResponse)(nil),           // 3: proto.LogResponse
-	nil,                           // 4: proto.LogMeta.ExtraEntry
-	nil,                           // 5: proto.LogEntry.FieldsEntry
-	nil,                           // 6: proto.LogEntry.TagsEntry
-	(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
-	(*Meta)(nil),                  // 8: proto.Meta
+	(*Ack)(nil),                   // 4: proto.Ack
+	nil,                           // 5: proto.LogMeta.ExtraEntry
+	nil,                           // 6: proto.LogEntry.FieldsEntry
+	nil,                           // 7: proto.LogEntry.TagsEntry
+	(*timestamppb.Timestamp)(nil), // 8: google.protobuf.Timestamp
+	(*Meta)(nil),                  // 9: proto.Meta
 }
 var file_logs_proto_depIdxs = []int32{
-	4,  // 0: proto.LogMeta.extra:type_name -> proto.LogMeta.ExtraEntry
-	7,  // 1: proto.LogEntry.timestamp:type_name -> google.protobuf.Timestamp
-	5,  // 2: proto.LogEntry.fields:type_name -> proto.LogEntry.FieldsEntry
-	6,  // 3: proto.LogEntry.tags:type_name -> proto.LogEntry.TagsEntry
+	5,  // 0: proto.LogMeta.extra:type_name -> proto.LogMeta.ExtraEntry
+	8,  // 1: proto.LogEntry.timestamp:type_name -> google.protobuf.Timestamp
+	6,  // 2: proto.LogEntry.fields:type_name -> proto.LogEntry.FieldsEntry
+	7,  // 3: proto.LogEntry.tags:type_name -> proto.LogEntry.TagsEntry
 	0,  // 4: proto.LogEntry.meta:type_name -> proto.LogMeta
-	7,  // 5: proto.LogPayload.timestamp:type_name -> google.protobuf.Timestamp
+	8,  // 5: proto.LogPayload.timestamp:type_name -> google.protobuf.Timestamp
 	1,  // 6: proto.LogPayload.logs:type_name -> proto.LogEntry
-	8,  // 7: proto.LogPayload.meta:type_name -> proto.Meta
+	9,  // 7: proto.LogPayload.meta:type_name -> proto.Meta
 	2,  // 8: proto.LogService.SubmitMetrics:input_type -> proto.LogPayload
 	2,  // 9: proto.LogService.SubmitStream:input_type -> proto.LogPayload
 	3,  // 10: proto.LogService.SubmitMetrics:output_type -> proto.LogResponse
@@ -535,7 +582,7 @@ func file_logs_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_logs_proto_rawDesc), len(file_logs_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -64,6 +64,59 @@ func ConvertToModelPayload(pbPayload *proto.MetricPayload) model.MetricPayload {
 	}
 }
 
+func ConvertToModelLogPayload(pbPayload *proto.LogPayload) model.LogPayload {
+
+	var logs []model.LogEntry
+	for _, l := range pbPayload.Logs {
+		var meta *model.LogMeta
+		if l.Meta != nil {
+			meta = &model.LogMeta{
+				EndPointID:    l.Meta.EndpointId,
+				OS:            l.Meta.Os,
+				Platform:      l.Meta.Platform,
+				AppName:       l.Meta.AppName,
+				AppVersion:    l.Meta.AppVersion,
+				ContainerID:   l.Meta.ContainerId,
+				ContainerName: l.Meta.ContainerName,
+				Unit:          l.Meta.Unit,
+				Service:       l.Meta.Service,
+				EventID:       l.Meta.EventId,
+				User:          l.Meta.User,
+				Executable:    l.Meta.Executable,
+				Path:          l.Meta.Path,
+				Extra:         l.Meta.Extra,
+				AgentID:       l.Meta.AgentId,
+			}
+		}
+
+		log := model.LogEntry{
+			Timestamp: l.Timestamp.AsTime(),
+			Level:     l.Level,
+			Message:   l.Message,
+			Source:    l.Source,
+			Category:  l.Category,
+			Host:      l.Host,
+			PID:       int(l.Pid),
+			Fields:    l.Fields,
+			Tags:      l.Tags,
+			Meta:      meta,
+		}
+		logs = append(logs, log)
+	}
+
+	var meta *model.Meta
+	if pbPayload.Meta != nil {
+		meta = convertProtoMetaToModelMeta(pbPayload.Meta)
+	}
+
+	return model.LogPayload{
+		EndpointID: pbPayload.EndpointId,
+		Timestamp:  pbPayload.Timestamp.AsTime(),
+		Logs:       logs,
+		Meta:       meta,
+	}
+}
+
 func convertProtoMetaToModelMeta(pbMeta *proto.Meta) *model.Meta {
 	if pbMeta == nil {
 		return nil

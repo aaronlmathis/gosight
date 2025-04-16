@@ -75,6 +75,10 @@ func main() {
 	metricIndex, err := bootstrap.InitMetricIndex()
 	utils.Must("Metric index", err)
 
+	// Initialize log store
+	logStore, err := bootstrap.InitLogStore(ctx, cfg)
+	utils.Must("Log store", err)
+
 	// Init metric store
 	metricStore, err := bootstrap.InitMetricStore(ctx, cfg, metricIndex)
 	utils.Must("Metric store", err)
@@ -99,7 +103,7 @@ func main() {
 	utils.Must("Auth providers", err)
 
 	// Start HTTP server for admin console/api
-	srv := httpserver.NewServer(ctx, agentTracker, authProviders, cfg, metaTracker, metricIndex, metricStore, userStore, dataStore, wsHub)
+	srv := httpserver.NewServer(ctx, agentTracker, authProviders, cfg, metaTracker, metricIndex, metricStore, logStore, userStore, dataStore, wsHub)
 
 	go func() {
 		if err := srv.Start(); err != nil {
@@ -109,7 +113,7 @@ func main() {
 		}
 	}()
 
-	grpcServer, listener, err := grpcserver.NewGRPCServer(ctx, cfg, metricStore, agentTracker, metricIndex, metaTracker, wsHub)
+	grpcServer, listener, err := grpcserver.NewGRPCServer(ctx, cfg, metricStore, logStore, agentTracker, metricIndex, metaTracker, wsHub)
 	if err != nil {
 		utils.Fatal("Failed to start gRPC server: %v", err)
 	} else {

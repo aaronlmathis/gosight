@@ -64,7 +64,7 @@ type Config struct {
 	Debug struct {
 		EnableReflection bool `yaml:"enable_reflection"`
 	} `yaml:"debug"`
-
+	// TODO - split up storage engine configs.
 	Storage struct {
 		Engine        string `yaml:"engine"`
 		URL           string `yaml:"url"`
@@ -75,6 +75,17 @@ type Config struct {
 		BatchRetry    int    `yaml:"batch_retry"`
 		BatchInterval int    `yaml:"batch_interval"`
 	} `yaml:"storage"`
+
+	LogStore struct {
+		Engine        string `yaml:"engine"` // file, victoriametric etc
+		Dir           string `yaml:"dir"`
+		Workers       int    `yaml:"workers"`
+		QueueSize     int    `yaml:"queue_size"`
+		BatchSize     int    `yaml:"batch_size"`
+		BatchTimeout  int    `yaml:"batch_timeout"`
+		BatchRetry    int    `yaml:"batch_retry"`
+		BatchInterval int    `yaml:"batch_interval"`
+	}
 
 	UserStore struct {
 		Type     string `yaml:"type"`      // e.g. "postgres", "memory", "ldap"

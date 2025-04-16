@@ -33,6 +33,7 @@ import (
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
 	"github.com/aaronlmathis/gosight/server/internal/store"
+	"github.com/aaronlmathis/gosight/server/internal/store/logstore"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
@@ -66,4 +67,17 @@ func InitWebSocketHub() *websocket.Hub {
 	// Start WebSocket server
 	go ws.Run()
 	return ws
+}
+
+func InitLogStore(ctx context.Context, cfg *config.Config) (logstore.LogStore, error) {
+	engine := cfg.LogStore.Engine
+	utils.Info("Initializing log store engine: %s", engine)
+
+	s, err := logstore.InitLogStore(ctx, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init log store: %w", err)
+	}
+
+	utils.Info("Log store [%s] initialized successfully", engine)
+	return s, nil
 }

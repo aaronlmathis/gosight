@@ -57,17 +57,18 @@ func NewRegistry(cfg *config.Config) *LogRegistry {
 }
 
 // Collect runs all active collectors and returns all collected metrics
-func (r *LogRegistry) Collect(ctx context.Context) ([]model.LogEntry, error) {
-	var all []model.LogEntry
+func (r *LogRegistry) Collect(ctx context.Context) ([][]model.LogEntry, error) {
+	var allBatches [][]model.LogEntry
 
 	for name, collector := range r.LogCollectors {
-		logs, err := collector.Collect(ctx)
+		logBatches, err := collector.Collect(ctx)
 		if err != nil {
 			utils.Error("Error collecting %s: %v\n", name, err)
 			continue
 		}
-		all = append(all, logs...)
+		allBatches = append(allBatches, logBatches...)
+		utils.Debug("✔️ LogRegistry returned %d batches", len(logBatches))
 	}
 
-	return all, nil
+	return allBatches, nil
 }

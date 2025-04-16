@@ -78,6 +78,7 @@ func (s *HttpServer) HandleEndpointPage(w http.ResponseWriter, r *http.Request) 
 	}
 
 	agents := s.AgentTracker.GetAgents()
+	utils.Debug("Agents: %v", agents)
 	active := map[string]bool{}
 	var hosts []HostRow
 
@@ -86,6 +87,7 @@ func (s *HttpServer) HandleEndpointPage(w http.ResponseWriter, r *http.Request) 
 			continue
 		}
 		active[agent.AgentID] = true
+		agent.EndpointID = agent.Labels["endpoint_id"] // TODO figure out why Endpoint_ID is empty
 
 		hostMetrics, _ := s.MetricStore.QueryMultiInstant([]string{
 			"system.host.uptime", "system.host.procs", "system.mem.free",
@@ -115,7 +117,7 @@ func (s *HttpServer) HandleEndpointPage(w http.ResponseWriter, r *http.Request) 
 				hostMap["version"] = row.Tags["version"]
 			}
 		}
-
+		utils.Debug("HostMap: %v", hostMap)
 		hosts = append(hosts, HostRow{
 			Agent:   agent,
 			Metrics: hostMap,

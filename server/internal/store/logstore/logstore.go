@@ -19,10 +19,10 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// gosight/agent/internal/logs/logcollector/collector.go
-// Package logcollector provides the Collector interface for all metric collectors.
+// gosight/server/internal/store/logstore/logstore.go
+// Defines interface for logstore
 
-package logcollector
+package logstore
 
 import (
 	"context"
@@ -30,7 +30,9 @@ import (
 	"github.com/aaronlmathis/gosight/shared/model"
 )
 
-type Collector interface {
-	Name() string
-	Collect(ctx context.Context) ([][]model.LogEntry, error)
+type LogStore interface {
+	Write(metrics []model.LogPayload, streamContext context.Context) error
+	Close() error
+
+	GetRecentLogs(limit int) ([]model.LogEntry, error)
 }

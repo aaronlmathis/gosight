@@ -53,3 +53,7 @@ service LogService {
   rpc SubmitMetrics (LogPayload) returns (LogResponse);
   rpc SubmitStream (stream LogPayload) returns (LogResponse);
 }
+
+message Ack {
+  string status = 1;
+}

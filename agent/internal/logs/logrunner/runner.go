@@ -61,7 +61,7 @@ func (r *LogRunner) Run(ctx context.Context) {
 			utils.Warn("agent shutting down...")
 			return
 		case <-ticker.C:
-			logEntries, err := r.LogRegistry.Collect(ctx)
+			logBatches, err := r.LogRegistry.Collect(ctx)
 			if err != nil {
 				fmt.Printf("log collection failed: %v", err)
 				continue
@@ -75,34 +75,34 @@ func (r *LogRunner) Run(ctx context.Context) {
 			// Set Meta EndpointID Field.
 			meta.EndpointID = endpointID
 
-			var logsToPackage []model.LogEntry
+			// Loop through batches of logs... process each batch.
+			// Processing involes attaching all logEntries in the batch to one LogPayload
+			// Attaching model.Meta once per payload.
 
-			for _, log := range logEntries {
-
-				if log.Meta == nil {
-					utils.Warn("LogEntry missing LogMeta: %+v", log)
-					log.Meta = &model.LogMeta{AppName: "unknown"}
+			for _, batch := range logBatches {
+				for i := range batch {
+					if batch[i].Meta == nil {
+						batch[i].Meta = &model.LogMeta{AppName: "unknown"}
+					}
+					// Set endpoint ID on both LogMeta and Payload Meta
+					batch[i].Meta.AgentID = r.AgentID
+					batch[i].Meta.EndPointID = meta.EndpointID
 				}
 
-				log.Meta.AgentID = r.AgentID
+				payload := &model.LogPayload{
+					EndpointID: meta.EndpointID,
+					Timestamp:  time.Now(),
+					Logs:       batch,
+					Meta:       meta,
+				}
 
-				logsToPackage = append(logsToPackage, log)
-			}
+				utils.Debug("📦 Log Payload: %d entries", len(batch))
 
-			// Step 3: Wrap in LogPayload
-			payload := &model.LogPayload{
-				EndpointID: meta.EndpointID,
-				Timestamp:  time.Now(),
-				Logs:       logsToPackage,
-				Meta:       meta,
-			}
-
-			utils.Debug("Log Payload: %+v", payload)
-
-			select {
-			case taskQueue <- payload:
-			default:
-				utils.Warn(" Log task queue full! Dropping log from host %s", meta.Hostname)
+				select {
+				case taskQueue <- payload:
+				default:
+					utils.Warn("⚠️ Log task queue full! Dropping log batch from host %s", meta.Hostname)
+				}
 			}
 		}
 	}

@@ -37,7 +37,7 @@ func InitStore(ctx context.Context, cfg *config.Config, metricIndex *MetricIndex
 	utils.Debug("InitMetricStore selected engine: %s", cfg.Storage.Engine)
 	switch cfg.Storage.Engine {
 	case "victoriametrics":
-		utils.Debug("📦 Bootstrapping VictoriaStore with %d workers", cfg.Storage.Workers)
+		utils.Debug("Bootstrapping VictoriaMetrics Store with %d workers", cfg.Storage.Workers)
 		s := NewVictoriaStore(
 			ctx,
 			cfg.Storage.URL,
@@ -49,7 +49,7 @@ func InitStore(ctx context.Context, cfg *config.Config, metricIndex *MetricIndex
 			cfg.Storage.BatchInterval,
 			metricIndex,
 		)
-		utils.Debug("✅ Returning VictoriaStore at: %p", s)
+		utils.Debug("Returning VictoriaStoreMetrics store at: %p", s)
 		return s, nil
 	default:
 		return nil, fmt.Errorf("unsupported storage engine: %s", cfg.Storage.Engine)

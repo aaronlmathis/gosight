@@ -34,30 +34,41 @@ func (c *JournaldCollector) Name() string {
 	return "journald"
 }
 
-func (c *JournaldCollector) Collect(ctx context.Context) ([]model.LogEntry, error) {
-	var logs []model.LogEntry
+func (c *JournaldCollector) Collect(ctx context.Context) ([][]model.LogEntry, error) {
+
+	var allBatches [][]model.LogEntry
+	var current []model.LogEntry
+
+	batchSize := c.Config.Agent.LogCollection.BatchSize
+	maxMessageSize := c.Config.Agent.LogCollection.MessageMax
 
 	_ = c.journal.SeekTail() // read most recent first
 
-	filters := BuildJournaldFilterList(c.Config)
-	for _, match := range filters {
-		_ = c.journal.AddMatch(match)
-	}
+	//filters := BuildJournaldFilterList(c.Config)
+	//for _, match := range filters {
+	//	_ = c.journal.AddMatch(match)
+	//}
 
 	wait := c.journal.Wait(500 * time.Millisecond)
 	if wait != sdjournal.SD_JOURNAL_APPEND {
-		return logs, nil
+		return allBatches, nil
 	}
 
 	for {
 		select {
 		case <-ctx.Done():
-			return logs, ctx.Err()
+			if len(current) > 0 {
+				allBatches = append(allBatches, current)
+			}
+			return allBatches, ctx.Err()
 
 		default:
 			n, err := c.journal.Next()
 			if err != nil || n == 0 {
-				return logs, err
+				if len(current) > 0 {
+					allBatches = append(allBatches, current)
+				}
+				return allBatches, err
 			}
 
 			entry, err := c.journal.GetEntry()
@@ -67,15 +78,30 @@ func (c *JournaldCollector) Collect(ctx context.Context) ([]model.LogEntry, erro
 
 			timestamp := time.Unix(0, int64(entry.RealtimeTimestamp)*int64(time.Microsecond))
 
+			// Fields is huge.. trim down to useful fields before building LogEntry.
+			wanted := []string{"_SYSTEMD_UNIT", "_EXE", "_CMDLINE", "_PID", "_UID", "MESSAGE_ID", "SYSLOG_IDENTIFIER", "CONTAINER_ID", "CONTAINER_NAME"}
+			fields := make(map[string]string)
+			for _, k := range wanted {
+				if v, ok := entry.Fields[k]; ok {
+					fields[k] = v
+				}
+			}
+
+			// Truncate messages as they can get very large.
+			msg := entry.Fields["MESSAGE"]
+			if len(msg) > maxMessageSize {
+				msg = msg[:maxMessageSize] + " [truncated]"
+			}
+
 			log := model.LogEntry{
 				Timestamp: timestamp,
 				Level:     mapPriorityToLevel(entry.Fields["PRIORITY"]),
-				Message:   entry.Fields["MESSAGE"],
+				Message:   msg, // truncated above
 				Source:    entry.Fields["SYSLOG_IDENTIFIER"],
 				Category:  "", // Optional, can derive from unit
 				Host:      "", // Fill in at runner level
 				PID:       parsePID(entry.Fields["_PID"]),
-				Fields:    entry.Fields,
+				Fields:    fields,
 				Tags: map[string]string{
 					"unit": entry.Fields["_SYSTEMD_UNIT"],
 				},
@@ -95,14 +121,13 @@ func (c *JournaldCollector) Collect(ctx context.Context) ([]model.LogEntry, erro
 				},
 			}
 
-			logs = append(logs, log)
-
-			if len(logs) >= 500 {
-				break
+			current = append(current, log)
+			if len(current) >= batchSize {
+				allBatches = append(allBatches, current)
+				current = nil
 			}
 		}
 
-		return logs, nil
 	}
 }
 
