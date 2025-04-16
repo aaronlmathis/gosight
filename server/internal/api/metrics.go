@@ -72,14 +72,15 @@ func (h *MetricsHandler) SubmitStream(stream pb.MetricsService_SubmitStreamServe
 		converted := ConvertToModelPayload(req)
 		h.AgentTracker.UpdateAgent(converted.Meta)
 
+		utils.Debug("EndpointID is %s", converted.EndpointID)
 		// Broadcast to WebSocket clients
 		h.websocket.Broadcast(converted)
 
 		//fmt.Printf("Server received proto.Meta: %+v\n", req.Meta)
 		if err := h.store.Write([]model.MetricPayload{converted}); err != nil {
-			utils.Warn("Failed to enqueue metrics from %s: %v", converted.Host, err)
+			utils.Warn("Failed to enqueue metrics from %s: %v", converted.EndpointID, err)
 		} else {
-			utils.Info("Enqueued %d metrics from host: %s at %s", len(converted.Metrics), converted.Host, converted.Timestamp)
+			utils.Info("Enqueued %d metrics from host: %s at %s", len(converted.Metrics), converted.EndpointID, converted.Timestamp)
 
 			if converted.Meta != nil && converted.Meta.EndpointID != "" {
 				//fmt.Printf("Setting meta for %s\n", converted.Meta.EndpointID)

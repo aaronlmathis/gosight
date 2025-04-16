@@ -121,8 +121,11 @@ func (s *HttpServer) Start() error {
 		getAuthProviderKeys(s.AuthProviders),
 	)
 	s.setupRoutes()
-	templates.InitTemplates(s.Config, s.templateFuncs())
 
+	err := templates.InitTemplates(s.Config, s.templateFuncs())
+	if err != nil {
+		utils.Fatal("template init failed: %v", err)
+	}
 	utils.Info("HTTP server running at %s", s.Config.Server.HTTPAddr)
 	if err := http.ListenAndServe(s.Config.Server.HTTPAddr, s.Router); err != nil {
 		utils.Error("HTTP server failed: %v", err)
@@ -162,6 +165,12 @@ func (s *HttpServer) templateFuncs() template.FuncMap {
 		},
 		"uptime": templates.FormatUptime,
 		"trim":   strings.TrimSpace,
+		"div": func(a, b float64) float64 {
+			if b == 0 {
+				return 0
+			}
+			return a / b
+		},
 	}
 }
 

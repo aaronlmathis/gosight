@@ -48,8 +48,9 @@
             <span class="font-medium">OS:</span>
             <span id="osinfo"></span>
         </div>
-                <!-- OS Info -->
-        <div class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+        <!-- OS Info -->
+        <div
+            class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
             <i class="fa-solid fa-server text-purple-500 text-xs"></i>
             <span class="font-medium">CPU:</span>
             <span id="cpu-info"></span>
@@ -117,7 +118,7 @@
                     </div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">CPU Usage</p>
                     <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-                        <span id ="cpu-percent-label"></span>
+                        <span id="cpu-percent-label"></span>
                     </p>
                     <p class="text-xs text-gray-400 dark:text-gray-500">percent</p>
                     <div class="mt-2">
@@ -139,11 +140,11 @@
                     <!-- Content -->
                     <p class="text-sm text-gray-500 dark:text-gray-400">Memory Used</p>
                     <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-                        <span id="mem-percent-label"></span> 
+                        <span id="mem-percent-label"></span>
                     </p>
                     <p class="text-xs text-gray-400 dark:text-gray-500">GB</p>
                     <div class="mt-2">
-                       <canvas id="miniMemoryChart" class="w-full h-20"></canvas> 
+                        <canvas id="miniMemoryChart" class="w-full h-20"></canvas>
                     </div>
                 </div>
 
@@ -184,7 +185,7 @@
 
 
 
-<span id="mem-total"></span>
+                    <span id="mem-total"></span>
 
 
                 </div>
@@ -445,23 +446,25 @@
                         <div
                             class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
                             <p class="text-sm text-gray-500 dark:text-gray-400">Total Memory</p>
-                            <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="mem-total"></span></p>
+                            <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="mem-total"></span>
+                            </p>
                             <p>GB</p>
                         </div>
                         <div
                             class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
                             <p class="text-sm text-gray-500 dark:text-gray-400">Used Memory</p>
-                            <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="mem-used"></span></p>
+                            <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="mem-used"></span>
+                            </p>
                             <p>GB</p>
-                        </div>                        
+                        </div>
 
                         <div
                             class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
                             <p class="text-sm text-gray-500 dark:text-gray-400">Free Memory</p>
                             <p class="text-xl font-bold text-blue-600 dark:text-blue-400">17.9</p>
                             <span id="mem-used"></span>
-                        <span id="mem-total"></span>
-                        <span id="mem-percent"></span>
+                            <span id="mem-total"></span>
+                            <span id="mem-percent"></span>
                             <p>GB</p>
                         </div>
                         <div
@@ -489,9 +492,9 @@
         <div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="disk" role="tabpanel"
             aria-labelledby="disk-tab">
             <div class="space-y-8">
-                
-                
-                
+
+
+
                 <!-- Section: Disk Summary Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div
@@ -512,7 +515,8 @@
                     <div
                         class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
                         <p class="text-sm text-gray-500 dark:text-gray-400">Disk Usage</p>
-                        <p class="text-xl font-bold text-yellow-500 dark:text-yellow-400"><span id="disk-percent"></span>%</p>
+                        <p class="text-xl font-bold text-yellow-500 dark:text-yellow-400"><span
+                                id="disk-percent"></span>%</p>
                     </div>
                 </div>
 
@@ -780,6 +784,10 @@
     </div>
 </section>
 {{ block "page-scripts" .}}
+<script>
+    window.endpointID = "{{ .Meta.EndpointID }}";
+</script>
+
 <script src="/js/mockup.js"></script>
 <script>
     const themeToggleBtn = document.getElementById("theme-toggle");

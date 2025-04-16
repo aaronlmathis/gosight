@@ -29,6 +29,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"text/template"
 
 	"github.com/aaronlmathis/gosight/server/internal/config"
@@ -37,18 +38,23 @@ import (
 	"github.com/aaronlmathis/gosight/server/internal/usermodel"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
+	"github.com/fsnotify/fsnotify"
 )
 
-var Tmpl *template.Template
+var (
+	mu   sync.RWMutex
+	Tmpl *template.Template
+	fmap template.FuncMap
+)
 
 type TemplateData struct {
 	Title       string
-	User        *usermodel.User                // Current logged-in user
-	Permissions []string                       // Flattened permissions for template logic
-	Metrics     map[string]float64             // Current values (e.g., for mini cards)
-	Timeseries  map[string][]model.MetricPoint // For charts like cpuUsageChart
-	Tags        map[string]string              // Tags for the endpoint
-	Labels      map[string]string              // Optional: metadata (hostname, OS, etc.)
+	User        *usermodel.User
+	Permissions []string
+	Metrics     map[string]float64
+	Timeseries  map[string][]model.MetricPoint
+	Tags        map[string]string
+	Labels      map[string]string
 	Meta        model.Meta
 	MetricStore store.MetricStore
 	MetricIndex *store.MetricIndex
@@ -62,49 +68,96 @@ type Breadcrumb struct {
 }
 
 func InitTemplates(cfg *config.Config, funcMap template.FuncMap) error {
-	Tmpl = template.New("").Funcs(funcMap) // Keep the initial name
+	fmap = funcMap // store for reload use
+	err := loadTemplates(cfg.Web.TemplateDir)
+	if err != nil {
+		return err
+	}
+	go watchForChanges(cfg.Web.TemplateDir)
+	return nil
+}
+
+func loadTemplates(baseDir string) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	newTmpl := template.New("").Funcs(fmap)
 	counter := 0
 
-	err := filepath.Walk(cfg.Web.TemplateDir, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(baseDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() || !strings.HasSuffix(path, ".html") {
 			return nil
 		}
 
-		relativePath, err := filepath.Rel(cfg.Web.TemplateDir, path)
+		relativePath, err := filepath.Rel(baseDir, path)
 		if err != nil {
-			utils.Debug("error getting relative path %v: %v", path, err)
+			utils.Error("error getting relative path %v: %v", path, err)
 			return err
 		}
 
 		templateName := strings.TrimSuffix(filepath.ToSlash(relativePath), ".html")
 
-		_, err = Tmpl.New(templateName).Funcs(funcMap).ParseFiles(path)
+		_, err = newTmpl.New(templateName).ParseFiles(path)
 		if err != nil {
-			utils.Debug("error parsing template %v: %v", path, err)
+			utils.Error("error parsing template %v: %v", path, err)
+			return err
 		}
 
 		counter++
-		//utils.Debug("Template loaded: %v - %v - %d", path, templateName, counter)
-
 		return nil
 	})
 
 	if err != nil {
-		utils.Debug("error walking the path %v: %v", cfg.Web.TemplateDir, err)
+		utils.Error("error loading templates: %v", err)
 		return err
 	}
 
-	//utils.Debug("Total Templates loaded: %d", counter)
+	Tmpl = newTmpl
+	utils.Debug("Loaded %d templates from %s", counter, baseDir)
 	return nil
 }
 
+func watchForChanges(baseDir string) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		utils.Error("fsnotify error: %v", err)
+		return
+	}
+	defer watcher.Close()
+
+	err = filepath.Walk(baseDir, func(path string, info os.FileInfo, err error) error {
+		if info != nil && info.IsDir() {
+			return watcher.Add(path)
+		}
+		return nil
+	})
+	if err != nil {
+		utils.Error("Watcher setup failed: %v", err)
+		return
+	}
+
+	for {
+		select {
+		case event := <-watcher.Events:
+			if filepath.Ext(event.Name) == ".html" {
+				utils.Debug("Template changed: %s", event.Name)
+				loadTemplates(baseDir)
+			}
+		case err := <-watcher.Errors:
+			utils.Error("Watcher error: %v", err)
+		}
+	}
+}
+
 func RenderTemplate(w http.ResponseWriter, layout string, data any) error {
+	mu.RLock()
+	defer mu.RUnlock()
 
 	utils.Debug("Rendering template: %s", layout)
-
 	err := Tmpl.ExecuteTemplate(w, layout, data)
 	if err != nil {
-		utils.Debug("ExecuteTemplate failed: %v", err)
+		utils.Error("ExecuteTemplate failed: %v", err)
+		http.Error(w, "Template rendering error", http.StatusInternalServerError)
 	}
 	return err
 }

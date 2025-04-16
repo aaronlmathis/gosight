@@ -57,10 +57,10 @@ func ConvertToModelPayload(pbPayload *proto.MetricPayload) model.MetricPayload {
 		metrics = append(metrics, metric)
 	}
 	return model.MetricPayload{
-		Host:      pbPayload.Host,
-		Timestamp: pbPayload.Timestamp.AsTime(),
-		Metrics:   metrics,
-		Meta:      modelMeta,
+		EndpointID: pbPayload.EndpointId,
+		Timestamp:  pbPayload.Timestamp.AsTime(),
+		Metrics:    metrics,
+		Meta:       modelMeta,
 	}
 }
 

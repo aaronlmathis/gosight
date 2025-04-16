@@ -1,4 +1,4 @@
-const ws = new WebSocket("ws://localhost:8080/ws/metrics");
+const socket = new WebSocket("ws://" + location.host + "/ws/metrics?endpointID=" + encodeURIComponent(window.endpointID));
 
 const chartAnimation = {
     tension: {
@@ -29,7 +29,7 @@ let latestCpuPercent = 0;
 
 let latestMemUsedPercent = 0;
 
-ws.onmessage = (event) => {
+socket.onmessage = (event) => {
     try {
         const data = JSON.parse(event.data);
         console.log("🧩 WebSocket payload:", data);
@@ -281,8 +281,8 @@ function updateMiniCharts(metrics) {
         }
         miniCharts.swap.update();
     }
-    
-    
+
+
 }
 function setupContainerFilters() {
     const statusFilter = document.getElementById("filter-container-status");

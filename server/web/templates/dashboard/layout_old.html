@@ -1,4 +1,5 @@
-{{ define "dashboard/layout_old
+{{ define "dashboard/layout_old" }}
+
 <html lang="en">
 
 <head>
@@ -25,11 +26,7 @@
   <!-- Shared Scripts -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
   <script src="https://unpkg.com/@popperjs/core@2"></script>
-  {{ block "scripts" . }}
-    <script src="/js/theme-toggle.js"></script>
-    <script src="/js/user-menu.js"></script>
-    {{ block "page-scripts" . }}{{ end }}
-  {{ end }}
+
 </body>
 
 </html>

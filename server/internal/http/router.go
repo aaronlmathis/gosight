@@ -89,7 +89,16 @@ func (s *HttpServer) setupAuthRoutes() {
 }
 
 func (s *HttpServer) setupIndexRoutes() {
-	s.Router.HandleFunc("/", s.HandleIndex).Methods("GET")
+	s.Router.Handle("/",
+		gosightauth.AuthMiddleware(s.UserStore)(
+			gosightauth.RequirePermission("gosight:dashboard:view",
+				gosightauth.AccessLogMiddleware(
+					http.HandlerFunc(s.HandleEndpointPage),
+				),
+				s.UserStore,
+			),
+		),
+	)
 }
 
 func (s *HttpServer) setupEndpointRoutes() {
