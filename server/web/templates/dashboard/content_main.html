@@ -177,51 +177,13 @@
                         <span class="text-xs text-gray-500 dark:text-gray-400">Last 10 entries</span>
                     </div>
                     <div id="log-stream"
-                        class="overflow-y-auto flex-grow rounded border border-gray-300 dark:border-gray-700 p-2 space-y-1 bg-white dark:bg-gray-900 max-h-64 text-xs font-mono text-gray-700 dark:text-gray-200">
+                        class="overflow-y-auto break-words whitespace-pre-wrap text-sm font-mono bg-gray-100 dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700 w-full h-40 space-y-1">
                         <!-- Logs go here -->
                     </div>
                 </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div
-                    class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full">
-                    <h3 class="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
-                        Recent Events
-                    </h3>
-                    <ul class="text-xs space-y-1">
-                        <li>⚠️ High memory usage exceeded 90%</li>
-                        <li>✅ Pod restarted successfully</li>
-                        <li>ℹ️ Sync completed at 12:42 PM</li>
-                    </ul>
 
 
-
-
-
-                    <span id="mem-total"></span>
-
-
-                </div>
-
-                <div
-                    class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Uptime</p>
-                    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-
-
-                    </p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500">duration</p>
-                </div>
-
-                <div
-                    class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Processes</p>
-                    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-                        <span id="procs"></span>
-                    </p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500">count</p>
-                </div>
-            </div>
 
             <div class="mt-8">
                 <div

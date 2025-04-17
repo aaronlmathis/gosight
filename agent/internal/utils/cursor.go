@@ -6,10 +6,14 @@ import (
 )
 
 // LoadCursor reads the last saved journald cursor from a file.
+// It returns an empty string and nil error if the file does not exist.
 func LoadCursor(path string) (string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return "", err
+		if os.IsNotExist(err) {
+			return "", nil // File doesn't exist, return empty cursor and no error
+		}
+		return "", err // Other errors should be returned
 	}
 	return strings.TrimSpace(string(data)), nil
 }
