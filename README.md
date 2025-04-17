@@ -135,7 +135,7 @@ go build -o gosight-server ./server/cmd
 ## Dashboard Mockups
 
 ### Overview Page
-![Overview Page](images/goSight-dev-mockup-Overview-Page.png)
+![Overview Page](images/goSight-dev-live-data-Overview-Page.png)
 
 ### Compute Page
 ![Compute Page](images/goSight-dev-mockup-Compute-Page.png)
