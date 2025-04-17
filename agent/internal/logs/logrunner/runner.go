@@ -22,6 +22,7 @@ type LogRunner struct {
 }
 
 func NewRunner(ctx context.Context, cfg *config.Config, agentID, agentVersion string) (*LogRunner, error) {
+
 	logRegistry := logcollector.NewRegistry(cfg)
 	logSender, err := logsender.NewSender(ctx, cfg)
 	if err != nil {

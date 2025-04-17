@@ -29,6 +29,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type LogCollectionConfig struct {
+	Sources    []string `yaml:"sources"`
+	Services   []string `yaml:"services"`
+	BatchSize  int      `yaml:"batch_size"`
+	MessageMax int      `yaml:"message_max"`
+	CursorFile string   `yaml:"cursor_file"`
+	LastCursor string   `yaml:"-"` // this field is set dynamically, not from YAML
+}
 type Config struct {
 	TLS struct {
 		CAFile   string `yaml:"ca_file"`   // used by agent to trust the server
@@ -48,22 +56,17 @@ type Config struct {
 	}
 
 	Agent struct {
-		ServerURL      string        `yaml:"server_url"`
-		Interval       time.Duration `yaml:"interval"`
-		HostOverride   string        `yaml:"host"`
-		MetricsEnabled []string      `yaml:"metrics_enabled"`
-		LogCollection  struct {
-			Sources    []string `yaml:"sources"`     // list of log sources to collect from
-			Services   []string `yaml:"services"`    // list of services to collect logs from
-			BatchSize  int      `yaml:"batch_size"`  // batch size to send logentries.
-			MessageMax int      `yaml:"message_max"` // max length of messages before truncating.
-		} `yaml:"log_collection"`
-		Environment   string            `yaml:"environment"`
-		AppLogFile    string            `yaml:"app_log_file"`
-		ErrorLogFile  string            `yaml:"error_log_file"`
-		AccessLogFile string            `yaml:"access_log_file"`
-		LogLevel      string            `yaml:"log_level"`
-		CustomTags    map[string]string `yaml:"custom_tags"` // static tags to be sent with every metric
+		ServerURL      string              `yaml:"server_url"`
+		Interval       time.Duration       `yaml:"interval"`
+		HostOverride   string              `yaml:"host"`
+		MetricsEnabled []string            `yaml:"metrics_enabled"`
+		LogCollection  LogCollectionConfig `yaml:"log_collection"`
+		Environment    string              `yaml:"environment"`
+		AppLogFile     string              `yaml:"app_log_file"`
+		ErrorLogFile   string              `yaml:"error_log_file"`
+		AccessLogFile  string              `yaml:"access_log_file"`
+		LogLevel       string              `yaml:"log_level"`
+		CustomTags     map[string]string   `yaml:"custom_tags"` // static tags to be sent with every metric
 	}
 }
 

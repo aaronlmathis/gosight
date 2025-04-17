@@ -51,14 +51,92 @@ socket.onmessage = (event) => {
 
         if (envelope.type === "logs") {
             const logPayload = envelope.data;
-            //console.log("📨 Logs:", logPayload);
-            // You can render logs with a renderLogs(logPayload.logs) here
+            if (logPayload?.Logs?.length > 0) {
+                for (const log of logPayload.Logs) {
+                    appendLogLine(log);
+                }
+            }
         }
 
     } catch (err) {
         console.error("❌ Failed to parse WebSocket JSON:", err);
     }
 };
+//
+//
+// LOG STREAMING SECTION
+//
+//
+const maxLogLines = 10;
+const logContainer = document.getElementById("log-stream");
+
+function renderLogLine(log) {
+    const ts = new Date(log.timestamp).toLocaleTimeString();
+    const level = log.level?.toUpperCase() || "INFO";
+    const source = log.source || log.meta?.service || "unknown";
+    const message = log.message || "";
+
+    return `[${ts}] [${level}] ${source}: ${message}`;
+}
+function appendLogLine(log) {
+    const container = document.getElementById("log-stream");
+
+    const div = document.createElement("div");
+    div.className = "px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition flex flex-wrap";
+
+    const ts = new Date(log.timestamp).toLocaleTimeString();
+    const level = log.level?.toUpperCase() || "INFO";
+    const source = log.source || log.meta?.service || "unknown";
+    const message = log.message || "";
+
+    const levelColors = {
+        ERROR: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200",
+        WARN: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+        INFO: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200",
+        DEBUG: "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200",
+    };
+
+    const badge = document.createElement("span");
+    badge.className = `text-[10px] font-bold mr-2 px-1.5 py-0.5 rounded ${levelColors[level] || "bg-gray-100 text-gray-600"}`;
+    badge.textContent = level;
+
+    const text = document.createElement("span");
+    text.className = "whitespace-pre-wrap break-words";
+    text.textContent = `[${ts}] ${source}: ${message}`;
+
+    div.appendChild(badge);
+    div.appendChild(text);
+
+    // ✅ Add new entry to bottom
+    container.appendChild(div);
+
+    // ✅ Trim to last 10 logs
+    while (container.children.length > 10) {
+        container.removeChild(container.firstChild);
+    }
+
+    container.scrollTop = container.scrollHeight;
+}
+
+function formatTime(iso) {
+    try {
+        const d = new Date(iso);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    } catch {
+        return "--:--:--";
+    }
+}
+
+function logLevelColorClass(level) {
+    switch (level.toLowerCase()) {
+        case "error": return "text-red-600 dark:text-red-400";
+        case "warn": return "text-yellow-600 dark:text-yellow-300";
+        case "info": return "text-blue-600 dark:text-blue-400";
+        case "debug": return "text-gray-600 dark:text-gray-400";
+        default: return "text-gray-700 dark:text-gray-300";
+    }
+}
+// END LOG STREAMING
 
 function extractHostSummary(metrics, meta) {
     const summary = {

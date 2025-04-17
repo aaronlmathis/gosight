@@ -51,11 +51,11 @@ func (h *Hub) Run() {
 				switch envelope.Type {
 				case "metrics":
 					if payload, ok := envelope.Data.(*model.MetricPayload); ok {
-						utils.Debug("🔎 Filtering for client: %s | payload from: %s | host_id: %s",
-							client.EndpointID, payload.EndpointID, payload.Meta.Tags["host_id"])
+						//utils.Debug("Filtering for client: %s | payload from: %s | host_id: %s",
+						//	client.EndpointID, payload.EndpointID, payload.Meta.Tags["host_id"])
 						// Exact match (host or container directly watched)
 						if payload.EndpointID == client.EndpointID {
-							// ✅ direct match
+							//  direct match
 						} else if strings.HasPrefix(payload.EndpointID, "container-") &&
 							payload.Meta != nil &&
 							payload.Meta.Tags != nil &&
@@ -66,10 +66,13 @@ func (h *Hub) Run() {
 						}
 					}
 				case "logs":
-					if payload, ok := envelope.Data.(*model.LogPayload); ok {
-						if payload.EndpointID != client.EndpointID {
-							continue
-						}
+					raw, _ := json.Marshal(envelope.Data)
+					var payload model.LogPayload
+					if err := json.Unmarshal(raw, &payload); err != nil {
+						continue
+					}
+					if payload.EndpointID != client.EndpointID {
+						continue
 					}
 				}
 			}

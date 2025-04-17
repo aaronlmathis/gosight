@@ -169,6 +169,19 @@
                     </div>
                 </div>
             </div>
+            <div class="grid grid-cols-1 gap-4 mb-6">
+                <div
+                    class="p-4 sm:p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col h-64">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Live Logs</h3>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Last 10 entries</span>
+                    </div>
+                    <div id="log-stream"
+                        class="overflow-y-auto flex-grow rounded border border-gray-300 dark:border-gray-700 p-2 space-y-1 bg-white dark:bg-gray-900 max-h-64 text-xs font-mono text-gray-700 dark:text-gray-200">
+                        <!-- Logs go here -->
+                    </div>
+                </div>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div
                     class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm flex flex-col justify-between h-full">
@@ -500,7 +513,8 @@
                         class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
                         <p class="text-sm text-gray-500 dark:text-gray-400">Disk Usage</p>
                         <p class="text-xl font-bold text-yellow-500 dark:text-yellow-400"><span
-                                id="disk-percent"></span>%</p>
+                                id="disk-percent"></span>%
+                        </p>
                     </div>
                 </div>
 

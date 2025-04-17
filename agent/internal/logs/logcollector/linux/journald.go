@@ -7,14 +7,16 @@ import (
 	"time"
 
 	"github.com/aaronlmathis/gosight/agent/internal/config"
+	agentutils "github.com/aaronlmathis/gosight/agent/internal/utils"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/coreos/go-systemd/v22/sdjournal"
 )
 
 type JournaldCollector struct {
-	journal *sdjournal.Journal
-	Config  *config.Config
+	journal    *sdjournal.Journal
+	Config     *config.Config
+	lastCursor string
 }
 
 func NewJournaldCollector(cfg *config.Config) *JournaldCollector {
@@ -23,10 +25,17 @@ func NewJournaldCollector(cfg *config.Config) *JournaldCollector {
 		// Optional: log or panic if initialization fails
 		utils.Debug("Failed to open systemd journal: %v", err)
 	}
-
+	lastCursor, err := agentutils.LoadCursor(cfg.Agent.LogCollection.CursorFile)
+	if err != nil {
+		utils.Warn("⚠️ Error loading last cursor: %v", err)
+		lastCursor = "" // Start from now if loading fails
+	} else {
+		utils.Debug("Loaded last cursor: %s", lastCursor)
+	}
 	return &JournaldCollector{
-		Config:  cfg,
-		journal: j,
+		Config:     cfg,
+		journal:    j,
+		lastCursor: lastCursor,
 	}
 }
 
@@ -35,56 +44,88 @@ func (c *JournaldCollector) Name() string {
 }
 
 func (c *JournaldCollector) Collect(ctx context.Context) ([][]model.LogEntry, error) {
-
 	var allBatches [][]model.LogEntry
 	var current []model.LogEntry
 
-	batchSize := c.Config.Agent.LogCollection.BatchSize
-	maxMessageSize := c.Config.Agent.LogCollection.MessageMax
-
-	_ = c.journal.SeekTail() // read most recent first
-
-	// Clear existing matches and apply default filter: only important log levels
-	c.journal.FlushMatches()
-	_ = c.journal.AddMatch("PRIORITY<=4")
-
-	wait := c.journal.Wait(500 * time.Millisecond)
-	if wait != sdjournal.SD_JOURNAL_APPEND {
+	if c.journal == nil {
+		utils.Warn("Journal not initialized")
 		return allBatches, nil
 	}
 
+	batchSize := c.Config.Agent.LogCollection.BatchSize
+	maxMsgSize := c.Config.Agent.LogCollection.MessageMax
+
+	// Always apply a default filter: only priority 0–4 (emerg to warning)
+	c.journal.FlushMatches()
+	_ = c.journal.AddMatch("PRIORITY<=4")
+
+	if c.lastCursor == "" {
+		utils.Debug("📭 No prior cursor loaded — seeking to tail (most recent)")
+		err := c.journal.SeekTail()
+		if err != nil {
+			utils.Warn("Failed to seek to tail: %v", err)
+		}
+		// We do NOT return here. We want to start reading any new logs after seeking to the tail.
+	} else {
+		utils.Debug("Seeking to last known cursor: %s", c.lastCursor)
+		err := c.journal.SeekCursor(c.lastCursor)
+		if err != nil {
+			utils.Warn("Failed to seek to saved cursor (%s): %v. Falling back to seeking tail.", c.lastCursor, err)
+			_ = c.journal.SeekTail()
+			c.lastCursor = "" // Reset lastCursor to ensure we save a new one from now
+		}
+	}
+
+loop:
 	for {
 		select {
 		case <-ctx.Done():
-			if len(current) > 0 {
-				allBatches = append(allBatches, current)
-			}
-			return allBatches, ctx.Err()
-
+			break loop
 		default:
+			r := c.journal.Wait(250 * time.Millisecond)
+			if r != sdjournal.SD_JOURNAL_APPEND {
+				break loop
+			}
+
 			n, err := c.journal.Next()
-			if err != nil || n == 0 {
-				if len(current) > 0 {
-					allBatches = append(allBatches, current)
-				}
-				return allBatches, err
+			if err != nil {
+				utils.Error("journal.Next() failed: %v", err)
+				break loop
+			}
+			if n == 0 {
+				break loop
 			}
 
 			entry, err := c.journal.GetEntry()
-			if err != nil {
+			if err != nil || entry == nil {
 				continue
 			}
 
-			log := buildLogEntry(entry, maxMessageSize)
+			utils.Debug("New log entry: %s | %s", entry.Fields["SYSLOG_IDENTIFIER"], entry.Fields["MESSAGE"])
+
+			log := buildLogEntry(entry, maxMsgSize)
 			current = append(current, log)
 
 			if len(current) >= batchSize {
 				allBatches = append(allBatches, current)
 				current = nil
 			}
-		}
 
+			// Save cursor for next run
+			if cursor := entry.Cursor; cursor != "" {
+				c.lastCursor = cursor
+				agentutils.SaveCursor(c.Config.Agent.LogCollection.CursorFile, cursor)
+				utils.Debug("Saved cursor: %s", cursor)
+			}
+		}
 	}
+
+	if len(current) > 0 {
+		allBatches = append(allBatches, current)
+	}
+
+	utils.Debug("Collect() returning %d batches", len(allBatches))
+	return allBatches, nil
 }
 
 func buildLogEntry(entry *sdjournal.JournalEntry, maxSize int) model.LogEntry {
