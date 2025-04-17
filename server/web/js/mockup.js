@@ -26,7 +26,7 @@ const miniCharts = {
 };
 
 let latestCpuPercent = 0;
-
+let latestSwapUsedPercent = 0;
 let latestMemUsedPercent = 0;
 
 socket.onmessage = (event) => {
@@ -82,7 +82,8 @@ function appendLogLine(log) {
     const container = document.getElementById("log-stream");
 
     const div = document.createElement("div");
-    div.className = "px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition flex flex-wrap";
+    div.className =
+        "flex items-start space-x-2 mb-1 p-2 rounded-md shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition";
 
     const ts = new Date(log.timestamp).toLocaleTimeString();
     const level = log.level?.toUpperCase() || "INFO";
@@ -90,41 +91,30 @@ function appendLogLine(log) {
     const message = log.message || "";
 
     const levelColors = {
-        ERROR: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200",
-        WARN: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-        INFO: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200",
-        DEBUG: "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200",
+        ERROR: "bg-red-200 text-red-900 dark:bg-red-800 dark:text-red-200",
+        WARN: "bg-yellow-200 text-yellow-900 dark:bg-yellow-800 dark:text-yellow-100",
+        INFO: "bg-blue-200 text-blue-900 dark:bg-blue-800 dark:text-blue-100",
+        DEBUG: "bg-gray-300 text-gray-900 dark:bg-gray-700 dark:text-gray-200",
     };
 
     const badge = document.createElement("span");
-    badge.className = `text-[10px] font-bold mr-2 px-1.5 py-0.5 rounded ${levelColors[level] || "bg-gray-100 text-gray-600"}`;
+    badge.className = `text-[10px] font-semibold px-2 py-0.5 rounded ${levelColors[level] || "bg-gray-100 text-gray-600"}`;
     badge.textContent = level;
 
-    const text = document.createElement("span");
-    text.className = "whitespace-pre-wrap break-words";
+    const text = document.createElement("div");
+    text.className = "flex-1 text-xs font-mono whitespace-pre-wrap break-words text-gray-800 dark:text-gray-200";
     text.textContent = `[${ts}] ${source}: ${message}`;
 
     div.appendChild(badge);
     div.appendChild(text);
 
-    // ✅ Add new entry to bottom
     container.appendChild(div);
 
-    // ✅ Trim to last 10 logs
-    while (container.children.length > 10) {
+    while (container.children.length > maxLogLines) {
         container.removeChild(container.firstChild);
     }
 
     container.scrollTop = container.scrollHeight;
-}
-
-function formatTime(iso) {
-    try {
-        const d = new Date(iso);
-        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    } catch {
-        return "--:--:--";
-    }
 }
 
 function logLevelColorClass(level) {
@@ -359,15 +349,25 @@ function updateMiniCharts(metrics) {
         }
     }
 
-    if (miniCharts.swap && typeof swapVal === "number" && !isNaN(swapVal)) {
+    if (miniCharts.swap) {
+        const val = typeof swapVal === "number" && !isNaN(swapVal) ? swapVal : latestSwapUsedPercent;
         const d = miniCharts.swap.data;
+
         d.labels.push(timestamp);
-        d.datasets[0].data.push(swapVal);
+        d.datasets[0].data.push(val);
+
         if (d.labels.length > 30) {
             d.labels.shift();
             d.datasets[0].data.shift();
         }
+
         miniCharts.swap.update();
+
+        if (typeof swapVal === "number" && !isNaN(swapVal)) {
+            latestSwapUsedPercent = swapVal;
+            const label = document.getElementById("swap-percent-label");
+            if (label) label.textContent = `${val.toFixed(1)}%`;
+        }
     }
 
 

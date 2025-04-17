@@ -44,6 +44,8 @@ func (c *JournaldCollector) Name() string {
 }
 
 func (c *JournaldCollector) Collect(ctx context.Context) ([][]model.LogEntry, error) {
+	utils.Debug("🟢 Entered Collect() for JournaldCollector")
+
 	var allBatches [][]model.LogEntry
 	var current []model.LogEntry
 
@@ -54,6 +56,7 @@ func (c *JournaldCollector) Collect(ctx context.Context) ([][]model.LogEntry, er
 
 	batchSize := c.Config.Agent.LogCollection.BatchSize
 	maxMsgSize := c.Config.Agent.LogCollection.MessageMax
+	utils.Debug("maxMsgSize: %d, batchSize: %d", maxMsgSize, batchSize)
 
 	// Always apply a default filter: only priority 0–4 (emerg to warning)
 	c.journal.FlushMatches()
@@ -63,16 +66,29 @@ func (c *JournaldCollector) Collect(ctx context.Context) ([][]model.LogEntry, er
 		utils.Debug("📭 No prior cursor loaded — seeking to tail (most recent)")
 		err := c.journal.SeekTail()
 		if err != nil {
-			utils.Warn("Failed to seek to tail: %v", err)
+			utils.Warn("⚠️ Failed to seek to tail: %v", err)
+		} else {
+			utils.Debug("Successfully called SeekTail()")
+			n, err := c.journal.Next()
+			if err == nil && n > 0 {
+				entry, err := c.journal.GetEntry()
+				if err == nil && entry != nil {
+					entryTimestamp := time.Unix(0, int64(entry.RealtimeTimestamp)*int64(time.Microsecond)).UTC()
+					utils.Debug("First entry after SeekTail (no cursor): %s | Timestamp (UTC): %s", entry.Fields["MESSAGE"], entryTimestamp.String())
+				} else {
+					utils.Warn("Error getting first entry after SeekTail: %v, entry: %v", err, entry)
+				}
+			} else {
+				utils.Debug("No entry immediately after SeekTail: n=%d, err=%v", n, err)
+			}
 		}
-		// We do NOT return here. We want to start reading any new logs after seeking to the tail.
 	} else {
 		utils.Debug("Seeking to last known cursor: %s", c.lastCursor)
 		err := c.journal.SeekCursor(c.lastCursor)
 		if err != nil {
 			utils.Warn("Failed to seek to saved cursor (%s): %v. Falling back to seeking tail.", c.lastCursor, err)
 			_ = c.journal.SeekTail()
-			c.lastCursor = "" // Reset lastCursor to ensure we save a new one from now
+			c.lastCursor = "" // Reset lastCursor
 		}
 	}
 
@@ -83,6 +99,7 @@ loop:
 			break loop
 		default:
 			r := c.journal.Wait(250 * time.Millisecond)
+			utils.Debug("journal.Wait() returned: %d", r)
 			if r != sdjournal.SD_JOURNAL_APPEND {
 				break loop
 			}
@@ -92,17 +109,22 @@ loop:
 				utils.Error("journal.Next() failed: %v", err)
 				break loop
 			}
+			utils.Debug("journal.Next() advanced by: %d", n)
 			if n == 0 {
+				utils.Debug("journal.Next() returned 0, breaking loop.")
 				break loop
 			}
 
 			entry, err := c.journal.GetEntry()
 			if err != nil || entry == nil {
+				utils.Warn("Failed to get journal entry: %v, entry: %v", err, entry)
 				continue
 			}
 
-			utils.Debug("New log entry: %s | %s", entry.Fields["SYSLOG_IDENTIFIER"], entry.Fields["MESSAGE"])
-
+			entryTimestamp := time.Unix(0, int64(entry.RealtimeTimestamp)*int64(time.Microsecond)).UTC()
+			utils.Debug("Processing entry: %s | %s | Cursor: %s | Timestamp (UTC): %s",
+				entry.Fields["SYSLOG_IDENTIFIER"], entry.Fields["MESSAGE"], entry.Cursor, entryTimestamp.String())
+			utils.Debug("maxMsgSize: %d, batchSize: %d", maxMsgSize, batchSize)
 			log := buildLogEntry(entry, maxMsgSize)
 			current = append(current, log)
 
@@ -113,9 +135,14 @@ loop:
 
 			// Save cursor for next run
 			if cursor := entry.Cursor; cursor != "" {
+				utils.Debug("About to save cursor: %s", cursor)
 				c.lastCursor = cursor
-				agentutils.SaveCursor(c.Config.Agent.LogCollection.CursorFile, cursor)
-				utils.Debug("Saved cursor: %s", cursor)
+				err := agentutils.SaveCursor(c.Config.Agent.LogCollection.CursorFile, cursor)
+				if err != nil {
+					utils.Error("Error saving cursor: %v", err)
+				} else {
+					utils.Debug("Saved cursor: %s", cursor)
+				}
 			}
 		}
 	}
