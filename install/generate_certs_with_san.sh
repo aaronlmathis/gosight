@@ -1,7 +1,9 @@
 #!/bin/bash
 set -e
 
-echo "GoSight TLS Cert Generator (with SANs)"
+echo "🔐 GoSight TLS Cert Generator (with SANs)"
+read -p "Enter the hostname or IP for the server certificate SAN (e.g., gosight.local or 192.168.0.40): " HOSTNAME
+
 mkdir -p certs && cd certs
 
 # === 1. Generate CA ===
@@ -18,7 +20,7 @@ req_extensions     = req_ext
 distinguished_name = dn
 
 [ dn ]
-CN =localhost
+CN = ${HOSTNAME}
 
 [ req_ext ]
 subjectAltName = @alt_names
@@ -26,6 +28,7 @@ subjectAltName = @alt_names
 [ alt_names ]
 DNS.1 = localhost
 IP.1  = 127.0.0.1
+DNS.2 = ${HOSTNAME}
 EOF
 
 # === 3. Generate server cert ===
