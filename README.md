@@ -132,16 +132,19 @@ go build -o gosight-agent ./agent/cmd
 go build -o gosight-server ./server/cmd
 ```
 ---
-## Dashboard Mockups
+## Dashboard (in current form)
 
-### Overview Page
-![Overview Page](images/goSight-dev-live-data-Overview-Page.png)
+### Endpoints Page (live data)
+![Endpoints Page](images/gosight-dev-live-data-Endpoints-Page.png)
 
-### Compute Page
-![Compute Page](images/goSight-dev-mockup-Compute-Page.png)
+### Endpoint Detail / Overview Tab (live data)
+![Endpoint Detail / Overview Tab (live data)](images/goSight-dev-live-data-Overview-Page.png)
 
-### Network Page
-![Network Page](images/goSight-dev-mockup-Network-Page.png)
+### Endpoint Detail / Overview Tab (mockup)
+![Endpoint Detail / Overview Tab (mockup)](images/goSight-dev-mockup-Compute-Page.png)
+
+### Endpoint Detail / Overview Tab (mockup)
+![Endpoint Detail / Overview Tab (mockup)](images/goSight-dev-mockup-Network-Page.png)
 
 
 ---
