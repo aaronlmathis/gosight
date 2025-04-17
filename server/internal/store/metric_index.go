@@ -89,7 +89,7 @@ func (idx *MetricIndex) Add(namespace, sub, name string, dims map[string]string)
 		idx.MetricDimensions = make(map[string]map[string]string)
 	}
 	idx.MetricDimensions[fullName] = dims
-	//utils.Debug("🔢 Indexed metric %s with dimensions: %+v", fullName, dims)
+	//	utils.Debug("🔢 Indexed metric %s with dimensions: %+v", fullName, dims)
 }
 
 func (idx *MetricIndex) GetNamespaces() []string {

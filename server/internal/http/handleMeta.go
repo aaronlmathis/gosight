@@ -140,65 +140,12 @@ func (s *HttpServer) GetLatestValue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *HttpServer) HandleAPIQuery(w http.ResponseWriter, r *http.Request) {
-	/*
-		metric := r.URL.Query().Get("metric")
-		if metric == "" {
-			utils.JSON(w, http.StatusBadRequest, map[string]string{"error": "missing 'metric' parameter"})
-			return
-		}
 
-		latest := r.URL.Query().Get("latest") == "true"
-		startStr := r.URL.Query().Get("start")
-		endStr := r.URL.Query().Get("end")
-
-		var start, end time.Time
-		var err error
-		if startStr != "" {
-			start, err = time.Parse(time.RFC3339, startStr)
-			if err != nil {
-				utils.JSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid start time: %v", err)})
-				return
-			}
-		}
-		if endStr != "" {
-			end, err = time.Parse(time.RFC3339, endStr)
-			if err != nil {
-				utils.JSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid end time: %v", err)})
-				return
-			}
-		}
-
-		filters := parseQueryFilters(r)
-
-		if latest {
-			rows, err := s.MetricStore.QueryInstant(metric, filters)
-			if err != nil {
-				utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("query error: %v", err)})
-				return
-			}
-			if len(rows) == 0 {
-				utils.JSON(w, http.StatusOK, []model.Point{})
-				return
-			}
-			utils.JSON(w, http.StatusOK, model.Point{
-				Timestamp: time.Now().UTC().Format(time.RFC3339),
-				Value:     rows[0].Value,
-			})
-			return
-		}
-
-		points, err := s.MetricStore.QueryRange(metric, start, end, filters)
-		if err != nil {
-			utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("query range error: %v", err)})
-			return
-		}
-		utils.JSON(w, http.StatusOK, points)
-	*/
-	utils.Debug("📊 Known dimensions: %+v", s.MetricIndex.GetDimensions())
+	utils.Debug("Known dimensions: %+v", s.MetricIndex.GetDimensions())
 
 	query := r.URL.Query()
 
-	metricName := query.Get("metric") // Optional
+	metricNames := query["metric"]
 
 	// Optional time range
 	startStr := query.Get("start")
@@ -231,8 +178,8 @@ func (s *HttpServer) HandleAPIQuery(w http.ResponseWriter, r *http.Request) {
 		filters[key] = vals[0]
 	}
 
-	utils.Debug(" Query Mode: metric=%q, start=%v, end=%v, filters=%+v", metricName, start, end, filters)
-	if len(filters) == 0 && metricName == "" {
+	utils.Debug(" Query Mode: metric=%q, start=%v, end=%v, filters=%+v", metricNames, start, end, filters)
+	if len(filters) == 0 && len(metricNames) == 0 {
 		http.Error(w, "must specify at least one filter or a metric name", http.StatusBadRequest)
 		return
 	}
@@ -240,13 +187,13 @@ func (s *HttpServer) HandleAPIQuery(w http.ResponseWriter, r *http.Request) {
 	var result any
 
 	switch {
-	case metricName != "" && !start.IsZero() && !end.IsZero():
-		result, err = s.MetricStore.QueryRange(metricName, start, end, filters)
+	case len(metricNames) > 0 && !start.IsZero() && !end.IsZero():
+		result, err = s.MetricStore.QueryMultiRange(metricNames, start, end, filters)
 
-	case metricName != "":
-		result, err = s.MetricStore.QueryInstant(metricName, filters)
+	case len(metricNames) > 0:
+		result, err = s.MetricStore.QueryMultiInstant(metricNames, filters)
 
-	case metricName == "":
+	case len(metricNames) == 0:
 		// Power mode — return matching metrics across all known names
 		utils.Debug("📡 Metric omitted — searching all available metrics")
 

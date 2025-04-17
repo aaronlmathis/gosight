@@ -382,7 +382,8 @@ func (v *VictoriaStore) QueryInstant(metric string, filters map[string]string) (
 	query := BuildPromQL(metric, filters)
 
 	fullURL := fmt.Sprintf("%s/api/v1/query?query=%s", v.url, url.QueryEscape(query))
-	//utils.Debug("📡 QueryInstant URL: %s", fullURL)
+	utils.Debug("QueryInstant: metric=%s filters=%+v", metric, filters)
+	utils.Debug("📡 QueryInstant URL: %s", fullURL)
 
 	resp, err := http.Get(fullURL)
 	if err != nil {

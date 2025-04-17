@@ -297,7 +297,7 @@ function updateMiniCharts(metrics) {
 function setupContainerFilters() {
     const statusFilter = document.getElementById("filter-container-status");
     const runtimeFilter = document.getElementById("filter-runtime");
-    const hostFilter = document.getElementById("filter-host");
+    const hostFilter = document.getElementById("filter-container-name");
 
     function applyContainerFilters() {
         const statusVal = statusFilter.value.toLowerCase();
@@ -309,7 +309,7 @@ function setupContainerFilters() {
         rows.forEach((row) => {
             const status = row.getAttribute("data-status")?.toLowerCase() || "";
             const runtime = row.getAttribute("data-runtime")?.toLowerCase() || "";
-            const host = row.getAttribute("data-host")?.toLowerCase() || "";
+            const host = row.getAttribute("data-container-name")?.toLowerCase() || "";
 
             const matchStatus = !statusVal || status === statusVal;
             const matchRuntime = !runtimeVal || runtime === runtimeVal;
@@ -419,6 +419,7 @@ function updateContainerTable(payload) {
         row.setAttribute("data-status", container.status);      // "running" or "stopped"
         row.setAttribute("data-runtime", meta.subnamespace || ""); // "podman" or "docker"
         row.setAttribute("data-host", container.host);           // e.g. "DeepThought"
+        row.setAttribute("data-container-name", container.name);
         row.innerHTML = html;
         tbody.appendChild(row);
     }

@@ -25,6 +25,7 @@ package store
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
 
@@ -54,7 +55,10 @@ func (t *AgentTracker) UpdateAgent(meta *model.Meta) {
 		utils.Warn("Skipping UpdateAgent: meta.Hostname is empty")
 		return
 	}
-
+	if !strings.HasPrefix(meta.EndpointID, "host-") {
+		//utils.Debug("Skipping container-level meta for AgentID=%s (EndpointID=%s)", meta.AgentID, meta.EndpointID)
+		return
+	}
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
