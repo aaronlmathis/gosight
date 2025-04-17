@@ -67,7 +67,7 @@ func (r *LogRegistry) Collect(ctx context.Context) ([][]model.LogEntry, error) {
 			continue
 		}
 		allBatches = append(allBatches, logBatches...)
-		utils.Debug("✔️ LogRegistry returned %d batches", len(logBatches))
+		//utils.Debug("✔️ LogRegistry returned %d batches", len(logBatches))
 	}
 
 	return allBatches, nil

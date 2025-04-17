@@ -35,23 +35,30 @@ func (c *JournaldCollector) Name() string {
 }
 
 func (c *JournaldCollector) Collect(ctx context.Context) ([][]model.LogEntry, error) {
-
 	var allBatches [][]model.LogEntry
 	var current []model.LogEntry
 
-	batchSize := c.Config.Agent.LogCollection.BatchSize
-	maxMessageSize := c.Config.Agent.LogCollection.MessageMax
-
-	_ = c.journal.SeekTail() // read most recent first
-
-	//filters := BuildJournaldFilterList(c.Config)
-	//for _, match := range filters {
-	//	_ = c.journal.AddMatch(match)
-	//}
-
-	wait := c.journal.Wait(500 * time.Millisecond)
-	if wait != sdjournal.SD_JOURNAL_APPEND {
+	if c.journal == nil {
 		return allBatches, nil
+	}
+
+	batchSize := c.Config.Agent.LogCollection.BatchSize
+	maxMsgSize := c.Config.Agent.LogCollection.MessageMax
+
+	// Optional: Add filters based on config
+	filters := BuildJournaldFilterList(c.Config)
+	for _, match := range filters {
+		_ = c.journal.AddMatch(match)
+	}
+
+	_ = c.journal.SeekTail()
+	n, err := c.journal.Next()
+	if err != nil || n == 0 {
+		// no new entries or error
+		if len(current) > 0 {
+			allBatches = append(allBatches, current)
+		}
+		return allBatches, err
 	}
 
 	for {
@@ -63,12 +70,13 @@ func (c *JournaldCollector) Collect(ctx context.Context) ([][]model.LogEntry, er
 			return allBatches, ctx.Err()
 
 		default:
+			if c.journal.Wait(250*time.Millisecond) != sdjournal.SD_JOURNAL_APPEND {
+				continue
+			}
+
 			n, err := c.journal.Next()
 			if err != nil || n == 0 {
-				if len(current) > 0 {
-					allBatches = append(allBatches, current)
-				}
-				return allBatches, err
+				continue
 			}
 
 			entry, err := c.journal.GetEntry()
@@ -76,70 +84,168 @@ func (c *JournaldCollector) Collect(ctx context.Context) ([][]model.LogEntry, er
 				continue
 			}
 
-			timestamp := time.Unix(0, int64(entry.RealtimeTimestamp)*int64(time.Microsecond))
-
-			// Fields is huge.. trim down to useful fields before building LogEntry.
-			wanted := []string{"_SYSTEMD_UNIT", "_EXE", "_CMDLINE", "_PID", "_UID", "MESSAGE_ID", "SYSLOG_IDENTIFIER", "CONTAINER_ID", "CONTAINER_NAME"}
-			fields := make(map[string]string)
-			for _, k := range wanted {
-				if v, ok := entry.Fields[k]; ok {
-					fields[k] = v
-				}
-			}
-
-			// Truncate messages as they can get very large.
-			msg := entry.Fields["MESSAGE"]
-			if len(msg) > maxMessageSize {
-				msg = msg[:maxMessageSize] + " [truncated]"
-			}
-
-			log := model.LogEntry{
-				Timestamp: timestamp,
-				Level:     mapPriorityToLevel(entry.Fields["PRIORITY"]),
-				Message:   msg, // truncated above
-				Source:    entry.Fields["SYSLOG_IDENTIFIER"],
-				Category:  "", // Optional, can derive from unit
-				Host:      "", // Fill in at runner level
-				PID:       parsePID(entry.Fields["_PID"]),
-				Fields:    fields,
-				Tags: map[string]string{
-					"unit": entry.Fields["_SYSTEMD_UNIT"],
-				},
-				Meta: &model.LogMeta{
-					OS:            "linux",
-					Platform:      "journald",
-					AppName:       entry.Fields["SYSLOG_IDENTIFIER"],
-					ContainerID:   entry.Fields["CONTAINER_ID"],
-					ContainerName: entry.Fields["CONTAINER_NAME"],
-					Unit:          entry.Fields["_SYSTEMD_UNIT"],
-					Service:       entry.Fields["SYSLOG_IDENTIFIER"],
-					EventID:       entry.Fields["MESSAGE_ID"],
-					User:          entry.Fields["_UID"],
-					Executable:    entry.Fields["_EXE"],
-					Path:          entry.Fields["_CMDLINE"],
-					Extra:         map[string]string{},
-				},
-			}
-
+			log := buildLogEntry(entry, maxMsgSize)
 			current = append(current, log)
+
 			if len(current) >= batchSize {
 				allBatches = append(allBatches, current)
 				current = nil
 			}
 		}
+	}
+}
 
+/*
+func (c *JournaldCollector) Collect(ctx context.Context) ([][]model.LogEntry, error) {
+
+		var allBatches [][]model.LogEntry
+		var current []model.LogEntry
+
+		batchSize := c.Config.Agent.LogCollection.BatchSize
+		maxMessageSize := c.Config.Agent.LogCollection.MessageMax
+
+		_ = c.journal.SeekTail() // read most recent first
+
+		//filters := BuildJournaldFilterList(c.Config)
+		//for _, match := range filters {
+		//	_ = c.journal.AddMatch(match)
+		//}
+
+		wait := c.journal.Wait(500 * time.Millisecond)
+		if wait != sdjournal.SD_JOURNAL_APPEND {
+			return allBatches, nil
+		}
+
+		for {
+			select {
+			case <-ctx.Done():
+				if len(current) > 0 {
+					allBatches = append(allBatches, current)
+				}
+				return allBatches, ctx.Err()
+
+			default:
+				n, err := c.journal.Next()
+				if err != nil || n == 0 {
+					if len(current) > 0 {
+						allBatches = append(allBatches, current)
+					}
+					return allBatches, err
+				}
+
+				entry, err := c.journal.GetEntry()
+				if err != nil {
+					continue
+				}
+
+				timestamp := time.Unix(0, int64(entry.RealtimeTimestamp)*int64(time.Microsecond))
+
+				// Fields is huge.. trim down to useful fields before building LogEntry.
+				wanted := []string{"_SYSTEMD_UNIT", "_EXE", "_CMDLINE", "_PID", "_UID", "MESSAGE_ID", "SYSLOG_IDENTIFIER", "CONTAINER_ID", "CONTAINER_NAME"}
+				fields := make(map[string]string)
+				for _, k := range wanted {
+					if v, ok := entry.Fields[k]; ok {
+						fields[k] = v
+					}
+				}
+
+				// Truncate messages as they can get very large.
+				msg := entry.Fields["MESSAGE"]
+				if len(msg) > maxMessageSize {
+					msg = msg[:maxMessageSize] + " [truncated]"
+				}
+
+				log := model.LogEntry{
+					Timestamp: timestamp,
+					Level:     mapPriorityToLevel(entry.Fields["PRIORITY"]),
+					Message:   msg, // truncated above
+					Source:    entry.Fields["SYSLOG_IDENTIFIER"],
+					Category:  "", // Optional, can derive from unit
+					Host:      "", // Fill in at runner level
+					PID:       parsePID(entry.Fields["_PID"]),
+					Fields:    fields,
+					Tags: map[string]string{
+						"unit": entry.Fields["_SYSTEMD_UNIT"],
+					},
+					Meta: &model.LogMeta{
+						OS:            "linux",
+						Platform:      "journald",
+						AppName:       entry.Fields["SYSLOG_IDENTIFIER"],
+						ContainerID:   entry.Fields["CONTAINER_ID"],
+						ContainerName: entry.Fields["CONTAINER_NAME"],
+						Unit:          entry.Fields["_SYSTEMD_UNIT"],
+						Service:       entry.Fields["SYSLOG_IDENTIFIER"],
+						EventID:       entry.Fields["MESSAGE_ID"],
+						User:          entry.Fields["_UID"],
+						Executable:    entry.Fields["_EXE"],
+						Path:          entry.Fields["_CMDLINE"],
+						Extra:         map[string]string{},
+					},
+				}
+
+				current = append(current, log)
+				if len(current) >= batchSize {
+					allBatches = append(allBatches, current)
+					current = nil
+				}
+			}
+
+		}
+	}
+*/
+func buildLogEntry(entry *sdjournal.JournalEntry, maxSize int) model.LogEntry {
+	timestamp := time.Unix(0, int64(entry.RealtimeTimestamp)*int64(time.Microsecond))
+	msg := entry.Fields["MESSAGE"]
+	if len(msg) > maxSize {
+		msg = msg[:maxSize] + " [truncated]"
+	}
+
+	// Filtered fields
+	wanted := []string{"_SYSTEMD_UNIT", "_EXE", "_CMDLINE", "_PID", "_UID", "MESSAGE_ID", "SYSLOG_IDENTIFIER", "CONTAINER_ID", "CONTAINER_NAME"}
+	fields := make(map[string]string)
+	for _, k := range wanted {
+		if v, ok := entry.Fields[k]; ok {
+			fields[k] = v
+		}
+	}
+
+	return model.LogEntry{
+		Timestamp: timestamp,
+		Level:     mapPriorityToLevel(entry.Fields["PRIORITY"]),
+		Message:   msg,
+		Source:    entry.Fields["SYSLOG_IDENTIFIER"],
+		Category:  entry.Fields["_SYSTEMD_UNIT"],
+		PID:       parsePID(entry.Fields["_PID"]),
+		Host:      entry.Fields["_HOSTNAME"],
+		Fields:    fields,
+		Tags: map[string]string{
+			"unit":           entry.Fields["_SYSTEMD_UNIT"],
+			"container_id":   entry.Fields["CONTAINER_ID"],
+			"container_name": entry.Fields["CONTAINER_NAME"],
+		},
+		Meta: &model.LogMeta{
+			OS:            "linux",
+			Platform:      "journald",
+			AppName:       entry.Fields["SYSLOG_IDENTIFIER"],
+			ContainerID:   entry.Fields["CONTAINER_ID"],
+			ContainerName: entry.Fields["CONTAINER_NAME"],
+			Unit:          entry.Fields["_SYSTEMD_UNIT"],
+			Service:       entry.Fields["SYSLOG_IDENTIFIER"],
+			EventID:       entry.Fields["MESSAGE_ID"],
+			User:          entry.Fields["_UID"],
+			Executable:    entry.Fields["_EXE"],
+			Path:          entry.Fields["_CMDLINE"],
+		},
 	}
 }
 
 func BuildJournaldFilterList(cfg *config.Config) []string {
 	var filters []string
 
-	// Optional: focus on this host
 	if cfg.Agent.HostOverride != "" {
 		filters = append(filters, fmt.Sprintf("_HOSTNAME=%s", cfg.Agent.HostOverride))
 	}
 
-	// Based on enabled services
 	for _, name := range cfg.Agent.LogCollection.Services {
 		switch name {
 		case "nginx":
@@ -151,31 +257,23 @@ func BuildJournaldFilterList(cfg *config.Config) []string {
 		case "docker":
 			filters = append(filters, "_SYSTEMD_UNIT=docker.service")
 		case "podman":
-			filters = append(filters, "_SYSTEMD_UNIT=docker.service")
+			filters = append(filters, "_SYSTEMD_UNIT=podman.service")
 		case "kernel":
 			filters = append(filters, "_TRANSPORT=kernel")
 		default:
-			// Assume it's a valid SYSLOG_IDENTIFIER or service
 			filters = append(filters, fmt.Sprintf("SYSLOG_IDENTIFIER=%s", name))
 		}
 	}
 
-	// Optional fallback: collect nothing if no filters specified
 	if len(filters) == 0 {
-		filters = append(filters, "PRIORITY<=4") // info, warn, error
+		filters = append(filters, "PRIORITY<=4")
 	}
 
 	return filters
 }
 
 func parsePID(pidStr string) int {
-	if pidStr == "" {
-		return 0
-	}
-	pid, err := strconv.Atoi(pidStr)
-	if err != nil {
-		return 0
-	}
+	pid, _ := strconv.Atoi(pidStr)
 	return pid
 }
 
