@@ -55,6 +55,7 @@ func BuildHostMeta(cfg *config.Config, addTags map[string]string, agentID, agent
 
 	// Add rich system info as tags
 	tags["host_id"] = hostInfo.HostID
+	tags["hostname"] = hostname
 	tags["platform"] = hostInfo.Platform
 	tags["platform_family"] = hostInfo.PlatformFamily
 	tags["platform_version"] = hostInfo.PlatformVersion
@@ -96,8 +97,24 @@ func BuildContainerMeta(cfg *config.Config, addTags map[string]string, agentID, 
 		utils.Warn("Failed to get local IP address")
 	}
 
+	hostInfo, err := host.Info()
+	if err != nil {
+		utils.Warn("Failed to get host info: %v", err)
+		hostInfo = &host.InfoStat{}
+	}
+
 	tags := utils.MergeMaps(cfg.Agent.CustomTags, addTags)
 
+	// Add rich system info as tags
+	tags["host_id"] = hostInfo.HostID
+	tags["hostname"] = hostname
+
+	tags["platform"] = hostInfo.Platform
+	tags["platform_family"] = hostInfo.PlatformFamily
+	tags["platform_version"] = hostInfo.PlatformVersion
+	tags["kernel_version"] = hostInfo.KernelVersion
+	tags["virtualization_system"] = hostInfo.VirtualizationSystem
+	tags["virtualization_role"] = hostInfo.VirtualizationRole
 	return &model.Meta{
 		Hostname:     hostname,
 		IPAddress:    ip,
