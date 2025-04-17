@@ -45,21 +45,15 @@ func (c *JournaldCollector) Collect(ctx context.Context) ([][]model.LogEntry, er
 	batchSize := c.Config.Agent.LogCollection.BatchSize
 	maxMsgSize := c.Config.Agent.LogCollection.MessageMax
 
-	// Optional: Add filters based on config
+	// Apply filters if configured
 	filters := BuildJournaldFilterList(c.Config)
 	for _, match := range filters {
 		_ = c.journal.AddMatch(match)
 	}
 
+	// Seek to end, then advance one entry to enable .Wait()
 	_ = c.journal.SeekTail()
-	n, err := c.journal.Next()
-	if err != nil || n == 0 {
-		// no new entries or error
-		if len(current) > 0 {
-			allBatches = append(allBatches, current)
-		}
-		return allBatches, err
-	}
+	_, _ = c.journal.Next()
 
 	for {
 		select {
@@ -70,7 +64,16 @@ func (c *JournaldCollector) Collect(ctx context.Context) ([][]model.LogEntry, er
 			return allBatches, ctx.Err()
 
 		default:
-			if c.journal.Wait(250*time.Millisecond) != sdjournal.SD_JOURNAL_APPEND {
+			// Retry wait a few times before continuing
+			found := false
+			for retries := 0; retries < 3; retries++ {
+				if c.journal.Wait(250*time.Millisecond) == sdjournal.SD_JOURNAL_APPEND {
+					found = true
+					break
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
+			if !found {
 				continue
 			}
 
@@ -84,6 +87,7 @@ func (c *JournaldCollector) Collect(ctx context.Context) ([][]model.LogEntry, er
 				continue
 			}
 
+			// Build and append structured log entry
 			log := buildLogEntry(entry, maxMsgSize)
 			current = append(current, log)
 
