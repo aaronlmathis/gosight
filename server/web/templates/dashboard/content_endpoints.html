@@ -153,6 +153,152 @@
     loadHostTable();
   });
 </script>
+<script>
+  function toggleContainerRow(hostname) {
+    const row = document.getElementById(`containers-${hostname}`);
+    const icon = document.getElementById(`expand-icon-${hostname}`);
+    const metrics = [
+      "container.podman.cpu_percent",
+      "container.podman.mem_usage_bytes",
+      "container.podman.net_rx_bytes",
+      "container.podman.net_tx_bytes",
+      "container.podman.uptime_seconds"
+    ];
+    const query = metrics.map(m => `metric=${m}`).join("&") + `&hostname=${encodeURIComponent(hostname)}`;
 
+    if (!row) return;
+
+    const expanded = !row.classList.contains("hidden");
+    row.classList.toggle("hidden");
+    icon.classList.toggle("rotate-90");
+
+    if (!expanded && !row.dataset.loaded) {
+      row.innerHTML = `<td colspan="13" class="p-4 text-gray-400">Loading...</td>`;
+
+      fetch(`/api/v1/query?${query}`)
+        .then(res => res.json())
+        .then(json => {
+          const rows = Array.isArray(json) ? json : [];
+          console.log("📦 Raw container metrics:", rows);
+          const grouped = groupContainers(rows);
+          console.log("🧩 Grouped containers:", grouped);
+          row.innerHTML = `<td colspan="13" class="p-4">${buildContainerTable(grouped)}</td>`;
+          row.dataset.loaded = "true";
+        })
+        .catch(err => {
+          console.error("❌ Failed to fetch containers:", err);
+          row.innerHTML = `<td colspan="13" class="p-4 text-red-500">Container fetch failed: ${err}</td>`;
+        });
+    }
+  }
+
+  function groupContainers(rows) {
+    if (!Array.isArray(rows)) return [];
+    const map = {};
+
+    rows.forEach(row => {
+      const tags = row.tags || {};
+      const id = tags.container_id;
+
+      console.log("➡️ Checking row with container_id:", id, "name:", tags["__name__"]);
+
+      if (!id) {
+        console.warn("❌ Skipping row: missing container_id", row);
+        return;
+      }
+
+      if (!map[id]) {
+        map[id] = {
+          name: tags.container_name || "—",
+          image: tags.image_id || "—",
+          status: tags.status || "unknown",
+          cpu: "—",
+          mem: "—",
+          rx: "—",
+          tx: "—",
+          uptime: "—",
+        };
+      }
+
+      const metricName = tags["__name__"] || "";
+      const value = row.value;
+
+      switch (metricName) {
+        case "container.podman.cpu_percent":
+          map[id].cpu = `${value.toFixed(1)}%`;
+          break;
+        case "container.podman.mem_usage_bytes":
+          map[id].mem = formatBytes(value);
+          break;
+        case "container.podman.net_rx_bytes":
+          map[id].rx = formatBytes(value);
+          break;
+        case "container.podman.net_tx_bytes":
+          map[id].tx = formatBytes(value);
+          break;
+        case "container.podman.uptime_seconds":
+          map[id].uptime = formatUptime(value);
+          break;
+      }
+    });
+
+    return Object.values(map);
+  }
+
+  function buildContainerTable(containers) {
+    if (!containers.length)
+      return `<p class="text-sm italic text-gray-400">No containers found.</p>`;
+
+    const rows = containers.map((c, i) => `
+<tr class="${i % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+  <td class="px-4 py-2">${statusBadge(c.status)}</td>
+  <td class="px-4 py-2 font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">${c.name}</td>
+  <td class="px-4 py-2 text-gray-700 dark:text-gray-300">${c.image}</td>
+  <td class="px-4 py-2 text-right">${c.cpu}</td>
+  <td class="px-4 py-2 text-right">${c.mem}</td>
+  <td class="px-4 py-2 text-right">${c.rx}</td>
+  <td class="px-4 py-2 text-right">${c.tx}</td>
+  <td class="px-4 py-2 text-right">${c.uptime}</td>
+</tr>
+`).join("");
+
+    return `
+<div class="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+  <table class="min-w-full text-sm text-left">
+    <thead class="text-xs uppercase text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-300">
+      <tr>
+        <th class="px-4 py-2">Status</th>
+        <th class="px-4 py-2">Name</th>
+        <th class="px-4 py-2">Image</th>
+        <th class="px-4 py-2 text-right">CPU %</th>
+        <th class="px-4 py-2 text-right">Mem</th>
+        <th class="px-4 py-2 text-right">RX</th>
+        <th class="px-4 py-2 text-right">TX</th>
+        <th class="px-4 py-2 text-right">Uptime</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+</div>
+`;
+  }
+
+  function formatBytes(bytes) {
+    if (!bytes || isNaN(bytes)) return "—";
+    const units = ["B", "KB", "MB", "GB"];
+    let i = 0;
+    while (bytes >= 1024 && i < units.length - 1) {
+      bytes /= 1024;
+      i++;
+    }
+    return `${bytes.toFixed(1)} ${units[i]}`;
+  }
+
+  function statusBadge(status) {
+    if (status === "running")
+      return `<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">running</span>`;
+    return `<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">stopped</span>`;
+  }
+</script>
 
 {{ end }}
