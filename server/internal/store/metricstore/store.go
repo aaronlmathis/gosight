@@ -25,7 +25,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 // and closing the store connection. This allows for flexibility in choosing the
 // underlying storage engine, such as VictoriaMetrics or others in the future.
 
-package store
+package metricstore
 
 import (
 	"time"

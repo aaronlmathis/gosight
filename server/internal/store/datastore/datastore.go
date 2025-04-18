@@ -31,7 +31,7 @@ import (
 )
 
 type DataStore interface {
-	UpsertAgent(ctx context.Context, agent *model.AgentStatus) error
-	GetAgentByHostname(ctx context.Context, hostname string) (*model.AgentStatus, error)
-	ListAgents(ctx context.Context) ([]*model.AgentStatus, error)
+	UpsertAgent(ctx context.Context, agent *model.Agent) error
+	GetAgentByHostname(ctx context.Context, hostname string) (*model.Agent, error)
+	ListAgents(ctx context.Context) ([]*model.Agent, error)
 }

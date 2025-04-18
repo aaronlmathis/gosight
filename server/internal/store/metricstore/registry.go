@@ -22,23 +22,25 @@ along with GoBright. If not, see https://www.gnu.org/licenses/.
 // server/internal/store/registry.go
 // Package registry provides a registry for different storage engines.
 
-package store
+package metricstore
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/aaronlmathis/gosight/server/internal/config"
+	"github.com/aaronlmathis/gosight/server/internal/store/metricindex"
+	victoriametricstore "github.com/aaronlmathis/gosight/server/internal/store/metricstore/victoriametrics"
 
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func InitStore(ctx context.Context, cfg *config.Config, metricIndex *MetricIndex) (MetricStore, error) {
+func InitStore(ctx context.Context, cfg *config.Config, metricIndex *metricindex.MetricIndex) (MetricStore, error) {
 	utils.Debug("InitMetricStore selected engine: %s", cfg.Storage.Engine)
 	switch cfg.Storage.Engine {
 	case "victoriametrics":
 		utils.Debug("Bootstrapping VictoriaMetrics Store with %d workers", cfg.Storage.Workers)
-		s := NewVictoriaStore(
+		s := victoriametricstore.NewVictoriaStore(
 			ctx,
 			cfg.Storage.URL,
 			cfg.Storage.Workers,

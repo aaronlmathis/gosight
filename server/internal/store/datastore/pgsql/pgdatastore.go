@@ -45,48 +45,51 @@ func New(db *sql.DB) *PGDataStore {
 
 // UpsertAgent inserts or updates an agent in the database
 
-func (s *PGDataStore) UpsertAgent(ctx context.Context, agent *model.AgentStatus) error {
+func (s *PGDataStore) UpsertAgent(ctx context.Context, agent *model.Agent) error {
 	tags, _ := json.Marshal(agent.Labels)
 
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO agents (
-			agent_id, hostname, ip, os, arch, version, labels, last_seen
+			agent_id, host_id, hostname, ip, os, arch, version, labels, last_seen, endpoint_id
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, now()
+			$1, $2, $3, $4, $5, $6, $7, $8, now(), $9
 		)
 		ON CONFLICT (agent_id) DO UPDATE SET
+			host_id = EXCLUDED.host_id,
 			ip = EXCLUDED.ip,
 			os = EXCLUDED.os,
 			arch = EXCLUDED.arch,
 			version = EXCLUDED.version,
 			labels = EXCLUDED.labels,
+			endpoint_id = EXCLUDED.endpoint_id,
 			last_seen = now()
 	`,
 		agent.AgentID,
+		agent.HostID,
 		agent.Hostname,
 		agent.IP,
 		agent.OS,
 		agent.Arch,
 		agent.Version,
 		tags,
+		agent.EndpointID,
 	)
-
 	return err
 }
 
-func (s *PGDataStore) GetAgentByAgentID(ctx context.Context, agentID string) (*model.AgentStatus, error) {
+func (s *PGDataStore) GetAgentByAgentID(ctx context.Context, agentID string) (*model.Agent, error) {
 	row := s.db.QueryRowContext(ctx, `
-		SELECT agent_id, hostname, ip, os, arch, version, labels, last_seen, updated_at 
+		SELECT agent_id, host_id, hostname, ip, os, arch, version, labels, last_seen, endpoint_id
 		FROM agents
 		WHERE agent_id = $1
 	`, agentID)
 
-	var agent model.AgentStatus
-
+	var agent model.Agent
 	var tagsRaw []byte
 
 	err := row.Scan(
 		&agent.AgentID,
+		&agent.HostID,
 		&agent.Hostname,
 		&agent.IP,
 		&agent.OS,
@@ -94,7 +97,7 @@ func (s *PGDataStore) GetAgentByAgentID(ctx context.Context, agentID string) (*m
 		&agent.Version,
 		&tagsRaw,
 		&agent.LastSeen,
-		&agent.Updated,
+		&agent.EndpointID,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -109,14 +112,15 @@ func (s *PGDataStore) GetAgentByAgentID(ctx context.Context, agentID string) (*m
 
 	return &agent, nil
 }
-func (s *PGDataStore) GetAgentByHostname(ctx context.Context, hostname string) (*model.AgentStatus, error) {
+
+func (s *PGDataStore) GetAgentByHostname(ctx context.Context, hostname string) (*model.Agent, error) {
 	row := s.db.QueryRowContext(ctx, `
 		SELECT agent_id, hostname, ip, os, arch, version, labels, last_seen, updated_at
 		FROM agents
 		WHERE hostname = $1
 	`, hostname)
 
-	var agent model.AgentStatus
+	var agent model.Agent
 
 	var tagsRaw []byte
 
@@ -145,41 +149,43 @@ func (s *PGDataStore) GetAgentByHostname(ctx context.Context, hostname string) (
 	return &agent, nil
 }
 
-func (s *PGDataStore) ListAgents(ctx context.Context) ([]*model.AgentStatus, error) {
+func (s *PGDataStore) ListAgents(ctx context.Context) ([]*model.Agent, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT agent_id, hostname, ip, os, arch, version, labels, last_seen, updated_at FROM agents
+		SELECT agent_id, host_id, hostname, ip, os, arch, version, labels, last_seen, endpoint_id
+		FROM agents
 	`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var agents []*model.AgentStatus
+	var agents []*model.Agent
 
 	for rows.Next() {
-		var a model.AgentStatus
+		agent := &model.Agent{}
 		var tagsRaw []byte
 
 		err := rows.Scan(
-			&a.AgentID,
-			&a.Hostname,
-			&a.IP,
-			&a.OS,
-			&a.Arch,
-			&a.Version,
+			&agent.AgentID,
+			&agent.HostID,
+			&agent.Hostname,
+			&agent.IP,
+			&agent.OS,
+			&agent.Arch,
+			&agent.Version,
 			&tagsRaw,
-			&a.LastSeen,
-			&a.Updated,
+			&agent.LastSeen,
+			&agent.EndpointID,
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		if err := json.Unmarshal(tagsRaw, &a.Labels); err != nil {
+		if err := json.Unmarshal(tagsRaw, &agent.Labels); err != nil {
 			return nil, err
 		}
 
-		agents = append(agents, &a)
+		agents = append(agents, agent)
 	}
 
 	return agents, rows.Err()

@@ -23,7 +23,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 // Package store provides an interface for storing and retrieving metrics.
 // It includes an in-memory store and a file-based store for persistence.
 
-package store
+package metricindex
 
 import (
 	"fmt"

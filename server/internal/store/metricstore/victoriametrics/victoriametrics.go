@@ -21,7 +21,7 @@ along with GoBright. If not, see https://www.gnu.org/licenses/.
 
 // server/internal/store/victoriametrics.go
 
-package store
+package victoriametricstore
 
 import (
 	"bytes"
@@ -38,6 +38,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aaronlmathis/gosight/server/internal/store/metricindex"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
@@ -55,10 +56,10 @@ type VictoriaStore struct {
 	batchTimeout  time.Duration
 	batchRetry    int
 	batchInterval time.Duration
-	MetricIndex   *MetricIndex
+	MetricIndex   *metricindex.MetricIndex
 }
 
-func NewVictoriaStore(ctx context.Context, url string, workers, queueSize, batchSize, timeoutMS, retry, retryIntervalMS int, metricIndex *MetricIndex) *VictoriaStore {
+func NewVictoriaStore(ctx context.Context, url string, workers, queueSize, batchSize, timeoutMS, retry, retryIntervalMS int, metricIndex *metricindex.MetricIndex) *VictoriaStore {
 	utils.Info("NewVictoriaStore received workers=%d", workers)
 	store := &VictoriaStore{
 		url:           url,
@@ -194,7 +195,7 @@ func (v *VictoriaStore) flush(batch []model.MetricPayload) {
 	_, _ = gz.Write([]byte(payload))
 	_ = gz.Close()
 
-	//utils.Debug("🚀 Flushing batch of %d metrics", len(batch))
+	//utils.Debug(" Flushing batch of %d metrics", len(batch))
 
 	req, err := http.NewRequest("POST", v.url+"/api/v1/import/prometheus", &buf)
 	if err != nil {
@@ -252,121 +253,164 @@ func normalizeMetricName(ns, sub, name string) string {
 	return strings.Join(parts, ".")
 }
 
-func formatLabels(meta *model.Meta) string {
+// BuildPromLabels constructs Prometheus-compatible labels from the given Meta object.
+// It filters out any labels that are already present in the Meta object to avoid duplication.
+// The resulting labels are returned as a map of key-value pairs.
+
+func BuildPromLabels(meta *model.Meta) map[string]string {
 	if meta == nil {
-		return "" // Return empty string if meta is nil
+		return map[string]string{}
 	}
 
-	var out []string
+	labels := map[string]string{}
 
-	// Add all meta fields as labels, skipping empty strings
+	// Identity and system labels from Meta
+	if meta.AgentID != "" {
+		labels["agent_id"] = meta.AgentID
+	}
+	if meta.AgentVersion != "" {
+		labels["agent_version"] = meta.AgentVersion
+	}
+	if meta.HostID != "" {
+		labels["host_id"] = meta.HostID
+	}
+	if meta.EndpointID != "" {
+		labels["endpoint_id"] = meta.EndpointID
+	}
 	if meta.Hostname != "" {
-		out = append(out, fmt.Sprintf(`hostname="%s"`, meta.Hostname))
+		labels["hostname"] = meta.Hostname
 	}
 	if meta.IPAddress != "" {
-		out = append(out, fmt.Sprintf(`ip_address="%s"`, meta.IPAddress))
+		labels["ip_address"] = meta.IPAddress
 	}
 	if meta.OS != "" {
-		out = append(out, fmt.Sprintf(`os="%s"`, meta.OS))
+		labels["os"] = meta.OS
 	}
 	if meta.OSVersion != "" {
-		out = append(out, fmt.Sprintf(`os_version="%s"`, meta.OSVersion))
+		labels["os_version"] = meta.OSVersion
+	}
+	if meta.Platform != "" {
+		labels["platform"] = meta.Platform
+	}
+	if meta.PlatformFamily != "" {
+		labels["platform_family"] = meta.PlatformFamily
+	}
+	if meta.PlatformVersion != "" {
+		labels["platform_version"] = meta.PlatformVersion
+	}
+	if meta.KernelArchitecture != "" {
+		labels["kernel_architecture"] = meta.KernelArchitecture
 	}
 	if meta.KernelVersion != "" {
-		out = append(out, fmt.Sprintf(`kernel_version="%s"`, meta.KernelVersion))
+		labels["kernel_version"] = meta.KernelVersion
+	}
+	if meta.VirtualizationSystem != "" {
+		labels["virtualization_system"] = meta.VirtualizationSystem
+	}
+	if meta.VirtualizationRole != "" {
+		labels["virtualization_role"] = meta.VirtualizationRole
 	}
 	if meta.Architecture != "" {
-		out = append(out, fmt.Sprintf(`architecture="%s"`, meta.Architecture))
-	}
-	if meta.CloudProvider != "" {
-		out = append(out, fmt.Sprintf(`cloud_provider="%s"`, meta.CloudProvider))
-	}
-	if meta.Region != "" {
-		out = append(out, fmt.Sprintf(`region="%s"`, meta.Region))
-	}
-	if meta.AvailabilityZone != "" {
-		out = append(out, fmt.Sprintf(`availability_zone="%s"`, meta.AvailabilityZone))
-	}
-	if meta.InstanceID != "" {
-		out = append(out, fmt.Sprintf(`instance_id="%s"`, meta.InstanceID))
-	}
-	if meta.InstanceType != "" {
-		out = append(out, fmt.Sprintf(`instance_type="%s"`, meta.InstanceType))
-	}
-	if meta.AccountID != "" {
-		out = append(out, fmt.Sprintf(`account_id="%s"`, meta.AccountID))
-	}
-	if meta.ProjectID != "" {
-		out = append(out, fmt.Sprintf(`project_id="%s"`, meta.ProjectID))
-	}
-	if meta.ResourceGroup != "" {
-		out = append(out, fmt.Sprintf(`resource_group="%s"`, meta.ResourceGroup))
-	}
-	if meta.VPCID != "" {
-		out = append(out, fmt.Sprintf(`vpc_id="%s"`, meta.VPCID))
-	}
-	if meta.SubnetID != "" {
-		out = append(out, fmt.Sprintf(`subnet_id="%s"`, meta.SubnetID))
-	}
-	if meta.ImageID != "" {
-		out = append(out, fmt.Sprintf(`image_id="%s"`, meta.ImageID))
-	}
-	if meta.ServiceID != "" {
-		out = append(out, fmt.Sprintf(`service_id="%s"`, meta.ServiceID))
-	}
-	if meta.ContainerID != "" {
-		out = append(out, fmt.Sprintf(`container_id="%s"`, meta.ContainerID))
-	}
-	if meta.ContainerName != "" {
-		out = append(out, fmt.Sprintf(`container_name="%s"`, meta.ContainerName))
-	}
-	if meta.PodName != "" {
-		out = append(out, fmt.Sprintf(`pod_name="%s"`, meta.PodName))
-	}
-	if meta.Namespace != "" {
-		out = append(out, fmt.Sprintf(`namespace="%s"`, meta.Namespace))
-	}
-	if meta.ClusterName != "" {
-		out = append(out, fmt.Sprintf(`cluster_name="%s"`, meta.ClusterName))
-	}
-	if meta.NodeName != "" {
-		out = append(out, fmt.Sprintf(`node_name="%s"`, meta.NodeName))
-	}
-	if meta.Application != "" {
-		out = append(out, fmt.Sprintf(`application="%s"`, meta.Application))
+		labels["architecture"] = meta.Architecture
 	}
 	if meta.Environment != "" {
-		out = append(out, fmt.Sprintf(`environment="%s"`, meta.Environment))
+		labels["environment"] = meta.Environment
+	}
+	if meta.Region != "" {
+		labels["region"] = meta.Region
+	}
+	if meta.AvailabilityZone != "" {
+		labels["availability_zone"] = meta.AvailabilityZone
+	}
+	if meta.InstanceID != "" {
+		labels["instance_id"] = meta.InstanceID
+	}
+	if meta.InstanceType != "" {
+		labels["instance_type"] = meta.InstanceType
+	}
+	if meta.AccountID != "" {
+		labels["account_id"] = meta.AccountID
+	}
+	if meta.ProjectID != "" {
+		labels["project_id"] = meta.ProjectID
+	}
+	if meta.ResourceGroup != "" {
+		labels["resource_group"] = meta.ResourceGroup
+	}
+	if meta.VPCID != "" {
+		labels["vpc_id"] = meta.VPCID
+	}
+	if meta.SubnetID != "" {
+		labels["subnet_id"] = meta.SubnetID
+	}
+	if meta.ImageID != "" {
+		labels["image_id"] = meta.ImageID
+	}
+	if meta.ServiceID != "" {
+		labels["service_id"] = meta.ServiceID
+	}
+	if meta.ContainerID != "" {
+		labels["container_id"] = meta.ContainerID
+	}
+	if meta.ContainerName != "" {
+		labels["container_name"] = meta.ContainerName
+	}
+	if meta.PodName != "" {
+		labels["pod_name"] = meta.PodName
+	}
+	if meta.ClusterName != "" {
+		labels["cluster_name"] = meta.ClusterName
+	}
+	if meta.NodeName != "" {
+		labels["node_name"] = meta.NodeName
+	}
+	if meta.Application != "" {
+		labels["application"] = meta.Application
 	}
 	if meta.Service != "" {
-		out = append(out, fmt.Sprintf(`service="%s"`, meta.Service))
+		labels["service"] = meta.Service
 	}
 	if meta.Version != "" {
-		out = append(out, fmt.Sprintf(`version="%s"`, meta.Version))
+		labels["version"] = meta.Version
 	}
 	if meta.DeploymentID != "" {
-		out = append(out, fmt.Sprintf(`deployment_id="%s"`, meta.DeploymentID))
+		labels["deployment_id"] = meta.DeploymentID
 	}
 	if meta.PublicIP != "" {
-		out = append(out, fmt.Sprintf(`public_ip="%s"`, meta.PublicIP))
+		labels["public_ip"] = meta.PublicIP
 	}
 	if meta.PrivateIP != "" {
-		out = append(out, fmt.Sprintf(`private_ip="%s"`, meta.PrivateIP))
+		labels["private_ip"] = meta.PrivateIP
 	}
 	if meta.MACAddress != "" {
-		out = append(out, fmt.Sprintf(`mac_address="%s"`, meta.MACAddress))
+		labels["mac_address"] = meta.MACAddress
 	}
 	if meta.NetworkInterface != "" {
-		out = append(out, fmt.Sprintf(`network_interface="%s"`, meta.NetworkInterface))
+		labels["network_interface"] = meta.NetworkInterface
 	}
 
-	// Handle tags map specifically
+	// Tags (pre-filtered to avoid duplication)
 	for k, v := range meta.Tags {
-		out = append(out, fmt.Sprintf(`%s="%s"`, k, v))
+		if _, exists := labels[k]; !exists {
+			labels[k] = v
+		}
 	}
 
-	sort.Strings(out)
-	return strings.Join(out, ",")
+	return labels
+}
+
+// formatLabels formats the labels for Prometheus scraping.
+// It converts the labels map to a string in the format: key1="value1",key2="value2",...
+// This is used for building the Prometheus-compatible metric format.
+
+func formatLabels(meta *model.Meta) string {
+	labels := BuildPromLabels(meta)
+	parts := make([]string, 0, len(labels))
+	for k, v := range labels {
+		parts = append(parts, fmt.Sprintf(`%s="%s"`, k, v))
+	}
+	sort.Strings(parts) // for deterministic output
+	return strings.Join(parts, ",")
 }
 
 func totalMetricCount(payloads []model.MetricPayload) int {
@@ -377,7 +421,7 @@ func totalMetricCount(payloads []model.MetricPayload) int {
 	return count
 }
 
-// / QueryInstant fetches the latest data points for a given metric with optional label filters.
+// QueryInstant fetches the latest data points for a given metric with optional label filters.
 func (v *VictoriaStore) QueryInstant(metric string, filters map[string]string) ([]model.MetricRow, error) {
 	query := BuildPromQL(metric, filters)
 

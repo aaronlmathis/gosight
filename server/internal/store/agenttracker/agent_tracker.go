@@ -21,11 +21,10 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 
 // Store agent details/heartbeats
 // server/internal/store/agent_tracker.go
-package store
+package agenttracker
 
 import (
 	"context"
-	"strings"
 	"sync"
 	"time"
 
@@ -36,68 +35,62 @@ import (
 
 type AgentTracker struct {
 	mu     sync.RWMutex
-	agents map[string]*model.AgentStatus
+	agents map[string]*model.Agent
 }
 
 // Create a new tracker
 func NewAgentTracker() *AgentTracker {
 	return &AgentTracker{
-		agents: make(map[string]*model.AgentStatus),
+		agents: make(map[string]*model.Agent),
 	}
 }
 
 // Updates in memory store of Agent details
 func (t *AgentTracker) UpdateAgent(meta *model.Meta) {
-	//utils.Debug("📡 UpdateAgent called with: Hostname=%s AgentID=%s", meta.Hostname, meta.AgentID)
+	if meta.Hostname == "" || meta.ContainerID != "" {
+		return
+	}
 
-	if meta.Hostname == "" {
-		// Don't track nameless agents
-		utils.Warn("Skipping UpdateAgent: meta.Hostname is empty")
-		return
-	}
-	if !strings.HasPrefix(meta.EndpointID, "host-") {
-		//utils.Debug("Skipping container-level meta for AgentID=%s (EndpointID=%s)", meta.AgentID, meta.EndpointID)
-		return
-	}
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	agent, exists := t.agents[meta.AgentID]
 	if !exists {
-		agent = &model.AgentStatus{
+		agent = &model.Agent{
+			AgentID:    meta.AgentID,
+			HostID:     meta.HostID,
 			Hostname:   meta.Hostname,
 			IP:         meta.IPAddress,
 			OS:         meta.OS,
 			Arch:       meta.Architecture,
 			Version:    meta.AgentVersion,
 			Labels:     meta.Tags,
-			Updated:    true,
-			AgentID:    meta.AgentID,
 			EndpointID: meta.EndpointID,
+			Updated:    true,
 		}
 		t.agents[meta.AgentID] = agent
 	} else {
-		// Update any fields that may change
+		// Update mutable fields
 		agent.IP = meta.IPAddress
 		agent.OS = meta.OS
 		agent.Arch = meta.Architecture
 		agent.Version = meta.AgentVersion
 		agent.Labels = meta.Tags
-		agent.Updated = true
-		agent.AgentID = meta.AgentID
 		agent.EndpointID = meta.EndpointID
+		agent.Updated = true
 	}
 
 	agent.LastSeen = time.Now()
 }
 
-func (t *AgentTracker) GetAgents() []model.AgentStatus {
+func (t *AgentTracker) GetAgents() []model.Agent {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
-	var list []model.AgentStatus
+	var list []model.Agent
+	now := time.Now()
 	for _, a := range t.agents {
-		elapsed := time.Since(a.LastSeen)
+		elapsed := now.Sub(a.LastSeen)
 
 		// Derive status
 		status := "Offline"
@@ -107,20 +100,33 @@ func (t *AgentTracker) GetAgents() []model.AgentStatus {
 			status = "Idle"
 		}
 
-		list = append(list, model.AgentStatus{
-			AgentID:  a.AgentID,
-			Hostname: a.Hostname,
-			IP:       a.IP,
-			OS:       a.OS,
-			Arch:     a.Arch,
-			Version:  a.Version,
-			Labels:   a.Labels,
-			Status:   status,
-			Since:    elapsed.Truncate(time.Second).String(),
+		list = append(list, model.Agent{
+			AgentID:    a.AgentID,
+			HostID:     a.HostID,
+			Hostname:   a.Hostname,
+			IP:         a.IP,
+			OS:         a.OS,
+			Arch:       a.Arch,
+			Version:    a.Version,
+			Labels:     a.Labels,
+			EndpointID: a.EndpointID,
+			Status:     status,
+			Since:      elapsed.Truncate(time.Second).String(),
 		})
-
 	}
 	return list
+}
+
+func (t *AgentTracker) GetAgentMap() map[string]*model.Agent {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	// Return a shallow copy so we don’t expose internal map
+	out := make(map[string]*model.Agent, len(t.agents))
+	for id, agent := range t.agents {
+		out[id] = agent
+	}
+	return out
 }
 
 // Syncs Agents from inmemory to persistant storage
