@@ -31,8 +31,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/aaronlmathis/gosight/agent/api"
 	"github.com/aaronlmathis/gosight/agent/internal/config"
+	"github.com/aaronlmathis/gosight/agent/internal/protohelper"
 	agentutils "github.com/aaronlmathis/gosight/agent/internal/utils"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/proto"
@@ -129,7 +129,7 @@ func (s *MetricSender) SendMetrics(payload *model.MetricPayload) error {
 
 	// Convert meta to proto
 	if payload.Meta != nil {
-		convertedMeta = api.ConvertMetaToProtoMeta(payload.Meta)
+		convertedMeta = protohelper.ConvertMetaToProtoMeta(payload.Meta)
 	}
 	//utils.Debug("Proto Meta Tags: %+v", convertedMeta)
 

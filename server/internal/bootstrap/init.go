@@ -32,24 +32,26 @@ import (
 
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
-	"github.com/aaronlmathis/gosight/server/internal/store"
+
 	"github.com/aaronlmathis/gosight/server/internal/store/logstore"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
+	"github.com/aaronlmathis/gosight/server/internal/store/metricindex"
+	"github.com/aaronlmathis/gosight/server/internal/store/metricstore"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func InitMetricIndex() (*store.MetricIndex, error) {
+func InitMetricIndex() (*metricindex.MetricIndex, error) {
 
-	metricIndex := store.NewMetricIndex()
+	metricIndex := metricindex.NewMetricIndex()
 
 	return metricIndex, nil
 
 }
-func InitMetricStore(ctx context.Context, cfg *config.Config, metricIndex *store.MetricIndex) (store.MetricStore, error) {
+func InitMetricStore(ctx context.Context, cfg *config.Config, metricIndex *metricindex.MetricIndex) (metricstore.MetricStore, error) {
 	engine := cfg.Storage.Engine
 	utils.Info("Initializing metric store engine: %s", engine)
 
-	s, err := store.InitStore(ctx, cfg, metricIndex)
+	s, err := metricstore.InitStore(ctx, cfg, metricIndex)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init metric store: %w", err)
 	}

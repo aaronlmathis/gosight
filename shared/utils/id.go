@@ -37,32 +37,32 @@ func GenerateEndpointID(meta *model.Meta) string {
 		return "unknown"
 	}
 
-	// Normalize provider casing
 	provider := strings.ToLower(meta.CloudProvider)
 
+	// Prefer cloud-specific identifiers if present
 	switch provider {
 	case "aws":
 		if meta.AccountID != "" && meta.InstanceID != "" {
-			return fmt.Sprintf("aws-%s-%s", meta.AccountID, meta.InstanceID)
+			return fmt.Sprintf("aws-%s-%s", sanitize(meta.AccountID), trim(meta.InstanceID))
 		}
 	case "gcp":
 		if meta.ProjectID != "" && meta.InstanceID != "" {
-			return fmt.Sprintf("gcp-%s-%s", meta.ProjectID, meta.InstanceID)
+			return fmt.Sprintf("gcp-%s-%s", sanitize(meta.ProjectID), trim(meta.InstanceID))
 		}
 	case "azure":
 		if meta.ResourceGroup != "" && meta.InstanceID != "" {
-			return fmt.Sprintf("azure-%s-%s", meta.ResourceGroup, meta.InstanceID)
+			return fmt.Sprintf("azure-%s-%s", sanitize(meta.ResourceGroup), trim(meta.InstanceID))
 		}
 	}
 
-	// Fallback for containers
-	if meta.ContainerID != "" && meta.Hostname != "" {
-		return fmt.Sprintf("container-%s-%s", meta.Hostname, meta.ContainerID[:12])
+	// Containers take precedence over host fallback
+	if meta.ContainerID != "" {
+		return "ctr-" + trim(meta.ContainerID)
 	}
 
-	// Fallback for bare-metal / unknown
-	if meta.Hostname != "" && meta.IPAddress != "" {
-		return fmt.Sprintf("host-%s-%s", meta.Hostname, strings.ReplaceAll(meta.IPAddress, ".", "-"))
+	// Fallback to host-based identity
+	if meta.HostID != "" {
+		return "host-" + trim(meta.HostID)
 	}
 
 	return "unknown"
@@ -89,4 +89,15 @@ func GetNamespace(meta *model.Meta) string {
 	}
 
 	return "System"
+}
+
+func trim(s string) string {
+	if len(s) > 12 {
+		return s[:12]
+	}
+	return s
+}
+
+func sanitize(s string) string {
+	return strings.ToLower(strings.ReplaceAll(s, " ", "-"))
 }

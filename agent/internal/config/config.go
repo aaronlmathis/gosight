@@ -37,6 +37,7 @@ type LogCollectionConfig struct {
 	CursorFile string   `yaml:"cursor_file"`
 	LastCursor string   `yaml:"-"` // this field is set dynamically, not from YAML
 }
+
 type Config struct {
 	TLS struct {
 		CAFile   string `yaml:"ca_file"`   // used by agent to trust the server

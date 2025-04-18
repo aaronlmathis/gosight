@@ -68,9 +68,8 @@ func (r *LogRunner) Run(ctx context.Context) {
 				continue
 			}
 			// Build standard host meta first, to GenerateEndpointID.
-			meta := meta.BuildHostMeta(r.Config, nil, r.AgentID, r.AgentVersion)
-			meta.AgentID = r.AgentID
-			meta.AgentVersion = r.AgentVersion
+			meta := meta.BuildMeta(r.Config, nil, r.AgentID, r.AgentVersion)
+
 			// Generate EndpointID
 			endpointID := utils.GenerateEndpointID(meta)
 			// Set Meta EndpointID Field.
@@ -85,24 +84,25 @@ func (r *LogRunner) Run(ctx context.Context) {
 					if batch[i].Meta == nil {
 						batch[i].Meta = &model.LogMeta{AppName: "unknown"}
 					}
-					// Set endpoint ID on both LogMeta and Payload Meta
-					batch[i].Meta.AgentID = r.AgentID
-					batch[i].Meta.EndPointID = meta.EndpointID
+
 				}
 
 				payload := &model.LogPayload{
+					AgentID:    r.AgentID,
+					HostID:     meta.HostID,
+					Hostname:   meta.Hostname,
 					EndpointID: meta.EndpointID,
 					Timestamp:  time.Now(),
 					Logs:       batch,
 					Meta:       meta,
 				}
 
-				utils.Debug("📦 Log Payload: %d entries", len(batch))
+				utils.Debug("Log Payload: %d entries", len(batch))
 
 				select {
 				case taskQueue <- payload:
 				default:
-					utils.Warn("⚠️ Log task queue full! Dropping log batch from host %s", meta.Hostname)
+					utils.Warn("Log task queue full! Dropping log batch from host %s", meta.Hostname)
 				}
 			}
 		}

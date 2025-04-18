@@ -1,6 +1,4 @@
-package api
-
-// TODO - this is weird package name for these handlers.
+package telemetry
 
 import (
 	"io"

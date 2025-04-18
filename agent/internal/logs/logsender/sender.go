@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/aaronlmathis/gosight/agent/api"
 	"github.com/aaronlmathis/gosight/agent/internal/config"
+	"github.com/aaronlmathis/gosight/agent/internal/protohelper"
 	agentutils "github.com/aaronlmathis/gosight/agent/internal/utils"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/proto"
@@ -85,11 +85,10 @@ func (s *LogSender) SendLogs(payload *model.LogPayload) error {
 			Message:   log.Message,
 			Source:    log.Source,
 			Category:  log.Category,
-			Host:      log.Host,
 			Pid:       int32(log.PID),
 			Fields:    log.Fields,
 			Tags:      log.Tags,
-			Meta:      api.ConvertLogMetaToProto(log.Meta),
+			Meta:      protohelper.ConvertLogMetaToProto(log.Meta),
 		}
 		utils.Debug("Sender: LogEntry: %v", pbLog)
 		utils.Debug("Sender:LogMeta: %v", pbLog.Meta)
@@ -101,10 +100,13 @@ func (s *LogSender) SendLogs(payload *model.LogPayload) error {
 
 	// Convert meta to proto
 	if payload.Meta != nil {
-		convertedMeta = api.ConvertMetaToProtoMeta(payload.Meta)
+		convertedMeta = protohelper.ConvertMetaToProtoMeta(payload.Meta)
 	}
 
 	req := &proto.LogPayload{
+		AgentId:    payload.AgentID,
+		HostId:     payload.HostID,
+		Hostname:   payload.Hostname,
 		EndpointId: payload.EndpointID,
 		Timestamp:  timestamppb.New(payload.Timestamp),
 		Logs:       pbLogs,

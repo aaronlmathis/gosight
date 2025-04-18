@@ -178,7 +178,6 @@ func buildLogEntry(entry *sdjournal.JournalEntry, maxSize int) model.LogEntry {
 		Source:    entry.Fields["SYSLOG_IDENTIFIER"],
 		Category:  entry.Fields["_SYSTEMD_UNIT"],
 		PID:       parsePID(entry.Fields["_PID"]),
-		Host:      entry.Fields["_HOSTNAME"],
 		Fields:    fields,
 		Tags: map[string]string{
 			"unit":           entry.Fields["_SYSTEMD_UNIT"],
@@ -186,7 +185,6 @@ func buildLogEntry(entry *sdjournal.JournalEntry, maxSize int) model.LogEntry {
 			"container_name": entry.Fields["CONTAINER_NAME"],
 		},
 		Meta: &model.LogMeta{
-			OS:            "linux",
 			Platform:      "journald",
 			AppName:       entry.Fields["SYSLOG_IDENTIFIER"],
 			ContainerID:   entry.Fields["CONTAINER_ID"],

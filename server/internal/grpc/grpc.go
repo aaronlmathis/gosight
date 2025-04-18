@@ -31,12 +31,15 @@ import (
 	"net"
 	"os"
 
-	"github.com/aaronlmathis/gosight/server/internal/api"
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
-	"github.com/aaronlmathis/gosight/server/internal/store"
+
+	"github.com/aaronlmathis/gosight/server/internal/store/agenttracker"
 	"github.com/aaronlmathis/gosight/server/internal/store/logstore"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
+	"github.com/aaronlmathis/gosight/server/internal/store/metricindex"
+	"github.com/aaronlmathis/gosight/server/internal/store/metricstore"
+	"github.com/aaronlmathis/gosight/server/internal/telemetry"
 	"github.com/aaronlmathis/gosight/shared/proto"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"google.golang.org/grpc"
@@ -44,7 +47,7 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-func NewGRPCServer(ctx context.Context, cfg *config.Config, store store.MetricStore, logStore logstore.LogStore, tracker *store.AgentTracker, metricIndex *store.MetricIndex, metaTracker *metastore.MetaTracker, ws *websocket.Hub) (*grpc.Server, net.Listener, error) {
+func NewGRPCServer(ctx context.Context, cfg *config.Config, store metricstore.MetricStore, logStore logstore.LogStore, tracker *agenttracker.AgentTracker, metricIndex *metricindex.MetricIndex, metaTracker *metastore.MetaTracker, ws *websocket.Hub) (*grpc.Server, net.Listener, error) {
 	tlsCfg, err := loadTLSConfig(cfg)
 	if err != nil {
 		return nil, nil, fmt.Errorf("TLS config failed: %w", err)
@@ -57,12 +60,13 @@ func NewGRPCServer(ctx context.Context, cfg *config.Config, store store.MetricSt
 	creds := credentials.NewTLS(tlsCfg)
 	server := grpc.NewServer(grpc.Creds(creds))
 
-	handler := api.NewMetricsHandler(store, tracker, metricIndex, metaTracker, ws)
+	handler := telemetry.NewMetricsHandler(store, tracker, metricIndex, metaTracker, ws)
 	proto.RegisterMetricsServiceServer(server, handler)
 	utils.Debug("📨 NewGRPCServer received metric store at: %p", store)
 
-	loghandler := api.NewLogsHandler(logStore, ws)
+	loghandler := telemetry.NewLogsHandler(logStore, ws)
 	proto.RegisterLogServiceServer(server, loghandler)
+
 	utils.Debug("📨 NewGRPCServer received log store at: %p", store)
 	if cfg.Debug.EnableReflection {
 		utils.Info("Enabling gRPC reflection")

@@ -26,17 +26,21 @@ SET default_table_access_method = heap;
 --
 
 CREATE TABLE public.agents (
-    agent_id text NOT NULL,
-    hostname text NOT NULL,
-    ip text,
-    os text,
-    arch text,
-    version text,
-    labels jsonb,
-    last_seen timestamp with time zone DEFAULT now() NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+	agent_id    TEXT PRIMARY KEY,
+	host_id     TEXT NOT NULL,
+	hostname    TEXT,
+	ip          TEXT,
+	os          TEXT,
+	arch        TEXT,
+	version     TEXT,
+	labels      JSONB,
+	endpoint_id TEXT UNIQUE,
+	last_seen   TIMESTAMPTZ,
+	status      TEXT,
+	since       TEXT
 );
+
+CREATE INDEX idx_agents_host_id ON agents (host_id);
 
 
 --

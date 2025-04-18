@@ -85,28 +85,36 @@ func (r *MetricRunner) Run(ctx context.Context) {
 					// Initialize Meta only once per container ID
 					containerMeta, exists := containerMetas[id]
 					if !exists {
-						containerMeta = meta.BuildContainerMeta(r.Config, nil, r.AgentID, r.AgentVersion)
+						containerMeta = meta.BuildMeta(r.Config, nil, r.AgentID, r.AgentVersion)
 						containerMetas[id] = containerMeta
 					}
 
-					//utils.Debug("🔍 Dimensions given with: %s - %v", id, m.Dimensions)
+					// TODO metric runner add k8 namespace / cluster support
 					// Populate meta with container-specific information
 					for k, v := range m.Dimensions {
 						switch k {
 						case "container_id":
 							containerMeta.ContainerID = v
-							containerMeta.Tags["container_id"] = v
 						case "name", "container_name":
 							containerMeta.ContainerName = v
-							containerMeta.Tags["container_name"] = v
 						case "image":
 							containerMeta.ImageID = v
-							containerMeta.Tags["image"] = v
-						default:
-							containerMeta.Tags[k] = v
 						}
 					}
+
+					// Detect running status and apply tag
+					if m.Name == "running" {
+						if m.Value == 1 {
+							containerMeta.Tags["status"] = "running"
+						} else {
+							containerMeta.Tags["status"] = "stopped"
+						}
+					}
+					// Build tags for the container
 					meta.BuildStandardTags(containerMeta, m, true)
+
+					// Set EndpointID for meta
+					containerMeta.EndpointID = utils.GenerateEndpointID(containerMeta)
 					//utils.Debug("🔍 Container Meta Tags: %v", containerMeta.Tags)
 				} else {
 					// Host metrics, collect them separately
@@ -116,10 +124,20 @@ func (r *MetricRunner) Run(ctx context.Context) {
 
 			// Send host metrics as a single payload
 			if len(hostMetrics) > 0 {
-				hostMeta := meta.BuildHostMeta(r.Config, nil, r.AgentID, r.AgentVersion)
+
+				// Build Host Meta
+				hostMeta := meta.BuildMeta(r.Config, nil, r.AgentID, r.AgentVersion)
+
+				// Build tags
 				meta.BuildStandardTags(hostMeta, hostMetrics[0], false)
 
+				// Set EndpointID for meta
+				hostMeta.EndpointID = utils.GenerateEndpointID(hostMeta)
+
 				payload := model.MetricPayload{
+					AgentID:    hostMeta.AgentID,
+					HostID:     hostMeta.HostID,
+					Hostname:   hostMeta.Hostname,
 					EndpointID: hostMeta.EndpointID,
 					Timestamp:  time.Now(),
 					Metrics:    hostMetrics,
@@ -136,6 +154,9 @@ func (r *MetricRunner) Run(ctx context.Context) {
 			// Send each container as a separate payload
 			for id, metrics := range containerBatches {
 				payload := model.MetricPayload{
+					AgentID:    containerMetas[id].AgentID,
+					HostID:     containerMetas[id].HostID,
+					Hostname:   containerMetas[id].Hostname,
 					EndpointID: containerMetas[id].EndpointID,
 					Timestamp:  time.Now(),
 					Metrics:    metrics,

@@ -22,12 +22,14 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 // gosight/server/internal/api
 // metrics.go - gRPC handler for metrics submission
 
-package api
+package telemetry
 
 import (
 	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
-	"github.com/aaronlmathis/gosight/server/internal/store"
+	"github.com/aaronlmathis/gosight/server/internal/store/agenttracker"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
+	"github.com/aaronlmathis/gosight/server/internal/store/metricindex"
+	"github.com/aaronlmathis/gosight/server/internal/store/metricstore"
 	"github.com/aaronlmathis/gosight/shared/model"
 	pb "github.com/aaronlmathis/gosight/shared/proto"
 	"github.com/aaronlmathis/gosight/shared/utils"
@@ -36,15 +38,15 @@ import (
 // MetricsHandler implements pb.MetricsServiceServer
 // MetricsHandler implements MetricsServiceServer
 type MetricsHandler struct {
-	store        store.MetricStore
-	AgentTracker *store.AgentTracker
-	metricIndex  *store.MetricIndex
+	store        metricstore.MetricStore
+	AgentTracker *agenttracker.AgentTracker
+	metricIndex  *metricindex.MetricIndex
 	metaTracker  *metastore.MetaTracker
 	websocket    *websocket.Hub
 	pb.UnimplementedMetricsServiceServer
 }
 
-func NewMetricsHandler(s store.MetricStore, tracker *store.AgentTracker, metricIndex *store.MetricIndex, meta *metastore.MetaTracker, ws *websocket.Hub) *MetricsHandler {
+func NewMetricsHandler(s metricstore.MetricStore, tracker *agenttracker.AgentTracker, metricIndex *metricindex.MetricIndex, meta *metastore.MetaTracker, ws *websocket.Hub) *MetricsHandler {
 	utils.Debug("MetricsHandler initialized with store: %T", s)
 	return &MetricsHandler{
 		store:        s,

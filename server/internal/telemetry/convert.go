@@ -19,7 +19,7 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-package api
+package telemetry
 
 import (
 	"github.com/aaronlmathis/gosight/shared/model"
@@ -57,6 +57,9 @@ func ConvertToModelPayload(pbPayload *proto.MetricPayload) model.MetricPayload {
 		metrics = append(metrics, metric)
 	}
 	return model.MetricPayload{
+		AgentID:    pbPayload.AgentId,
+		HostID:     pbPayload.HostId,
+		Hostname:   pbPayload.Hostname,
 		EndpointID: pbPayload.EndpointId,
 		Timestamp:  pbPayload.Timestamp.AsTime(),
 		Metrics:    metrics,
@@ -71,8 +74,6 @@ func ConvertToModelLogPayload(pbPayload *proto.LogPayload) model.LogPayload {
 		var meta *model.LogMeta
 		if l.Meta != nil {
 			meta = &model.LogMeta{
-				EndPointID:    l.Meta.EndpointId,
-				OS:            l.Meta.Os,
 				Platform:      l.Meta.Platform,
 				AppName:       l.Meta.AppName,
 				AppVersion:    l.Meta.AppVersion,
@@ -85,7 +86,6 @@ func ConvertToModelLogPayload(pbPayload *proto.LogPayload) model.LogPayload {
 				Executable:    l.Meta.Executable,
 				Path:          l.Meta.Path,
 				Extra:         l.Meta.Extra,
-				AgentID:       l.Meta.AgentId,
 			}
 		}
 
@@ -95,7 +95,6 @@ func ConvertToModelLogPayload(pbPayload *proto.LogPayload) model.LogPayload {
 			Message:   l.Message,
 			Source:    l.Source,
 			Category:  l.Category,
-			Host:      l.Host,
 			PID:       int(l.Pid),
 			Fields:    l.Fields,
 			Tags:      l.Tags,
@@ -110,6 +109,9 @@ func ConvertToModelLogPayload(pbPayload *proto.LogPayload) model.LogPayload {
 	}
 
 	return model.LogPayload{
+		AgentID:    pbPayload.AgentId,
+		HostID:     pbPayload.HostId,
+		Hostname:   pbPayload.Hostname,
 		EndpointID: pbPayload.EndpointId,
 		Timestamp:  pbPayload.Timestamp.AsTime(),
 		Logs:       logs,
@@ -122,6 +124,9 @@ func convertProtoMetaToModelMeta(pbMeta *proto.Meta) *model.Meta {
 		return nil
 	}
 	return &model.Meta{
+		AgentID:              pbMeta.AgentId,
+		AgentVersion:         pbMeta.AgentVersion,
+		HostID:               pbMeta.HostId,
 		EndpointID:           pbMeta.EndpointId,
 		Hostname:             pbMeta.Hostname,
 		IPAddress:            pbMeta.IpAddress,
@@ -163,7 +168,5 @@ func convertProtoMetaToModelMeta(pbMeta *proto.Meta) *model.Meta {
 		MACAddress:           pbMeta.MacAddress,
 		NetworkInterface:     pbMeta.NetworkInterface,
 		Tags:                 pbMeta.Tags,
-		AgentVersion:         pbMeta.AgentVersion,
-		AgentID:              pbMeta.AgentId,
 	}
 }

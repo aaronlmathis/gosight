@@ -59,7 +59,6 @@ func ExtractLogLabels(meta *model.LogMeta) map[string]string {
 	}
 
 	labels := map[string]string{
-		"os":             meta.OS,
 		"platform":       meta.Platform,
 		"app_name":       meta.AppName,
 		"container_id":   meta.ContainerID,

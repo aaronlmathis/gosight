@@ -26,6 +26,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package agentutils
 
 import (
+	"os"
 	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
@@ -55,4 +56,13 @@ func ToFloat64(v interface{}) float64 {
 	default:
 		return 0
 	}
+}
+
+// GetHostname returns the system hostname, or "unknown" if it can't be determined.
+func GetHostname() string {
+	h, err := os.Hostname()
+	if err != nil || h == "" {
+		return "unknown"
+	}
+	return h
 }

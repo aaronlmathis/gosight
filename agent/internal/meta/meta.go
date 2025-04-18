@@ -33,7 +33,7 @@ import (
 	"github.com/shirou/gopsutil/v4/host"
 )
 
-func BuildHostMeta(cfg *config.Config, addTags map[string]string, agentID, agentVersion string) *model.Meta {
+func BuildMeta(cfg *config.Config, addTags map[string]string, agentID, agentVersion string) *model.Meta {
 	hostname, err := os.Hostname()
 	if err != nil {
 		hostname = "unknown"
@@ -53,17 +53,10 @@ func BuildHostMeta(cfg *config.Config, addTags map[string]string, agentID, agent
 
 	tags := utils.MergeMaps(cfg.Agent.CustomTags, addTags)
 
-	// Add rich system info as tags
-	tags["host_id"] = hostInfo.HostID
-	tags["hostname"] = hostname
-	tags["platform"] = hostInfo.Platform
-	tags["platform_family"] = hostInfo.PlatformFamily
-	tags["platform_version"] = hostInfo.PlatformVersion
-	tags["kernel_version"] = hostInfo.KernelVersion
-	tags["virtualization_system"] = hostInfo.VirtualizationSystem
-	tags["virtualization_role"] = hostInfo.VirtualizationRole
-
-	return &model.Meta{
+	meta := &model.Meta{
+		AgentID:              agentID,
+		AgentVersion:         agentVersion,
+		HostID:               hostInfo.HostID,
 		Hostname:             hostname,
 		IPAddress:            ip,
 		OS:                   hostInfo.OS,
@@ -74,14 +67,12 @@ func BuildHostMeta(cfg *config.Config, addTags map[string]string, agentID, agent
 		KernelArchitecture:   hostInfo.KernelArch,
 		VirtualizationSystem: hostInfo.VirtualizationSystem,
 		VirtualizationRole:   hostInfo.VirtualizationRole,
-		HostID:               hostInfo.HostID,
 		KernelVersion:        hostInfo.KernelVersion,
 		Architecture:         runtime.GOARCH,
-		Version:              agentVersion,
-		AgentID:              agentID,
-		AgentVersion:         agentVersion,
 		Tags:                 tags,
 	}
+
+	return meta
 }
 
 func BuildContainerMeta(cfg *config.Config, addTags map[string]string, agentID, agentVersion string) *model.Meta {
@@ -105,21 +96,22 @@ func BuildContainerMeta(cfg *config.Config, addTags map[string]string, agentID, 
 
 	tags := utils.MergeMaps(cfg.Agent.CustomTags, addTags)
 
-	// Add rich system info as tags
-	tags["host_id"] = hostInfo.HostID
-	tags["hostname"] = hostname
-
-	tags["platform"] = hostInfo.Platform
-	tags["platform_family"] = hostInfo.PlatformFamily
-	tags["platform_version"] = hostInfo.PlatformVersion
-	tags["kernel_version"] = hostInfo.KernelVersion
-	tags["virtualization_system"] = hostInfo.VirtualizationSystem
-	tags["virtualization_role"] = hostInfo.VirtualizationRole
 	return &model.Meta{
-		Hostname:     hostname,
-		IPAddress:    ip,
-		AgentID:      agentID,
-		AgentVersion: agentVersion,
-		Tags:         tags,
+		AgentID:              agentID,
+		AgentVersion:         agentVersion,
+		HostID:               hostInfo.HostID,
+		Hostname:             hostname,
+		IPAddress:            ip,
+		OS:                   hostInfo.OS,
+		OSVersion:            hostInfo.PlatformVersion,
+		Platform:             hostInfo.Platform,
+		PlatformFamily:       hostInfo.PlatformFamily,
+		PlatformVersion:      hostInfo.PlatformVersion,
+		KernelArchitecture:   hostInfo.KernelArch,
+		VirtualizationSystem: hostInfo.VirtualizationSystem,
+		VirtualizationRole:   hostInfo.VirtualizationRole,
+		KernelVersion:        hostInfo.KernelVersion,
+		Architecture:         runtime.GOARCH,
+		Tags:                 tags,
 	}
 }

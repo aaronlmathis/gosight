@@ -28,13 +28,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/aaronlmathis/gosight/server/internal/store"
+	"github.com/aaronlmathis/gosight/server/internal/store/agenttracker"
 	"github.com/aaronlmathis/gosight/server/internal/store/datastore"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func InitAgentTracker(ctx context.Context, env string, dataStore datastore.DataStore) (*store.AgentTracker, error) {
-	tracker := store.NewAgentTracker()
+func InitAgentTracker(ctx context.Context, env string, dataStore datastore.DataStore) (*agenttracker.AgentTracker, error) {
+	tracker := agenttracker.NewAgentTracker()
 
 	//  Start sync loop to periodically push in-memory AgentTracker data into persistant store.
 	go func() {
