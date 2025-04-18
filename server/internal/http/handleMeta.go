@@ -28,8 +28,11 @@ package httpserver
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -234,4 +237,58 @@ func parseQueryFilters(r *http.Request) map[string]string {
 		}
 	}
 	return filters
+}
+
+// ExportQueryHandler handles flexible label-based queries without requiring a metric name.
+// Supports optional time range via start= and end= query params.
+func (s *HttpServer) HandleExportQuery(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+
+	// Extract label filters
+	labels := make([]string, 0)
+	for k, vals := range q {
+		if len(vals) > 0 && k != "start" && k != "end" {
+			labels = append(labels, fmt.Sprintf(`%s="%s"`, k, vals[0]))
+		}
+	}
+
+	// Build match[] expression
+	sort.Strings(labels)
+	matchExpr := fmt.Sprintf("{%s}", strings.Join(labels, ","))
+
+	params := url.Values{}
+	params.Add("match[]", matchExpr)
+
+	// Optional time range
+	if start := q.Get("start"); start != "" {
+		params.Add("start", start)
+	}
+	if end := q.Get("end"); end != "" {
+		params.Add("end", end)
+	}
+	if _, ok := q["start"]; !ok {
+		params.Add("start", fmt.Sprintf("%d", time.Now().Add(-5*time.Minute).Unix()))
+	}
+	if _, ok := q["end"]; !ok {
+		params.Add("end", fmt.Sprintf("%d", time.Now().Unix()))
+	}
+
+	// Format: json or prom line format
+	if format := q.Get("format"); format != "" {
+		params.Add("format", format)
+	}
+
+	// Build final URL
+	exportURL := fmt.Sprintf("%s?%s", s.Config.Storage.URL+"/api/v1/export", params.Encode())
+
+	resp, err := http.Get(exportURL)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Export query failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
+	w.WriteHeader(resp.StatusCode)
+	io.Copy(w, resp.Body)
 }

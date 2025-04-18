@@ -44,7 +44,7 @@ socket.onmessage = (event) => {
                 renderOverviewSummary(summary);
             }
 
-            if (payload.meta.endpoint_id?.startsWith("container-")) {
+            if (payload.meta.endpoint_id?.startsWith("ctr-")) {
                 updateContainerTable(payload);
             }
         }

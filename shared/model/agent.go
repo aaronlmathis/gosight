@@ -35,10 +35,11 @@ type Agent struct {
 	Version  string            `json:"version"`
 	Labels   map[string]string `json:"labels"`
 
-	EndpointID string    `json:"endpoint_id"` // Computed from HostID
-	LastSeen   time.Time `json:"last_seen"`
-	Status     string    `json:"status"` // online/offline
-	Since      string    `json:"since"`  // How long in current state
-
-	Updated bool `json:"-"` // For in-memory use only
+	EndpointID    string    `json:"endpoint_id"` // Computed from HostID
+	LastSeen      time.Time `json:"last_seen"`
+	Status        string    `json:"status"` // online/offline
+	Since         string    `json:"since"`  // How long in current state
+	StartTime     time.Time `json:"-"`
+	UptimeSeconds float64   `json:"uptime_seconds"`
+	Updated       bool      `json:"-"` // For in-memory use only
 }

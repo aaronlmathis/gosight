@@ -7,9 +7,9 @@ import (
 
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
+	"github.com/aaronlmathis/gosight/server/internal/store/metricstore"
 	"github.com/aaronlmathis/gosight/server/internal/usermodel"
 
-	"github.com/aaronlmathis/gosight/server/internal/store"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
@@ -119,7 +119,7 @@ func GetMetricNames(metrics []model.MetricSelector, instantOnly bool) []string {
 	return out
 }
 
-func BuildHostDashboardData(ctx context.Context, ms store.MetricStore, metaTracker *metastore.MetaTracker, user *usermodel.User, endpointID string) (*TemplateData, error) {
+func BuildHostDashboardData(ctx context.Context, ms metricstore.MetricStore, metaTracker *metastore.MetaTracker, user *usermodel.User, endpointID string) (*TemplateData, error) {
 
 	utils.Debug("Building host dashboard data for endpoint: %s", endpointID)
 
@@ -130,7 +130,7 @@ func BuildHostDashboardData(ctx context.Context, ms store.MetricStore, metaTrack
 
 	meta, _ := metaTracker.Get(endpointID)
 
-	utils.Debug("🧠 MetricStore concrete type: %T\n", ms)
+	utils.Debug("MetricStore concrete type: %T\n", ms)
 	// Pull all instant metrics for stat boxes
 	instantNames := GetMetricNames(HostMetrics, true)
 	fmt.Println("🧪 Querying instant metrics:", instantNames)

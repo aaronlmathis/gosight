@@ -125,6 +125,16 @@ func main() {
 	utils.Info("🧹 Shutting down GoSight...")
 
 	grpcServer.GracefulStop()
-	_ = srv.Shutdown(ctx)
-	_ = metricStore.Close()
+	if err := srv.Shutdown(ctx); err != nil {
+		utils.Fatal("Failed to shutdown HTTP server: %v", err)
+	}
+	if err := metricStore.Close(); err != nil {
+		utils.Warn("Failed to close metric store: %v", err)
+	}
+	if err := dataStore.Close(); err != nil {
+		utils.Warn("Failed to close datastore: %v", err)
+	}
+	if err := userStore.Close(); err != nil {
+		utils.Warn("Failed to close userstore: %v", err)
+	}
 }

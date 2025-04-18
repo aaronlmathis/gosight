@@ -25,6 +25,7 @@ package agenttracker
 
 import (
 	"context"
+	"strconv"
 	"sync"
 	"time"
 
@@ -78,8 +79,19 @@ func (t *AgentTracker) UpdateAgent(meta *model.Meta) {
 		agent.Labels = meta.Tags
 		agent.EndpointID = meta.EndpointID
 		agent.Updated = true
-	}
 
+	}
+	if startRaw, ok := meta.Tags["agent_start_time"]; ok {
+		if startUnix, err := strconv.ParseInt(startRaw, 10, 64); err == nil {
+			if agent.StartTime.IsZero() {
+				agent.StartTime = time.Unix(startUnix, 0)
+				utils.Debug("meta.Tags[agent_start_time]: %s", meta.Tags["agent_start_time"])
+			}
+			agent.UptimeSeconds = time.Since(agent.StartTime).Seconds()
+		} else {
+			utils.Warn("Invalid agent_start_time tag: %s", startRaw)
+		}
+	}
 	agent.LastSeen = time.Now()
 }
 
@@ -117,16 +129,45 @@ func (t *AgentTracker) GetAgents() []model.Agent {
 	return list
 }
 
-func (t *AgentTracker) GetAgentMap() map[string]*model.Agent {
+func (t *AgentTracker) GetAgentMap() map[string]model.Agent {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
-	// Return a shallow copy so we don’t expose internal map
-	out := make(map[string]*model.Agent, len(t.agents))
-	for id, agent := range t.agents {
-		out[id] = agent
+	result := make(map[string]model.Agent)
+
+	for id, a := range t.agents {
+		elapsed := time.Since(a.LastSeen)
+
+		status := "Offline"
+		if elapsed < 10*time.Second {
+			status = "Online"
+		} else if elapsed < 60*time.Second {
+			status = "Idle"
+		}
+
+		uptime := 0.0
+		if !a.StartTime.IsZero() {
+			uptime = time.Since(a.StartTime).Seconds()
+		}
+
+		result[id] = model.Agent{
+			AgentID:       a.AgentID,
+			HostID:        a.HostID,
+			Hostname:      a.Hostname,
+			IP:            a.IP,
+			OS:            a.OS,
+			Arch:          a.Arch,
+			Version:       a.Version,
+			Labels:        a.Labels,
+			EndpointID:    a.EndpointID,
+			LastSeen:      a.LastSeen,
+			Status:        status,
+			Since:         elapsed.Truncate(time.Second).String(),
+			UptimeSeconds: uptime,
+		}
 	}
-	return out
+
+	return result
 }
 
 // Syncs Agents from inmemory to persistant storage

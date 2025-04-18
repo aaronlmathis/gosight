@@ -22,17 +22,3 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 // Basic Handler for http server
 // server/internal/http/handler.go
 package httpserver
-
-import (
-	"encoding/json"
-	"net/http"
-)
-
-func (s *HttpServer) NewHostsHandler(w http.ResponseWriter, r *http.Request) {
-	agents := s.AgentTracker.GetAgents()
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(agents); err != nil {
-		http.Error(w, "failed to encode", http.StatusInternalServerError)
-	}
-}

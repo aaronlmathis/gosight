@@ -18,4 +18,5 @@ type UserStore interface {
 	AssignRoleToUser(ctx context.Context, userID, roleID string) error
 	CreatePermission(ctx context.Context, p *usermodel.Permission) error
 	AttachPermissionToRole(ctx context.Context, roleID, permID string) error
+	Close() error
 }

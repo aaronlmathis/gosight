@@ -5,13 +5,13 @@ package httpserver
 import (
 	"time"
 
-	"github.com/aaronlmathis/gosight/server/internal/store"
+	"github.com/aaronlmathis/gosight/server/internal/store/metricstore"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 type APIMetricStore struct {
-	Store store.MetricStore
+	Store metricstore.MetricStore
 }
 
 func (a *APIMetricStore) Write(metrics []model.MetricPayload) error {

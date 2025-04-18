@@ -37,10 +37,12 @@ import (
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/http/templates"
 	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
-	"github.com/aaronlmathis/gosight/server/internal/store"
+	"github.com/aaronlmathis/gosight/server/internal/store/agenttracker"
 	"github.com/aaronlmathis/gosight/server/internal/store/datastore"
 	"github.com/aaronlmathis/gosight/server/internal/store/logstore"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
+	"github.com/aaronlmathis/gosight/server/internal/store/metricindex"
+	"github.com/aaronlmathis/gosight/server/internal/store/metricstore"
 	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/gorilla/mux"
@@ -49,12 +51,12 @@ import (
 )
 
 type HttpServer struct {
-	AgentTracker   *store.AgentTracker
+	AgentTracker   *agenttracker.AgentTracker
 	APIMetricStore *APIMetricStore
 	AuthProviders  map[string]gosightauth.AuthProvider
 	Config         *config.Config
-	MetricIndex    *store.MetricIndex
-	MetricStore    store.MetricStore
+	MetricIndex    *metricindex.MetricIndex
+	MetricStore    metricstore.MetricStore
 	LogStore       logstore.LogStore
 	MetaTracker    *metastore.MetaTracker
 	Router         *mux.Router
@@ -66,12 +68,12 @@ type HttpServer struct {
 
 func NewServer(
 	ctx context.Context,
-	agentTracker *store.AgentTracker,
+	agentTracker *agenttracker.AgentTracker,
 	authProviders map[string]gosightauth.AuthProvider,
 	cfg *config.Config,
 	metaTracker *metastore.MetaTracker,
-	metricIndex *store.MetricIndex,
-	metricStore store.MetricStore,
+	metricIndex *metricindex.MetricIndex,
+	metricStore metricstore.MetricStore,
 	logStore logstore.LogStore,
 	userStore userstore.UserStore,
 	dataStore datastore.DataStore,
@@ -89,6 +91,7 @@ func NewServer(
 		MetricStore:    metricStore,
 		Router:         router,
 		UserStore:      userStore,
+		DataStore:      dataStore,
 		WebSocket:      webSocket,
 		LogStore:       logStore,
 		httpServer: &http.Server{

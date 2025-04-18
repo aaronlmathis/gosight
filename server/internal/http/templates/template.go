@@ -33,7 +33,8 @@ import (
 	"text/template"
 
 	"github.com/aaronlmathis/gosight/server/internal/config"
-	"github.com/aaronlmathis/gosight/server/internal/store"
+	"github.com/aaronlmathis/gosight/server/internal/store/metricindex"
+	"github.com/aaronlmathis/gosight/server/internal/store/metricstore"
 	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
 	"github.com/aaronlmathis/gosight/server/internal/usermodel"
 	"github.com/aaronlmathis/gosight/shared/model"
@@ -56,8 +57,8 @@ type TemplateData struct {
 	Tags        map[string]string
 	Labels      map[string]string
 	Meta        model.Meta
-	MetricStore store.MetricStore
-	MetricIndex *store.MetricIndex
+	MetricStore metricstore.MetricStore
+	MetricIndex *metricindex.MetricIndex
 	UserStore   userstore.UserStore
 	Breadcrumbs []Breadcrumb
 }

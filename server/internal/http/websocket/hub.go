@@ -56,7 +56,7 @@ func (h *Hub) Run() {
 						// Exact match (host or container directly watched)
 						if payload.EndpointID == client.EndpointID {
 							//  direct match
-						} else if strings.HasPrefix(payload.EndpointID, "container-") &&
+						} else if strings.HasPrefix(payload.EndpointID, "ctr-") &&
 							payload.Meta != nil &&
 							payload.Meta.Tags != nil &&
 							payload.Meta.AgentID == client.AgentID {
@@ -127,7 +127,7 @@ func (h *Hub) shouldDeliver(payloadID string, meta *model.Meta, client *Client) 
 		return true // direct match
 	}
 
-	if strings.HasPrefix(payloadID, "container-") &&
+	if strings.HasPrefix(payloadID, "ctr-") &&
 		meta != nil &&
 		meta.AgentID == client.AgentID {
 		return true // container belongs to host

@@ -51,14 +51,54 @@ func (s *HttpServer) HandleAgentsPage(w http.ResponseWriter, r *http.Request, te
 	_ = tmpl.Execute(w, data)
 }
 
+/*
 // HandleAgentsAPI returns a JSON list of active agents
-func (s *HttpServer) HandleAgentsAPI(w http.ResponseWriter, r *http.Request) {
-	agents := s.AgentTracker.GetAgents()
 
-	sort.SliceStable(agents, func(i, j int) bool {
-		return agents[i].Hostname < agents[j].Hostname
+	func (s *HttpServer) HandleAgentsAPI(w http.ResponseWriter, r *http.Request) {
+		agents := s.AgentTracker.GetAgents()
+
+		sort.SliceStable(agents, func(i, j int) bool {
+			return agents[i].Hostname < agents[j].Hostname
+		})
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(agents)
+	}
+*/
+func (s *HttpServer) HandleAgentsAPI(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	storedAgents, err := s.DataStore.ListAgents(ctx)
+
+	if err != nil {
+		http.Error(w, "failed to load agents", http.StatusInternalServerError)
+		return
+	}
+
+	// 2. Get current in-memory live agents
+	liveMap := s.AgentTracker.GetAgentMap()
+
+	// 3. Merge: overwrite stored fields with live status if found
+	for i := range storedAgents {
+		if live, ok := liveMap[storedAgents[i].AgentID]; ok {
+			storedAgents[i].Status = live.Status
+			storedAgents[i].Since = live.Since
+			storedAgents[i].UptimeSeconds = live.UptimeSeconds
+			storedAgents[i].LastSeen = live.LastSeen
+		} else {
+			storedAgents[i].Status = "Offline"
+			storedAgents[i].Since = "—"
+		}
+	}
+
+	// 4. Sort by hostname
+	sort.SliceStable(storedAgents, func(i, j int) bool {
+		return storedAgents[i].Hostname < storedAgents[j].Hostname
 	})
 
+	// 5. Respond
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(agents)
+	_ = json.NewEncoder(w).Encode(storedAgents)
+
 }

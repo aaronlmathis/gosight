@@ -70,8 +70,9 @@ func (h *MetricsHandler) SubmitStream(stream pb.MetricsService_SubmitStreamServe
 			utils.Error("Stream receive error: %v", err)
 			return err
 		}
-
+		// Convert payload into a model.MetricPayload.
 		converted := ConvertToModelPayload(req)
+
 		h.AgentTracker.UpdateAgent(converted.Meta)
 
 		// Broadcast to WebSocket clients

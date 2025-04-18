@@ -16,6 +16,13 @@ func New(db *sql.DB) *PGStore {
 	return &PGStore{db: db}
 }
 
+func (s *PGStore) Close() error {
+	if s.db != nil {
+		return s.db.Close()
+	}
+	return nil
+}
+
 func (s *PGStore) GetUserByID(ctx context.Context, ID string) (*usermodel.User, error) {
 	row := s.db.QueryRowContext(ctx, `
 		SELECT id, username, first_name, last_name, email, password_hash, mfa_secret FROM users WHERE id = $1

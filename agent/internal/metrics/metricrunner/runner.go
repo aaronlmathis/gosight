@@ -19,6 +19,7 @@ type MetricRunner struct {
 	MetricRegistry *metriccollector.MetricRegistry
 	AgentID        string
 	AgentVersion   string
+	StartTime      time.Time
 }
 
 func NewRunner(ctx context.Context, cfg *config.Config, agentID, agentVersion string) (*MetricRunner, error) {
@@ -34,6 +35,7 @@ func NewRunner(ctx context.Context, cfg *config.Config, agentID, agentVersion st
 		MetricRegistry: metricRegistry,
 		AgentID:        agentID,
 		AgentVersion:   agentVersion,
+		StartTime:      time.Now(),
 	}, nil
 }
 
@@ -111,7 +113,7 @@ func (r *MetricRunner) Run(ctx context.Context) {
 						}
 					}
 					// Build tags for the container
-					meta.BuildStandardTags(containerMeta, m, true)
+					meta.BuildStandardTags(containerMeta, m, true, r.StartTime)
 
 					// Set EndpointID for meta
 					containerMeta.EndpointID = utils.GenerateEndpointID(containerMeta)
@@ -129,7 +131,7 @@ func (r *MetricRunner) Run(ctx context.Context) {
 				hostMeta := meta.BuildMeta(r.Config, nil, r.AgentID, r.AgentVersion)
 
 				// Build tags
-				meta.BuildStandardTags(hostMeta, hostMetrics[0], false)
+				meta.BuildStandardTags(hostMeta, hostMetrics[0], false, r.StartTime)
 
 				// Set EndpointID for meta
 				hostMeta.EndpointID = utils.GenerateEndpointID(hostMeta)

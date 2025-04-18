@@ -26,11 +26,9 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package httpserver
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
 	"github.com/aaronlmathis/gosight/server/internal/http/templates"
@@ -40,7 +38,7 @@ import (
 )
 
 type HostRow struct {
-	Agent   model.AgentStatus
+	Agent   model.Agent
 	Metrics map[string]string // uptime, cpu %, mem %, etc.
 }
 
@@ -83,7 +81,7 @@ func (s *HttpServer) HandleEndpointPage(w http.ResponseWriter, r *http.Request) 
 	var hosts []HostRow
 
 	for _, agent := range agents {
-		if strings.HasPrefix(agent.EndpointID, "container-") {
+		if strings.HasPrefix(agent.EndpointID, "ctr-") {
 			continue
 		}
 		active[agent.AgentID] = true
@@ -139,6 +137,7 @@ func (s *HttpServer) HandleEndpointDetail(w http.ResponseWriter, r *http.Request
 	vars := mux.Vars(r)
 	endpointID := vars["endpoint_id"]
 	ctx := r.Context()
+	utils.Debug("Endpoint ID: %s", endpointID)
 
 	// Check for forbidden access first
 	if forbidden, ok := ctx.Value("forbidden").(bool); ok && forbidden {
@@ -175,81 +174,4 @@ func (s *HttpServer) HandleEndpointDetail(w http.ResponseWriter, r *http.Request
 		utils.Error("Template error: %v", err)
 		http.Error(w, "template error", http.StatusInternalServerError)
 	}
-}
-
-func (s *HttpServer) EndpointDetailsAPIHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	endpointID := vars["endpoint_id"]
-
-	// Basic labels
-	labels := map[string]string{
-		"endpoint_id": endpointID,
-	}
-
-	instantNames := templates.GetMetricNames(templates.HostMetrics, true)
-	fmt.Println("Querying instant metrics:", instantNames)
-
-	rows, err := s.MetricStore.QueryMultiInstant(instantNames, labels)
-	if err != nil {
-		http.Error(w, "error fetching metrics", http.StatusInternalServerError)
-		return
-	}
-
-	// Prepare structured response
-	response := map[string]interface{}{
-		"endpoint_id": endpointID,
-		"metrics":     map[string]float64{},
-		"labels":      map[string]string{},
-		"timestamp":   time.Now().UnixMilli(),
-	}
-
-	// Populate response metrics
-	for _, row := range rows {
-		metricName := row.Tags["__name__"]
-		response["metrics"].(map[string]float64)[metricName] = row.Value
-	}
-
-	// Add labels or extra info if needed
-	if endpoint, ok := s.MetaTracker.Get(endpointID); ok {
-
-		response["labels"].(map[string]string)["os"] = endpoint.OS
-
-	}
-
-	// Set JSON response
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-func GroupContainerMetrics(rows []model.MetricRow) map[string]*ContainerRow {
-	result := make(map[string]*ContainerRow)
-
-	for _, row := range rows {
-		id := row.Tags["container_id"]
-		if id == "" {
-			continue
-		}
-		if _, ok := result[id]; !ok {
-			result[id] = &ContainerRow{
-				ID:     id,
-				Name:   row.Tags["container_name"],
-				Image:  row.Tags["image"],
-				Status: row.Tags["status"],
-			}
-		}
-		cr := result[id]
-		switch row.Tags["__name__"] {
-		case "container.podman.cpu_percent":
-			cr.CPU = fmt.Sprintf("%.1f%%", row.Value)
-		case "container.podman.mem_usage_bytes":
-			cr.Mem = templates.HumanizeBytes(row.Value)
-		case "container.podman.net_rx_bytes":
-			cr.RX = templates.HumanizeBytes(row.Value)
-		case "container.podman.net_tx_bytes":
-			cr.TX = templates.HumanizeBytes(row.Value)
-		case "container.podman.uptime_seconds":
-			cr.Uptime = templates.FormatUptime(row.Value)
-		}
-	}
-	return result
 }

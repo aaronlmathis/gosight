@@ -132,8 +132,18 @@ func (s *HttpServer) setupAPIRoutes() {
 
 	api := s.Router.PathPrefix("/api/v1").Subrouter()
 	api.HandleFunc("/query", s.HandleAPIQuery).Methods("GET")
+	api.HandleFunc("/exportquery", s.HandleExportQuery).Methods("GET")
 
 	api.HandleFunc("/", s.GetNamespaces).Methods("GET")
+
+	api.Handle("/agents",
+		gosightauth.AuthMiddleware(s.UserStore)(
+			gosightauth.RequirePermission("gosight:dashboard:view",
+				http.HandlerFunc(s.HandleAgentsAPI),
+				s.UserStore,
+			),
+		)).Methods("GET")
+
 	api.HandleFunc("/logs/latest", s.HandleRecentLogs).Methods("GET")
 	api.HandleFunc("/{namespace}/{sub}/{metric}/latest", s.GetLatestValue).Methods("GET")
 	api.HandleFunc("/{namespace}/{sub}/{metric}/data", s.GetMetricData).Methods("GET")

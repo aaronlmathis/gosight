@@ -26,21 +26,19 @@ SET default_table_access_method = heap;
 --
 
 CREATE TABLE public.agents (
-	agent_id    TEXT PRIMARY KEY,
-	host_id     TEXT NOT NULL,
-	hostname    TEXT,
-	ip          TEXT,
-	os          TEXT,
-	arch        TEXT,
-	version     TEXT,
-	labels      JSONB,
-	endpoint_id TEXT UNIQUE,
-	last_seen   TIMESTAMPTZ,
-	status      TEXT,
-	since       TEXT
+    agent_id text NOT NULL,
+    host_id text NOT NULL,
+    hostname text,
+    ip text,
+    os text,
+    arch text,
+    version text,
+    labels jsonb,
+    endpoint_id text,
+    last_seen timestamp with time zone,
+    status text,
+    since text,
 );
-
-CREATE INDEX idx_agents_host_id ON agents (host_id);
 
 
 --
@@ -116,6 +114,14 @@ CREATE TABLE public.users (
     first_name text,
     last_name text
 );
+
+
+--
+-- Name: agents agents_endpoint_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.agents
+    ADD CONSTRAINT agents_endpoint_id_key UNIQUE (endpoint_id);
 
 
 --
@@ -204,6 +210,13 @@ ALTER TABLE ONLY public.users
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_username_key UNIQUE (username);
+
+
+--
+-- Name: idx_agents_host_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_agents_host_id ON public.agents USING btree (host_id);
 
 
 --

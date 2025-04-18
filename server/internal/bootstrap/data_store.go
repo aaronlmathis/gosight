@@ -48,6 +48,7 @@ func InitDataStore(cfg *config.Config) (datastore.DataStore, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		// Optionally test the connection
 		if err := db.Ping(); err != nil {
 			return nil, err

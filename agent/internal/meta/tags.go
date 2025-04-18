@@ -25,16 +25,20 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package meta
 
 import (
+	"fmt"
 	"strings"
+	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
 )
 
 // BuildStandardTags sets required labels for consistent metric identity and filtering.
-func BuildStandardTags(meta *model.Meta, m model.Metric, isContainer bool) {
+func BuildStandardTags(meta *model.Meta, m model.Metric, isContainer bool, startTime time.Time) {
 	if meta.Tags == nil {
 		meta.Tags = make(map[string]string)
 	}
+	// Tag with agent start time for use calculating agent uptime on server
+	meta.Tags["agent_start_time"] = fmt.Sprintf("%d", startTime.Unix())
 
 	// Contextual source of the metric
 	meta.Tags["namespace"] = strings.ToLower(m.Namespace)

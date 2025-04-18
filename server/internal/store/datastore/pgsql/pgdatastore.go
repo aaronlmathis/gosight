@@ -29,6 +29,8 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
+	"runtime/debug"
 
 	"github.com/aaronlmathis/gosight/shared/model"
 )
@@ -41,18 +43,26 @@ func New(db *sql.DB) *PGDataStore {
 	return &PGDataStore{db: db}
 }
 
+func (s *PGDataStore) Close() error {
+	if s.db != nil {
+		return s.db.Close()
+	}
+	return nil
+}
+
 // Agent related functions
 
 // UpsertAgent inserts or updates an agent in the database
 
 func (s *PGDataStore) UpsertAgent(ctx context.Context, agent *model.Agent) error {
+
 	tags, _ := json.Marshal(agent.Labels)
 
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO agents (
-			agent_id, host_id, hostname, ip, os, arch, version, labels, last_seen, endpoint_id
+			agent_id, host_id, hostname, ip, os, arch, version, labels, last_seen, endpoint_id, uptime_seconds
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, now(), $9
+			$1, $2, $3, $4, $5, $6, $7, $8, now(), $9, $10
 		)
 		ON CONFLICT (agent_id) DO UPDATE SET
 			host_id = EXCLUDED.host_id,
@@ -63,6 +73,7 @@ func (s *PGDataStore) UpsertAgent(ctx context.Context, agent *model.Agent) error
 			labels = EXCLUDED.labels,
 			endpoint_id = EXCLUDED.endpoint_id,
 			last_seen = now()
+			uptime_seconds = EXCLUDED.uptime_seconds,
 	`,
 		agent.AgentID,
 		agent.HostID,
@@ -73,6 +84,7 @@ func (s *PGDataStore) UpsertAgent(ctx context.Context, agent *model.Agent) error
 		agent.Version,
 		tags,
 		agent.EndpointID,
+		agent.UptimeSeconds,
 	)
 	return err
 }
@@ -155,11 +167,18 @@ func (s *PGDataStore) ListAgents(ctx context.Context) ([]*model.Agent, error) {
 		FROM agents
 	`)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("query failed: %w", err)
 	}
 	defer rows.Close()
 
 	var agents []*model.Agent
+
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("🔥 PANIC in ListAgents loop:", r)
+			debug.PrintStack()
+		}
+	}()
 
 	for rows.Next() {
 		agent := &model.Agent{}
@@ -178,11 +197,17 @@ func (s *PGDataStore) ListAgents(ctx context.Context) ([]*model.Agent, error) {
 			&agent.EndpointID,
 		)
 		if err != nil {
-			return nil, err
+			fmt.Println("Scan error:", err)
+			continue
 		}
 
-		if err := json.Unmarshal(tagsRaw, &agent.Labels); err != nil {
-			return nil, err
+		if len(tagsRaw) > 0 {
+			if err := json.Unmarshal(tagsRaw, &agent.Labels); err != nil {
+				fmt.Printf("JSON decode failed: %v\nRaw: %s\n", err, string(tagsRaw))
+				agent.Labels = map[string]string{}
+			}
+		} else {
+			agent.Labels = map[string]string{}
 		}
 
 		agents = append(agents, agent)
