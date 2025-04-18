@@ -19,16 +19,19 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// gosight/agent/api/convert.go
+// gosight/agent/internal/protohelper/convert.go
 // convert.go - converts internal metric payloads to protobuf format for gRPC.
 
-package api
+package protohelper
 
 import (
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+// ConvertToProtoPayload converts a MetricPayload from internal model format
+// to the protobuf format used by the gRPC service.
 
 func ConvertToProtoPayload(payload model.MetricPayload) *proto.MetricPayload {
 	metrics := make([]*proto.Metric, 0, len(payload.Metrics))
@@ -54,13 +57,16 @@ func ConvertToProtoPayload(payload model.MetricPayload) *proto.MetricPayload {
 		}
 		metrics = append(metrics, pm)
 	}
-	// Convert proto meta into model meta
+
 	pbMeta := ConvertMetaToProtoMeta(payload.Meta)
 	if pbMeta == nil {
 		pbMeta = &proto.Meta{}
 	}
 
 	return &proto.MetricPayload{
+		AgentId:    payload.AgentID,
+		HostId:     payload.HostID,
+		Hostname:   payload.Hostname,
 		EndpointId: payload.EndpointID,
 		Timestamp:  timestamppb.New(payload.Timestamp),
 		Metrics:    metrics,
@@ -68,12 +74,14 @@ func ConvertToProtoPayload(payload model.MetricPayload) *proto.MetricPayload {
 	}
 }
 
+// ConvertLogMetaToProtoMeta translates the internal LogMeta struct into the proto.LogMeta type.
+// It preserves all model.LogEntry environment fields needed for traceability.
+
 func ConvertLogMetaToProto(m *model.LogMeta) *proto.LogMeta {
 	if m == nil {
 		return &proto.LogMeta{}
 	}
 	return &proto.LogMeta{
-		Os:            m.OS,
 		Platform:      m.Platform,
 		AppName:       m.AppName,
 		AppVersion:    m.AppVersion,
@@ -86,28 +94,21 @@ func ConvertLogMetaToProto(m *model.LogMeta) *proto.LogMeta {
 		Executable:    m.Executable,
 		Path:          m.Path,
 		Extra:         m.Extra,
-		AgentId:       m.AgentID,
-		EndpointId:    m.EndPointID,
 	}
 }
+
+// ConvertMetaToProtoMeta translates the internal Meta struct into the proto.Meta type.
+// It preserves all identity, system, and environment fields needed for traceability.
 
 func ConvertMetaToProtoMeta(m *model.Meta) *proto.Meta {
 	if m == nil {
 		return nil
 	}
-	//utils.Debug("📦 Converting meta to proto: %v", m)
 	return &proto.Meta{
-		EndpointId:           m.EndpointID,
 		Hostname:             m.Hostname,
 		IpAddress:            m.IPAddress,
 		Os:                   m.OS,
 		OsVersion:            m.OSVersion,
-		Platform:             m.Platform,
-		PlatformFamily:       m.PlatformFamily,
-		PlatformVersion:      m.PlatformVersion,
-		KernelArchitecture:   m.KernelArchitecture,
-		VirtualizationSystem: m.VirtualizationSystem,
-		VirtualizationRole:   m.VirtualizationRole,
 		KernelVersion:        m.KernelVersion,
 		Architecture:         m.Architecture,
 		CloudProvider:        m.CloudProvider,
@@ -138,7 +139,15 @@ func ConvertMetaToProtoMeta(m *model.Meta) *proto.Meta {
 		MacAddress:           m.MACAddress,
 		NetworkInterface:     m.NetworkInterface,
 		Tags:                 m.Tags,
-		AgentId:              m.AgentID,
+		EndpointId:           m.EndpointID,
+		Platform:             m.Platform,
+		PlatformFamily:       m.PlatformFamily,
+		PlatformVersion:      m.PlatformVersion,
+		KernelArchitecture:   m.KernelArchitecture,
+		VirtualizationSystem: m.VirtualizationSystem,
+		VirtualizationRole:   m.VirtualizationRole,
+		HostId:               m.HostID,
 		AgentVersion:         m.AgentVersion,
+		AgentId:              m.AgentID,
 	}
 }
