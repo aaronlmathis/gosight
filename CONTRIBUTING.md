@@ -17,26 +17,26 @@ GoSight is a modular observability tool written in Go. It includes:
 
 ## 🛠️ Quickstart
 
-\`\`\`bash
+```bash
 cd dev
 ./setup_dev_env.sh
 # or
 make
-\`\`\`
+```
 
 This will:
 - Clone the repo
 - Start PostgreSQL + VictoriaMetrics in containers
 - Load the schema and generate certs
-- Build agent/server with configs in \`./configs\`
+- Build agent/server with configs in `./configs`
 
 Credentials:
-- **Postgres**: \`gosight\` / \`devpassword\`
-- **Default User**: \`dev\` / \`password\`
+- **Postgres**: `gosight` / `devpassword`
+- **Default User**: `dev` / `password`
 
 Edit configs here:
-- \`configs/agent.yaml\`
-- \`configs/server.yaml\`
+- `configs/agent.yaml`
+- `configs/server.yaml`
 
 ---
 
@@ -54,20 +54,20 @@ Edit configs here:
 
 ## 📁 Repo Structure
 
-\`\`\`
+```
 gosight/
 ├── agent/         # Collectors, config, streaming logic
 ├── server/        # HTTP + gRPC server, auth, dashboards
 ├── shared/        # Protobufs, models, common utils
 ├── dev/           # Dev tools, setup scripts, schema
-\`\`\`
+```
 
 ---
 
 ## 🚀 Getting Involved
 
 1. Fork and clone the repo
-2. Create a branch: \`git checkout -b feat/your-feature\`
+2. Create a branch: `git checkout -b feat/your-feature`
 3. Code, test, commit
 4. Push and open a PR
 
@@ -76,8 +76,7 @@ gosight/
 ## ✅ Good First Issues
 
 - [ ] Convert dashboard table filters to Flowbite components
-- [ ] Add disk I/O collector to agent
-- [ ] Add \`/api/logs\` endpoint for log ingestion
+- [ ] Add `/api/logs` endpoint for log ingestion
 - [ ] Improve structured logging with request trace IDs
 - [ ] Add test fixtures for metrics and logs
 
@@ -85,7 +84,7 @@ gosight/
 
 ## 🧪 Tips for Testing
 
-\`\`\`bash
+```bash
 # Run agent
 GOSIGHT_AGENT_CONFIG=./configs/agent.yaml ./agent/gosight-agent
 
@@ -94,7 +93,7 @@ GOSIGHT_SERVER_CONFIG=./configs/server.yaml ./server/gosight
 
 # Query VictoriaMetrics
 curl 'http://localhost:8428/api/v1/series?match[]=container.cpu.usage'
-\`\`\`
+```
 
 ---
 
