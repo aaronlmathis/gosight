@@ -59,22 +59,22 @@ func (s *PGDataStore) UpsertAgent(ctx context.Context, agent *model.Agent) error
 	tags, _ := json.Marshal(agent.Labels)
 
 	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO agents (
-			agent_id, host_id, hostname, ip, os, arch, version, labels, last_seen, endpoint_id, uptime_seconds
-		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, now(), $9, $10
-		)
-		ON CONFLICT (agent_id) DO UPDATE SET
-			host_id = EXCLUDED.host_id,
-			ip = EXCLUDED.ip,
-			os = EXCLUDED.os,
-			arch = EXCLUDED.arch,
-			version = EXCLUDED.version,
-			labels = EXCLUDED.labels,
-			endpoint_id = EXCLUDED.endpoint_id,
-			last_seen = now()
-			uptime_seconds = EXCLUDED.uptime_seconds,
-	`,
+	INSERT INTO agents (
+		agent_id, host_id, hostname, ip, os, arch, version, labels, endpoint_id, last_seen
+	) VALUES (
+		$1, $2, $3, $4, $5, $6, $7, $8, $9, now()
+	)
+	ON CONFLICT (agent_id) DO UPDATE SET
+		host_id = EXCLUDED.host_id,
+		ip = EXCLUDED.ip,
+		os = EXCLUDED.os,
+		arch = EXCLUDED.arch,
+		version = EXCLUDED.version,
+		labels = EXCLUDED.labels,
+		endpoint_id = EXCLUDED.endpoint_id,
+		last_seen = now()
+	;
+`,
 		agent.AgentID,
 		agent.HostID,
 		agent.Hostname,
@@ -84,8 +84,8 @@ func (s *PGDataStore) UpsertAgent(ctx context.Context, agent *model.Agent) error
 		agent.Version,
 		tags,
 		agent.EndpointID,
-		agent.UptimeSeconds,
 	)
+
 	return err
 }
 

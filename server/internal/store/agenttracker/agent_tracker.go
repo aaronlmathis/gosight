@@ -48,15 +48,17 @@ func NewAgentTracker() *AgentTracker {
 
 // Updates in memory store of Agent details
 func (t *AgentTracker) UpdateAgent(meta *model.Meta) {
+	utils.Debug("Entering UpdateAgent")
 	if meta.Hostname == "" || meta.ContainerID != "" {
 		return
 	}
-
+	utils.Debug("UpdateAgent: %s | %s | %s", meta.Hostname, meta.IPAddress, meta.AgentID)
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	agent, exists := t.agents[meta.AgentID]
 	if !exists {
+		utils.Debug("Creating new agent: %s", meta.Hostname)
 		agent = &model.Agent{
 			AgentID:    meta.AgentID,
 			HostID:     meta.HostID,
@@ -71,6 +73,7 @@ func (t *AgentTracker) UpdateAgent(meta *model.Meta) {
 		}
 		t.agents[meta.AgentID] = agent
 	} else {
+		utils.Debug("Updating existing agent: %s", meta.Hostname)
 		// Update mutable fields
 		agent.IP = meta.IPAddress
 		agent.OS = meta.OS
