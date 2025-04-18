@@ -18,40 +18,18 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
-
 package model
 
-import "time"
-
-type StatisticValues struct {
-	Minimum     float64 `json:"min"`
-	Maximum     float64 `json:"max"`
-	SampleCount int     `json:"count"`
-	Sum         float64 `json:"sum"`
-}
-
-type Point struct {
-	Timestamp string  `json:"timestamp"`
-	Value     float64 `json:"value"`
-}
-
-type Metric struct {
-	Namespace         string            `json:"namespace,omitempty"`
-	SubNamespace      string            `json:"subnamespace,omitempty"`
-	Name              string            `json:"name"`
-	Timestamp         time.Time         `json:"timestamp,omitempty"`
-	Value             float64           `json:"value,omitempty"`
-	StatisticValues   *StatisticValues  `json:"stats,omitempty"`
-	Unit              string            `json:"unit,omitempty"`
-	Dimensions        map[string]string `json:"dimensions,omitempty"`
-	StorageResolution int               `json:"resolution,omitempty"`
-	Type              string            `json:"type,omitempty"`
-}
-
 type Meta struct {
+	// Agent Information
+	AgentID      string `json:"agent_id"`      // Unique ID for the agent
+	AgentVersion string `json:"agent_version"` // Version of the agent running
+
 	// General Host Information
-	Hostname             string `json:"hostname,omitempty"`
-	IPAddress            string `json:"ip_address,omitempty"`
+	HostID               string `json:"host_id"`     // Unique ID for the host
+	EndpointID           string `json:"endpoint_id"` // Unique ID for the endpoint
+	Hostname             string `json:"hostname"`
+	IPAddress            string `json:"ip_address"`
 	OS                   string `json:"os,omitempty"`
 	OSVersion            string `json:"os_version,omitempty"`
 	Platform             string `json:"platform,omitempty"`
@@ -60,10 +38,8 @@ type Meta struct {
 	KernelArchitecture   string `json:"kernel_architecture,omitempty"`
 	VirtualizationSystem string `json:"virtualization_system,omitempty"`
 	VirtualizationRole   string `json:"virtualization_role,omitempty"`
-	HostID               string `json:"host_id,omitempty"`
 	KernelVersion        string `json:"kernel_version,omitempty"`
 	Architecture         string `json:"architecture,omitempty"`
-	EndpointID           string `json:"endpoint_id,omitempty"` // Unique ID for the endpoint
 
 	// Cloud Provider Specific
 	CloudProvider    string `json:"cloud_provider,omitempty"` // AWS, Azure, GCP
@@ -99,34 +75,7 @@ type Meta struct {
 	PrivateIP        string `json:"private_ip,omitempty"`
 	MACAddress       string `json:"mac_address,omitempty"`
 	NetworkInterface string `json:"network_interface,omitempty"`
-	AgentVersion     string `json:"agent_version,omitempty"` // Version of the agent running
-	AgentID          string `json:"agent_id,omitempty"`      // Unique ID for the agent
 
 	// Custom Metadata
 	Tags map[string]string `json:"tags,omitempty"` // Allow for arbitrary key-value pairs
-}
-
-type MetricPayload struct {
-	EndpointID string    `json:"endpoint_id"`
-	Timestamp  time.Time `json:"timestamp"`
-	Metrics    []Metric  `json:"metrics"`
-	Meta       *Meta     `json:"meta,omitempty"`
-}
-
-type MetricRow struct {
-	Value     float64           `json:"value"`
-	Tags      map[string]string `json:"tags"`
-	Timestamp int64             `json:"timestamp"` // Unix ms
-}
-
-type MetricPoint struct {
-	Timestamp int64   `json:"timestamp"` // Unix ms
-	Value     float64 `json:"value"`     // Metric value
-}
-
-type MetricSelector struct {
-	Name         string
-	Namespace    string
-	SubNamespace string
-	Instant      bool // true = stat card, false = chart or long term
 }

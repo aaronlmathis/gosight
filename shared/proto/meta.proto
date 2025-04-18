@@ -1,33 +1,9 @@
 syntax = "proto3";
-
 package proto;
+
 option go_package = "github.com/aaronlmathis/gosight/shared/proto";
 
-import "google/protobuf/timestamp.proto";
-
-message StatisticValues {
-  double minimum = 1;
-  double maximum = 2;
-  int32 sample_count = 3;
-  double sum = 4;
-}
-
-message Metric {
-  string namespace = 1; // e.g. "host", "container", "nginx"
-  string subnamespace = 2;
-  string name = 3;
-  google.protobuf.Timestamp timestamp = 4;
-  double value = 5;
-  StatisticValues statistic_values = 6;
-  string unit = 7;
-  map<string, string> dimensions = 8;
-  int32 storage_resolution = 9;
-  string type = 10;      // e.g. "gauge", "counter"
-
-}
-
 message Meta {
-  // General Host Information
   string hostname = 1;
   string ip_address = 2;
   string os = 3;
@@ -47,7 +23,6 @@ message Meta {
   string image_id = 17;
   string service_id = 18;
 
-  // Containerization/Orchestration
   string container_id = 19;
   string container_name = 20;
   string pod_name = 21;
@@ -55,26 +30,20 @@ message Meta {
   string cluster_name = 23;
   string node_name = 24;
 
-  // Application Specific
   string application = 25;
   string environment = 26;
   string service = 27;
   string version = 28;
   string deployment_id = 29;
 
-  // Network Information
   string public_ip = 30;
   string private_ip = 31;
   string mac_address = 32;
   string network_interface = 33;
 
-  // Custom Metadata
   map<string, string> tags = 34;
 
-  // Normalized Endpoint ID
   string endpoint_id = 35;
-
-  // Platform Details
   string platform = 36;
   string platform_family = 37;
   string platform_version = 38;
@@ -83,26 +52,6 @@ message Meta {
   string virtualization_role = 41;
   string host_id = 42;
 
-  // New additions
   string agent_version = 43;
   string agent_id = 44;
-}
-
-
-
-message MetricPayload {
-  string endpoint_id = 1;
-  google.protobuf.Timestamp timestamp = 2;
-  repeated Metric metrics = 3;
-  Meta meta = 4; 
-}
-
-message MetricResponse {
-  string status = 1;
-  int32 status_code = 2; // 0=OK, 1=validation error, etc.
-}
-
-service MetricsService {
-  rpc SubmitMetrics (MetricPayload) returns (MetricResponse);
-  rpc SubmitStream (stream MetricPayload) returns (MetricResponse);
 }

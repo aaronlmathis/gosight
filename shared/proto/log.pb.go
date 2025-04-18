@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        v6.30.2
-// source: logs.proto
+// source: log.proto
 
 package proto
 
@@ -24,28 +24,25 @@ const (
 
 type LogMeta struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	EndpointId    string                 `protobuf:"bytes,1,opt,name=endpoint_id,json=endpointId,proto3" json:"endpoint_id,omitempty"`
-	Os            string                 `protobuf:"bytes,2,opt,name=os,proto3" json:"os,omitempty"`
-	Platform      string                 `protobuf:"bytes,3,opt,name=platform,proto3" json:"platform,omitempty"`
-	AppName       string                 `protobuf:"bytes,4,opt,name=app_name,json=appName,proto3" json:"app_name,omitempty"`
-	AppVersion    string                 `protobuf:"bytes,5,opt,name=app_version,json=appVersion,proto3" json:"app_version,omitempty"`
-	ContainerId   string                 `protobuf:"bytes,6,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
-	ContainerName string                 `protobuf:"bytes,7,opt,name=container_name,json=containerName,proto3" json:"container_name,omitempty"`
-	Unit          string                 `protobuf:"bytes,8,opt,name=unit,proto3" json:"unit,omitempty"`
-	Service       string                 `protobuf:"bytes,9,opt,name=service,proto3" json:"service,omitempty"`
-	EventId       string                 `protobuf:"bytes,10,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
-	User          string                 `protobuf:"bytes,11,opt,name=user,proto3" json:"user,omitempty"`
-	Executable    string                 `protobuf:"bytes,12,opt,name=executable,proto3" json:"executable,omitempty"`
-	Path          string                 `protobuf:"bytes,13,opt,name=path,proto3" json:"path,omitempty"`
-	Extra         map[string]string      `protobuf:"bytes,14,rep,name=extra,proto3" json:"extra,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	AgentId       string                 `protobuf:"bytes,15,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	Platform      string                 `protobuf:"bytes,1,opt,name=platform,proto3" json:"platform,omitempty"`
+	AppName       string                 `protobuf:"bytes,2,opt,name=app_name,json=appName,proto3" json:"app_name,omitempty"`
+	AppVersion    string                 `protobuf:"bytes,3,opt,name=app_version,json=appVersion,proto3" json:"app_version,omitempty"`
+	ContainerId   string                 `protobuf:"bytes,4,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	ContainerName string                 `protobuf:"bytes,5,opt,name=container_name,json=containerName,proto3" json:"container_name,omitempty"`
+	Unit          string                 `protobuf:"bytes,6,opt,name=unit,proto3" json:"unit,omitempty"`
+	Service       string                 `protobuf:"bytes,7,opt,name=service,proto3" json:"service,omitempty"`
+	EventId       string                 `protobuf:"bytes,8,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	User          string                 `protobuf:"bytes,9,opt,name=user,proto3" json:"user,omitempty"`
+	Executable    string                 `protobuf:"bytes,10,opt,name=executable,proto3" json:"executable,omitempty"`
+	Path          string                 `protobuf:"bytes,11,opt,name=path,proto3" json:"path,omitempty"`
+	Extra         map[string]string      `protobuf:"bytes,12,rep,name=extra,proto3" json:"extra,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LogMeta) Reset() {
 	*x = LogMeta{}
-	mi := &file_logs_proto_msgTypes[0]
+	mi := &file_log_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -57,7 +54,7 @@ func (x *LogMeta) String() string {
 func (*LogMeta) ProtoMessage() {}
 
 func (x *LogMeta) ProtoReflect() protoreflect.Message {
-	mi := &file_logs_proto_msgTypes[0]
+	mi := &file_log_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -70,21 +67,7 @@ func (x *LogMeta) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogMeta.ProtoReflect.Descriptor instead.
 func (*LogMeta) Descriptor() ([]byte, []int) {
-	return file_logs_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *LogMeta) GetEndpointId() string {
-	if x != nil {
-		return x.EndpointId
-	}
-	return ""
-}
-
-func (x *LogMeta) GetOs() string {
-	if x != nil {
-		return x.Os
-	}
-	return ""
+	return file_log_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *LogMeta) GetPlatform() string {
@@ -171,13 +154,6 @@ func (x *LogMeta) GetExtra() map[string]string {
 	return nil
 }
 
-func (x *LogMeta) GetAgentId() string {
-	if x != nil {
-		return x.AgentId
-	}
-	return ""
-}
-
 type LogEntry struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
@@ -185,18 +161,17 @@ type LogEntry struct {
 	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
 	Source        string                 `protobuf:"bytes,4,opt,name=source,proto3" json:"source,omitempty"`
 	Category      string                 `protobuf:"bytes,5,opt,name=category,proto3" json:"category,omitempty"`
-	Host          string                 `protobuf:"bytes,6,opt,name=host,proto3" json:"host,omitempty"`
-	Pid           int32                  `protobuf:"varint,7,opt,name=pid,proto3" json:"pid,omitempty"`
-	Fields        map[string]string      `protobuf:"bytes,8,rep,name=fields,proto3" json:"fields,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Tags          map[string]string      `protobuf:"bytes,9,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Meta          *LogMeta               `protobuf:"bytes,10,opt,name=meta,proto3" json:"meta,omitempty"`
+	Pid           int32                  `protobuf:"varint,6,opt,name=pid,proto3" json:"pid,omitempty"`
+	Fields        map[string]string      `protobuf:"bytes,7,rep,name=fields,proto3" json:"fields,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Tags          map[string]string      `protobuf:"bytes,8,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Meta          *LogMeta               `protobuf:"bytes,9,opt,name=meta,proto3" json:"meta,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LogEntry) Reset() {
 	*x = LogEntry{}
-	mi := &file_logs_proto_msgTypes[1]
+	mi := &file_log_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -208,7 +183,7 @@ func (x *LogEntry) String() string {
 func (*LogEntry) ProtoMessage() {}
 
 func (x *LogEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_logs_proto_msgTypes[1]
+	mi := &file_log_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -221,7 +196,7 @@ func (x *LogEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogEntry.ProtoReflect.Descriptor instead.
 func (*LogEntry) Descriptor() ([]byte, []int) {
-	return file_logs_proto_rawDescGZIP(), []int{1}
+	return file_log_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *LogEntry) GetTimestamp() *timestamppb.Timestamp {
@@ -259,13 +234,6 @@ func (x *LogEntry) GetCategory() string {
 	return ""
 }
 
-func (x *LogEntry) GetHost() string {
-	if x != nil {
-		return x.Host
-	}
-	return ""
-}
-
 func (x *LogEntry) GetPid() int32 {
 	if x != nil {
 		return x.Pid
@@ -296,17 +264,20 @@ func (x *LogEntry) GetMeta() *LogMeta {
 
 type LogPayload struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	EndpointId    string                 `protobuf:"bytes,1,opt,name=endpoint_id,json=endpointId,proto3" json:"endpoint_id,omitempty"`
-	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	Logs          []*LogEntry            `protobuf:"bytes,3,rep,name=logs,proto3" json:"logs,omitempty"`
-	Meta          *Meta                  `protobuf:"bytes,4,opt,name=meta,proto3" json:"meta,omitempty"` // shared model.Meta from metrics.proto
+	AgentId       string                 `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	HostId        string                 `protobuf:"bytes,2,opt,name=host_id,json=hostId,proto3" json:"host_id,omitempty"`
+	Hostname      string                 `protobuf:"bytes,3,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	EndpointId    string                 `protobuf:"bytes,4,opt,name=endpoint_id,json=endpointId,proto3" json:"endpoint_id,omitempty"`
+	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Logs          []*LogEntry            `protobuf:"bytes,6,rep,name=logs,proto3" json:"logs,omitempty"`
+	Meta          *Meta                  `protobuf:"bytes,7,opt,name=meta,proto3" json:"meta,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LogPayload) Reset() {
 	*x = LogPayload{}
-	mi := &file_logs_proto_msgTypes[2]
+	mi := &file_log_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -318,7 +289,7 @@ func (x *LogPayload) String() string {
 func (*LogPayload) ProtoMessage() {}
 
 func (x *LogPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_logs_proto_msgTypes[2]
+	mi := &file_log_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -331,7 +302,28 @@ func (x *LogPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogPayload.ProtoReflect.Descriptor instead.
 func (*LogPayload) Descriptor() ([]byte, []int) {
-	return file_logs_proto_rawDescGZIP(), []int{2}
+	return file_log_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *LogPayload) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
+}
+
+func (x *LogPayload) GetHostId() string {
+	if x != nil {
+		return x.HostId
+	}
+	return ""
+}
+
+func (x *LogPayload) GetHostname() string {
+	if x != nil {
+		return x.Hostname
+	}
+	return ""
 }
 
 func (x *LogPayload) GetEndpointId() string {
@@ -372,7 +364,7 @@ type LogResponse struct {
 
 func (x *LogResponse) Reset() {
 	*x = LogResponse{}
-	mi := &file_logs_proto_msgTypes[3]
+	mi := &file_log_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -384,7 +376,7 @@ func (x *LogResponse) String() string {
 func (*LogResponse) ProtoMessage() {}
 
 func (x *LogResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_logs_proto_msgTypes[3]
+	mi := &file_log_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -397,7 +389,7 @@ func (x *LogResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogResponse.ProtoReflect.Descriptor instead.
 func (*LogResponse) Descriptor() ([]byte, []int) {
-	return file_logs_proto_rawDescGZIP(), []int{3}
+	return file_log_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *LogResponse) GetStatus() string {
@@ -414,151 +406,101 @@ func (x *LogResponse) GetStatusCode() int32 {
 	return 0
 }
 
-type Ack struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
+var File_log_proto protoreflect.FileDescriptor
 
-func (x *Ack) Reset() {
-	*x = Ack{}
-	mi := &file_logs_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Ack) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Ack) ProtoMessage() {}
-
-func (x *Ack) ProtoReflect() protoreflect.Message {
-	mi := &file_logs_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Ack.ProtoReflect.Descriptor instead.
-func (*Ack) Descriptor() ([]byte, []int) {
-	return file_logs_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *Ack) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
-var File_logs_proto protoreflect.FileDescriptor
-
-const file_logs_proto_rawDesc = "" +
+const file_log_proto_rawDesc = "" +
 	"\n" +
-	"\n" +
-	"logs.proto\x12\x05proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\rmetrics.proto\"\xf3\x03\n" +
-	"\aLogMeta\x12\x1f\n" +
-	"\vendpoint_id\x18\x01 \x01(\tR\n" +
-	"endpointId\x12\x0e\n" +
-	"\x02os\x18\x02 \x01(\tR\x02os\x12\x1a\n" +
-	"\bplatform\x18\x03 \x01(\tR\bplatform\x12\x19\n" +
-	"\bapp_name\x18\x04 \x01(\tR\aappName\x12\x1f\n" +
-	"\vapp_version\x18\x05 \x01(\tR\n" +
+	"\tlog.proto\x12\x05proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\n" +
+	"meta.proto\"\xa7\x03\n" +
+	"\aLogMeta\x12\x1a\n" +
+	"\bplatform\x18\x01 \x01(\tR\bplatform\x12\x19\n" +
+	"\bapp_name\x18\x02 \x01(\tR\aappName\x12\x1f\n" +
+	"\vapp_version\x18\x03 \x01(\tR\n" +
 	"appVersion\x12!\n" +
-	"\fcontainer_id\x18\x06 \x01(\tR\vcontainerId\x12%\n" +
-	"\x0econtainer_name\x18\a \x01(\tR\rcontainerName\x12\x12\n" +
-	"\x04unit\x18\b \x01(\tR\x04unit\x12\x18\n" +
-	"\aservice\x18\t \x01(\tR\aservice\x12\x19\n" +
-	"\bevent_id\x18\n" +
-	" \x01(\tR\aeventId\x12\x12\n" +
-	"\x04user\x18\v \x01(\tR\x04user\x12\x1e\n" +
+	"\fcontainer_id\x18\x04 \x01(\tR\vcontainerId\x12%\n" +
+	"\x0econtainer_name\x18\x05 \x01(\tR\rcontainerName\x12\x12\n" +
+	"\x04unit\x18\x06 \x01(\tR\x04unit\x12\x18\n" +
+	"\aservice\x18\a \x01(\tR\aservice\x12\x19\n" +
+	"\bevent_id\x18\b \x01(\tR\aeventId\x12\x12\n" +
+	"\x04user\x18\t \x01(\tR\x04user\x12\x1e\n" +
 	"\n" +
-	"executable\x18\f \x01(\tR\n" +
+	"executable\x18\n" +
+	" \x01(\tR\n" +
 	"executable\x12\x12\n" +
-	"\x04path\x18\r \x01(\tR\x04path\x12/\n" +
-	"\x05extra\x18\x0e \x03(\v2\x19.proto.LogMeta.ExtraEntryR\x05extra\x12\x19\n" +
-	"\bagent_id\x18\x0f \x01(\tR\aagentId\x1a8\n" +
+	"\x04path\x18\v \x01(\tR\x04path\x12/\n" +
+	"\x05extra\x18\f \x03(\v2\x19.proto.LogMeta.ExtraEntryR\x05extra\x1a8\n" +
 	"\n" +
 	"ExtraEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xca\x03\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb6\x03\n" +
 	"\bLogEntry\x128\n" +
 	"\ttimestamp\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12\x14\n" +
 	"\x05level\x18\x02 \x01(\tR\x05level\x12\x18\n" +
 	"\amessage\x18\x03 \x01(\tR\amessage\x12\x16\n" +
 	"\x06source\x18\x04 \x01(\tR\x06source\x12\x1a\n" +
-	"\bcategory\x18\x05 \x01(\tR\bcategory\x12\x12\n" +
-	"\x04host\x18\x06 \x01(\tR\x04host\x12\x10\n" +
-	"\x03pid\x18\a \x01(\x05R\x03pid\x123\n" +
-	"\x06fields\x18\b \x03(\v2\x1b.proto.LogEntry.FieldsEntryR\x06fields\x12-\n" +
-	"\x04tags\x18\t \x03(\v2\x19.proto.LogEntry.TagsEntryR\x04tags\x12\"\n" +
-	"\x04meta\x18\n" +
-	" \x01(\v2\x0e.proto.LogMetaR\x04meta\x1a9\n" +
+	"\bcategory\x18\x05 \x01(\tR\bcategory\x12\x10\n" +
+	"\x03pid\x18\x06 \x01(\x05R\x03pid\x123\n" +
+	"\x06fields\x18\a \x03(\v2\x1b.proto.LogEntry.FieldsEntryR\x06fields\x12-\n" +
+	"\x04tags\x18\b \x03(\v2\x19.proto.LogEntry.TagsEntryR\x04tags\x12\"\n" +
+	"\x04meta\x18\t \x01(\v2\x0e.proto.LogMetaR\x04meta\x1a9\n" +
 	"\vFieldsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a7\n" +
 	"\tTagsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xad\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xfd\x01\n" +
 	"\n" +
-	"LogPayload\x12\x1f\n" +
-	"\vendpoint_id\x18\x01 \x01(\tR\n" +
+	"LogPayload\x12\x19\n" +
+	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x17\n" +
+	"\ahost_id\x18\x02 \x01(\tR\x06hostId\x12\x1a\n" +
+	"\bhostname\x18\x03 \x01(\tR\bhostname\x12\x1f\n" +
+	"\vendpoint_id\x18\x04 \x01(\tR\n" +
 	"endpointId\x128\n" +
-	"\ttimestamp\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12#\n" +
-	"\x04logs\x18\x03 \x03(\v2\x0f.proto.LogEntryR\x04logs\x12\x1f\n" +
-	"\x04meta\x18\x04 \x01(\v2\v.proto.MetaR\x04meta\"F\n" +
+	"\ttimestamp\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12#\n" +
+	"\x04logs\x18\x06 \x03(\v2\x0f.proto.LogEntryR\x04logs\x12\x1f\n" +
+	"\x04meta\x18\a \x01(\v2\v.proto.MetaR\x04meta\"F\n" +
 	"\vLogResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\x1f\n" +
 	"\vstatus_code\x18\x02 \x01(\x05R\n" +
-	"statusCode\"\x1d\n" +
-	"\x03Ack\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status2}\n" +
+	"statusCode2}\n" +
 	"\n" +
 	"LogService\x126\n" +
 	"\rSubmitMetrics\x12\x11.proto.LogPayload\x1a\x12.proto.LogResponse\x127\n" +
 	"\fSubmitStream\x12\x11.proto.LogPayload\x1a\x12.proto.LogResponse(\x01B.Z,github.com/aaronlmathis/gosight/shared/protob\x06proto3"
 
 var (
-	file_logs_proto_rawDescOnce sync.Once
-	file_logs_proto_rawDescData []byte
+	file_log_proto_rawDescOnce sync.Once
+	file_log_proto_rawDescData []byte
 )
 
-func file_logs_proto_rawDescGZIP() []byte {
-	file_logs_proto_rawDescOnce.Do(func() {
-		file_logs_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_logs_proto_rawDesc), len(file_logs_proto_rawDesc)))
+func file_log_proto_rawDescGZIP() []byte {
+	file_log_proto_rawDescOnce.Do(func() {
+		file_log_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_log_proto_rawDesc), len(file_log_proto_rawDesc)))
 	})
-	return file_logs_proto_rawDescData
+	return file_log_proto_rawDescData
 }
 
-var file_logs_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
-var file_logs_proto_goTypes = []any{
+var file_log_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_log_proto_goTypes = []any{
 	(*LogMeta)(nil),               // 0: proto.LogMeta
 	(*LogEntry)(nil),              // 1: proto.LogEntry
 	(*LogPayload)(nil),            // 2: proto.LogPayload
 	(*LogResponse)(nil),           // 3: proto.LogResponse
-	(*Ack)(nil),                   // 4: proto.Ack
-	nil,                           // 5: proto.LogMeta.ExtraEntry
-	nil,                           // 6: proto.LogEntry.FieldsEntry
-	nil,                           // 7: proto.LogEntry.TagsEntry
-	(*timestamppb.Timestamp)(nil), // 8: google.protobuf.Timestamp
-	(*Meta)(nil),                  // 9: proto.Meta
+	nil,                           // 4: proto.LogMeta.ExtraEntry
+	nil,                           // 5: proto.LogEntry.FieldsEntry
+	nil,                           // 6: proto.LogEntry.TagsEntry
+	(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
+	(*Meta)(nil),                  // 8: proto.Meta
 }
-var file_logs_proto_depIdxs = []int32{
-	5,  // 0: proto.LogMeta.extra:type_name -> proto.LogMeta.ExtraEntry
-	8,  // 1: proto.LogEntry.timestamp:type_name -> google.protobuf.Timestamp
-	6,  // 2: proto.LogEntry.fields:type_name -> proto.LogEntry.FieldsEntry
-	7,  // 3: proto.LogEntry.tags:type_name -> proto.LogEntry.TagsEntry
+var file_log_proto_depIdxs = []int32{
+	4,  // 0: proto.LogMeta.extra:type_name -> proto.LogMeta.ExtraEntry
+	7,  // 1: proto.LogEntry.timestamp:type_name -> google.protobuf.Timestamp
+	5,  // 2: proto.LogEntry.fields:type_name -> proto.LogEntry.FieldsEntry
+	6,  // 3: proto.LogEntry.tags:type_name -> proto.LogEntry.TagsEntry
 	0,  // 4: proto.LogEntry.meta:type_name -> proto.LogMeta
-	8,  // 5: proto.LogPayload.timestamp:type_name -> google.protobuf.Timestamp
+	7,  // 5: proto.LogPayload.timestamp:type_name -> google.protobuf.Timestamp
 	1,  // 6: proto.LogPayload.logs:type_name -> proto.LogEntry
-	9,  // 7: proto.LogPayload.meta:type_name -> proto.Meta
+	8,  // 7: proto.LogPayload.meta:type_name -> proto.Meta
 	2,  // 8: proto.LogService.SubmitMetrics:input_type -> proto.LogPayload
 	2,  // 9: proto.LogService.SubmitStream:input_type -> proto.LogPayload
 	3,  // 10: proto.LogService.SubmitMetrics:output_type -> proto.LogResponse
@@ -570,27 +512,27 @@ var file_logs_proto_depIdxs = []int32{
 	0,  // [0:8] is the sub-list for field type_name
 }
 
-func init() { file_logs_proto_init() }
-func file_logs_proto_init() {
-	if File_logs_proto != nil {
+func init() { file_log_proto_init() }
+func file_log_proto_init() {
+	if File_log_proto != nil {
 		return
 	}
-	file_metrics_proto_init()
+	file_meta_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_logs_proto_rawDesc), len(file_logs_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_log_proto_rawDesc), len(file_log_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_logs_proto_goTypes,
-		DependencyIndexes: file_logs_proto_depIdxs,
-		MessageInfos:      file_logs_proto_msgTypes,
+		GoTypes:           file_log_proto_goTypes,
+		DependencyIndexes: file_log_proto_depIdxs,
+		MessageInfos:      file_log_proto_msgTypes,
 	}.Build()
-	File_logs_proto = out.File
-	file_logs_proto_goTypes = nil
-	file_logs_proto_depIdxs = nil
+	File_log_proto = out.File
+	file_log_proto_goTypes = nil
+	file_log_proto_depIdxs = nil
 }

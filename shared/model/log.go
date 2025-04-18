@@ -8,7 +8,6 @@ type LogEntry struct {
 	Message   string            `json:"message"`        // The actual log content
 	Source    string            `json:"source"`         // Collector name or service name (e.g., journald, nginx)
 	Category  string            `json:"category"`       // Optional: auth, network, system, app, etc.
-	Host      string            `json:"host"`           // Hostname or agent ID
 	PID       int               `json:"pid,omitempty"`  // Process ID if available
 	Fields    map[string]string `json:"fields"`         // Structured fields (JSON logs, key/values)
 	Tags      map[string]string `json:"tags"`           // Custom labels/tags (user-defined or enriched)
@@ -16,8 +15,6 @@ type LogEntry struct {
 }
 
 type LogMeta struct {
-	EndPointID    string            `json:"endpoint_id,omitempty"`    // Unique gosight ID for the endpoint
-	OS            string            `json:"os,omitempty"`             // linux, windows, darwin, etc.
 	Platform      string            `json:"platform,omitempty"`       // journald, eventlog, syslog, etc.
 	AppName       string            `json:"app_name,omitempty"`       // e.g., nginx, sshd
 	AppVersion    string            `json:"app_version,omitempty"`    // if known
@@ -30,10 +27,13 @@ type LogMeta struct {
 	Executable    string            `json:"exe,omitempty"`            // Path to binary if available
 	Path          string            `json:"path,omitempty"`           // Original source log path
 	Extra         map[string]string `json:"extra,omitempty"`          // For collector-specific fields
-	AgentID       string            `json:"agent_id,omitempty"`       // Unique ID for the agent
+
 }
 
 type LogPayload struct {
+	AgentID    string
+	HostID     string
+	Hostname   string
 	EndpointID string
 	Timestamp  time.Time
 	Logs       []LogEntry

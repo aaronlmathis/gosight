@@ -1,0 +1,54 @@
+syntax = "proto3";
+package proto;
+
+option go_package = "github.com/aaronlmathis/gosight/shared/proto";
+
+import "google/protobuf/timestamp.proto";
+import "meta.proto";
+
+message LogMeta {
+  string platform = 1;
+  string app_name = 2;
+  string app_version = 3;
+  string container_id = 4;
+  string container_name = 5;
+  string unit = 6;
+  string service = 7;
+  string event_id = 8;
+  string user = 9;
+  string executable = 10;
+  string path = 11;
+  map<string, string> extra = 12;
+}
+
+message LogEntry {
+  google.protobuf.Timestamp timestamp = 1;
+  string level = 2;
+  string message = 3;
+  string source = 4;
+  string category = 5;
+  int32 pid = 6;
+  map<string, string> fields = 7;
+  map<string, string> tags = 8;
+  LogMeta meta = 9;
+}
+
+message LogPayload {
+  string agent_id = 1;
+  string host_id = 2;
+  string hostname = 3;
+  string endpoint_id = 4;
+  google.protobuf.Timestamp timestamp = 5;
+  repeated LogEntry logs = 6;
+  Meta meta = 7;
+}
+
+message LogResponse {
+  string status = 1;
+  int32 status_code = 2;
+}
+
+service LogService {
+  rpc SubmitMetrics (LogPayload) returns (LogResponse);
+  rpc SubmitStream (stream LogPayload) returns (LogResponse);
+}

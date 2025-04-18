@@ -25,17 +25,20 @@ package model
 
 import "time"
 
-type AgentStatus struct {
-	Hostname   string            `json:"hostname"`
-	IP         string            `json:"ip"`
-	OS         string            `json:"os"`
-	Arch       string            `json:"arch"`
-	Version    string            `json:"version"`
-	Labels     map[string]string `json:"labels"`
-	LastSeen   time.Time         `json:"-"`
-	Status     string            `json:"status,omitempty"`
-	Since      string            `json:"since,omitempty"`
-	Updated    bool              `json:"-"`
-	EndpointID string            `json:"endpoint_id,omitempty"`
-	AgentID    string            `json:"agent_id,omitempty"`
+type Agent struct {
+	AgentID  string            `json:"agent_id"`
+	HostID   string            `json:"host_id"`
+	Hostname string            `json:"hostname"`
+	IP       string            `json:"ip"`
+	OS       string            `json:"os"`
+	Arch     string            `json:"arch"`
+	Version  string            `json:"version"`
+	Labels   map[string]string `json:"labels"`
+
+	EndpointID string    `json:"endpoint_id"` // Computed from HostID
+	LastSeen   time.Time `json:"last_seen"`
+	Status     string    `json:"status"` // online/offline
+	Since      string    `json:"since"`  // How long in current state
+
+	Updated bool `json:"-"` // For in-memory use only
 }

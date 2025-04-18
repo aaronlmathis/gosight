@@ -1,0 +1,47 @@
+syntax = "proto3";
+package proto;
+
+option go_package = "github.com/aaronlmathis/gosight/shared/proto";
+
+import "google/protobuf/timestamp.proto";
+import "meta.proto";
+
+message StatisticValues {
+  double minimum = 1;
+  double maximum = 2;
+  int32 sample_count = 3;
+  double sum = 4;
+}
+
+message Metric {
+  string namespace = 1;
+  string subnamespace = 2;
+  string name = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  double value = 5;
+  StatisticValues statistic_values = 6;
+  string unit = 7;
+  map<string, string> dimensions = 8;
+  int32 storage_resolution = 9;
+  string type = 10;
+}
+
+message MetricPayload {
+  string agent_id = 1;
+  string host_id = 2;
+  string hostname = 3;
+  string endpoint_id = 4;
+  google.protobuf.Timestamp timestamp = 5;
+  repeated Metric metrics = 6;
+  Meta meta = 7;
+}
+
+message MetricResponse {
+  string status = 1;
+  int32 status_code = 2;
+}
+
+service MetricsService {
+  rpc SubmitMetrics (MetricPayload) returns (MetricResponse);
+  rpc SubmitStream (stream MetricPayload) returns (MetricResponse);
+}
