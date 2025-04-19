@@ -17,6 +17,7 @@ module.exports = {
         'max-h-[1000px]',
         'opacity-0',
         'opacity-100',
+        'rotate-90',
       
     ],
     darkMode: 'class', // Enables toggling via 'dark' class
