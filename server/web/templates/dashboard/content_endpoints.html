@@ -10,16 +10,8 @@
 
   <div class="overflow-x-auto shadow rounded-lg border border-gray-200 dark:border-gray-700">
     <div class="flex flex-wrap gap-4 p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-      <input id="filter-hostname" type="text" placeholder="Filter by Hostname"
-        class="text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
 
-      <input id="filter-ip" type="text" placeholder="Filter by IP"
-        class="text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-
-      <input id="filter-os" type="text" placeholder="Filter by OS"
-        class="text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-
-      <input id="filter-arch" type="text" placeholder="Filter by Arch"
+      <input id="filter-by" type="text" placeholder="Filter by..."
         class="text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
 
       <select id="filter-status"
@@ -73,22 +65,24 @@
       if (endpointID.startsWith("ctr-")) continue;
 
       const rowID = `host-${agent.agent_id}`;
+      const containerRowID = `containers-${agent.agent_id}`;
       const isOnline = agent.status === "Online";
 
       const hostnameCell = isOnline
-        ? `<a href="/endpoints/${endpointID}" class="text-blue-600 dark:text-blue-400 hover:underline">${hname}</a>`
+        ? `<a href="/endpoints/${endpointID}" class="text-blue-800 dark:text-blue-400 hover:underline">${hname}</a>`
         : `<span class="text-gray-500 dark:text-gray-400">${hname}</span>`;
 
       const expandCell = isOnline
-        ? `<button onclick="toggleContainerRow('${hname}')" class="text-blue-500 hover:underline">
-             <span id="expand-icon-${hname}" class="inline-block transform transition-transform">&#9654;</span>
+        ? `<button onclick="toggleContainerRow('${containerRowID}')" class="text-blue-500 hover:underline">
+             <span id="expand-icon-${containerRowID}" class="inline-block transform transition-transform">&#9654;</span>
            </button>`
         : `<span class="text-gray-400">—</span>`;
 
       const platform = `${labels.platform || ""} ${labels.platform_version || ""}`.trim();
+      const dataStatus = isOnline ? 'data-status="online"' : 'data-status="offline"';
 
       const hostRowHTML = `
-<tr id="${rowID}" class="hover:bg-gray-50 dark:hover:bg-gray-800 host-row">
+<tr id="${rowID}" ${dataStatus} class="endpoint-row hover:bg-gray-50 dark:hover:bg-gray-800 host-row">
   <td class="px-3 py-2">
     ${isOnline
           ? '<span class="text-green-500 font-medium">● Online</span>'
@@ -105,7 +99,7 @@
   <td class="px-3 py-2" id="uptime-${rowID}">—</td>
   <td class="px-3 py-2">${expandCell}</td>
 </tr>
-<tr id="containers-${hname}" class="container-subtable hidden bg-gray-50 dark:bg-gray-800">
+<tr id="${containerRowID}" class="container-subtable hidden bg-gray-50 dark:bg-gray-800">
   <td colspan="12" class="px-4 py-3 text-sm text-gray-400">Loading containers…</td>
 </tr>
       `;
@@ -132,9 +126,6 @@
     const now = Date.now();
     const diff = Math.floor((now - last) / 1000);
 
-    console.log("🕐 now:", new Date(now).toISOString());
-    console.log("🕓 last_seen:", new Date(isoTime).toISOString());
-    console.log("⏱️ diff (s):", diff);
 
     if (diff < 60) return `${diff}s ago`;
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
@@ -152,45 +143,55 @@
   document.addEventListener("DOMContentLoaded", () => {
     loadHostTable();
   });
-</script>
-<script>
-  function toggleContainerRow(hostname) {
-    const row = document.getElementById(`containers-${hostname}`);
-    const icon = document.getElementById(`expand-icon-${hostname}`);
-    const metrics = [
-      "container.podman.cpu_percent",
-      "container.podman.mem_usage_bytes",
-      "container.podman.net_rx_bytes",
-      "container.podman.net_tx_bytes",
-      "container.podman.uptime_seconds"
-    ];
-    const query = metrics.map(m => `metric=${m}`).join("&") + `&hostname=${encodeURIComponent(hostname)}`;
 
-    if (!row) return;
+  function toggleContainerRow(rowID) {
+  // This is the full container row ID, like "containers-abc123"
+  const containerRow = document.getElementById(rowID);
+  const expandIcon = document.getElementById(`expand-icon-${rowID}`);
 
-    const expanded = !row.classList.contains("hidden");
-    row.classList.toggle("hidden");
-    icon.classList.toggle("rotate-90");
+  // Extract agent ID from "containers-abc123" → "abc123"
+  const agentID = rowID.replace(/^containers-/, "");
 
-    if (!expanded && !row.dataset.loaded) {
-      row.innerHTML = `<td colspan="13" class="p-4 text-gray-400">Loading...</td>`;
+  // Get the host row: "host-abc123"
+  const hostRow = document.getElementById(`host-${agentID}`);
+  if (!containerRow || !hostRow) return;
 
-      fetch(`/api/v1/query?${query}`)
-        .then(res => res.json())
-        .then(json => {
-          const rows = Array.isArray(json) ? json : [];
-          console.log("📦 Raw container metrics:", rows);
-          const grouped = groupContainers(rows);
-          console.log("🧩 Grouped containers:", grouped);
-          row.innerHTML = `<td colspan="13" class="p-4">${buildContainerTable(grouped)}</td>`;
-          row.dataset.loaded = "true";
-        })
-        .catch(err => {
-          console.error("❌ Failed to fetch containers:", err);
-          row.innerHTML = `<td colspan="13" class="p-4 text-red-500">Container fetch failed: ${err}</td>`;
-        });
-    }
+  // Get hostname text from 2nd column
+  const hostnameCell = hostRow.querySelector("td:nth-child(2)");
+  const hostname = hostnameCell?.textContent?.trim() || "";
+
+  const metrics = [
+    "container.podman.cpu_percent",
+    "container.podman.mem_usage_bytes",
+    "container.podman.net_rx_bytes",
+    "container.podman.net_tx_bytes",
+    "container.podman.uptime_seconds"
+  ];
+  const query = metrics.map(m => `metric=${m}`).join("&") + `&hostname=${encodeURIComponent(hostname)}`;
+
+  // Toggle visibility and expand icon
+  const expanded = !containerRow.classList.contains("hidden");
+  containerRow.classList.toggle("hidden");
+  if (expandIcon) expandIcon.classList.toggle("rotate-90");
+
+  // Lazy-load container data on first expand
+  if (!expanded && !containerRow.dataset.loaded) {
+    containerRow.innerHTML = `<td colspan="13" class="p-4 text-gray-400">Loading...</td>`;
+
+    fetch(`/api/v1/query?${query}`)
+      .then(res => res.json())
+      .then(json => {
+        const grouped = groupContainers(Array.isArray(json) ? json : []);
+        containerRow.innerHTML = `<td colspan="13" class="p-4">${buildContainerTable(grouped)}</td>`;
+        containerRow.dataset.loaded = "true";
+      })
+      .catch(err => {
+        console.error("❌ Failed to fetch containers:", err);
+        containerRow.innerHTML = `<td colspan="13" class="p-4 text-red-500">Container fetch failed: ${err}</td>`;
+      });
   }
+}
+
 
   function groupContainers(rows) {
     if (!Array.isArray(rows)) return [];
@@ -296,9 +297,56 @@
 
   function statusBadge(status) {
     if (status === "running")
-      return `<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">running</span>`;
-    return `<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">stopped</span>`;
+      return `<span class="px-2 py-0.5 rounded-sm text-xs font-bold bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">running</span>`;
+    return `<span class="px-2 py-0.5 rounded-sm text-xs font-bold bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">stopped</span>`;
   }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("filter-by");
+    const statusSelect = document.getElementById("filter-status");
+
+    function normalize(text) {
+      return text.toLowerCase().trim();
+    }
+
+    function filterTable() {
+      const query = normalize(searchInput.value);
+      const status = normalize(statusSelect.value);
+
+      // ⬇Needs to be here to reflect dynamically inserted rows
+      const rows = document.querySelectorAll(".endpoint-row");
+
+      rows.forEach(row => {
+        const tds = row.querySelectorAll("td");
+        const statusText = row.dataset.status?.toLowerCase();
+
+        let searchableText = "";
+        for (let i = 0; i < tds.length - 2; i++) {
+          searchableText += " " + tds[i].textContent.toLowerCase();
+        }
+
+        const matchesText = searchableText.includes(query);
+        const matchesStatus = !status || statusText === status;
+        const shouldShow = matchesText && matchesStatus;
+
+        row.style.display = shouldShow ? "" : "none";
+
+        // ⬇️ Also collapse container row if hiding parent
+        const containersRow = document.getElementById(`containers-${row.id.replace(/^host-/, "")}`);
+        console.log(`containers-${row.id.replace(/^host-/, "")}`);
+        if (containersRow) {
+          containersRow.style.display = shouldShow ? "" : "none";
+        }
+      });
+    }
+
+    searchInput.addEventListener("input", filterTable);
+    statusSelect.addEventListener("change", filterTable);
+
+    // Optional: run once initially after loadHostTable fills content
+    setTimeout(filterTable, 500); // or call it directly after loadHostTable() if desired
+  });
 </script>
+
 
 {{ end }}

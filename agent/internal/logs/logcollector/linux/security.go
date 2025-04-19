@@ -72,7 +72,7 @@ loop:
 			break loop
 		case <-ticker.C:
 			if len(current) > 0 {
-				utils.Debug("⏱️ Interval triggered flush with %d logs", len(current))
+				utils.Debug("Interval triggered flush with %d logs", len(current))
 				allBatches = append(allBatches, current)
 				current = nil
 			}
