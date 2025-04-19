@@ -16,13 +16,14 @@ import (
 // the unit of the logs, the source of the logs, a string to search for in the logs,
 // and the start and end times for the logs.
 type LogQueryParams struct {
-	Limit    int
-	Levels   map[string]bool
-	Unit     string
-	Source   string
-	Contains string
-	Start    *time.Time
-	End      *time.Time
+	EndpointID string
+	Limit      int
+	Levels     map[string]bool
+	Unit       string
+	Source     string
+	Contains   string
+	Start      *time.Time
+	End        *time.Time
 }
 
 // HandleRecentLogs handles the HTTP request for recent logs.
@@ -80,11 +81,12 @@ func (s *HttpServer) HandleLogAPI(w http.ResponseWriter, r *http.Request) {
 
 	var filtered []model.LogEntry
 	for _, log := range all {
-		if strings.ToLower(log.Source) == "podman" && strings.ToLower(log.Level) == "debug" {
-			continue // 🔕 skip noisy Podman debug
-		}
+
 		if len(filtered) >= params.Limit {
 			break
+		}
+		if log.Source == "podman" {
+			continue
 		}
 		if len(params.Levels) > 0 && !params.Levels[strings.ToLower(log.Level)] {
 			continue
@@ -102,6 +104,9 @@ func (s *HttpServer) HandleLogAPI(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		if params.End != nil && log.Timestamp.After(*params.End) {
+			continue
+		}
+		if params.EndpointID != "" && strings.ToLower(log.Tags["endpoint_id"]) != params.EndpointID {
 			continue
 		}
 		filtered = append(filtered, log)
@@ -150,12 +155,13 @@ func parseLogQueryParams(r *http.Request) LogQueryParams {
 	}
 
 	return LogQueryParams{
-		Limit:    limit,
-		Levels:   levels,
-		Unit:     q.Get("unit"),
-		Source:   q.Get("source"),
-		Contains: q.Get("contains"),
-		Start:    start,
-		End:      end,
+		EndpointID: q.Get("endpointID"),
+		Limit:      limit,
+		Levels:     levels,
+		Unit:       q.Get("unit"),
+		Source:     q.Get("source"),
+		Contains:   q.Get("contains"),
+		Start:      start,
+		End:        end,
 	}
 }
