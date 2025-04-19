@@ -73,9 +73,13 @@
         : `<span class="text-gray-500 dark:text-gray-400">${hname}</span>`;
 
       const expandCell = isOnline
-        ? `<button onclick="toggleContainerRow('${containerRowID}')" class="text-blue-500 hover:underline">
-             <span id="expand-icon-${containerRowID}" class="inline-block transform transition-transform">&#9654;</span>
-           </button>`
+        ? `<button onclick="toggleContainerRow('${containerRowID}')" class="text-blue-500 hover:text-blue-700">
+          <svg id="expand-icon-${containerRowID}"
+               class="w-4 h-4 inline-block transition-transform transform origin-center"
+               fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>`
         : `<span class="text-gray-400">—</span>`;
 
       const platform = `${labels.platform || ""} ${labels.platform_version || ""}`.trim();
@@ -98,15 +102,23 @@
   <td class="px-3 py-2" id="lastseen-${rowID}">—</td>
   <td class="px-3 py-2" id="uptime-${rowID}">—</td>
   <td class="px-3 py-2">${expandCell}</td>
-</tr>
-<tr id="${containerRowID}" class="container-subtable hidden bg-gray-50 dark:bg-gray-800">
-  <td colspan="12" class="px-4 py-3 text-sm text-gray-400">Loading containers…</td>
-</tr>
-      `;
+</tr>`;
+
+const containerRowHTML = `
+<tr id="${containerRowID}" class="container-subtable">
+  <td colspan="13" class="p-0">
+    <div id="container-wrapper-${containerRowID}"
+         class="collapsed overflow-hidden transition-all duration-300 ease-in-out"
+         style="max-height: 0; opacity: 0;">
+      <div class="p-4 text-sm text-gray-400">Loading containers…</div>
+    </div>
+  </td>
+</tr>`;
 
       tbody.insertAdjacentHTML("beforeend", hostRowHTML);
+      tbody.insertAdjacentHTML("beforeend", containerRowHTML);
 
-      // ✅ Update last seen / uptime AFTER inserting row
+      // Update last seen / uptime AFTER rows are added
       const lastSeenCell = document.getElementById(`lastseen-${rowID}`);
       const uptimeCell = document.getElementById(`uptime-${rowID}`);
 
@@ -119,7 +131,6 @@
       }
     }
   }
-
   function formatLastSeen(isoTime) {
     if (!isoTime) return "—";
     const last = new Date(isoTime).getTime();
@@ -145,49 +156,54 @@
   });
 
   function toggleContainerRow(rowID) {
-  // This is the full container row ID, like "containers-abc123"
-  const containerRow = document.getElementById(rowID);
+  const wrapper = document.getElementById(`container-wrapper-${rowID}`);
   const expandIcon = document.getElementById(`expand-icon-${rowID}`);
-
-  // Extract agent ID from "containers-abc123" → "abc123"
   const agentID = rowID.replace(/^containers-/, "");
-
-  // Get the host row: "host-abc123"
   const hostRow = document.getElementById(`host-${agentID}`);
-  if (!containerRow || !hostRow) return;
+  if (!wrapper || !hostRow) return;
 
-  // Get hostname text from 2nd column
   const hostnameCell = hostRow.querySelector("td:nth-child(2)");
   const hostname = hostnameCell?.textContent?.trim() || "";
 
-  const metrics = [
-    "container.podman.cpu_percent",
-    "container.podman.mem_usage_bytes",
-    "container.podman.net_rx_bytes",
-    "container.podman.net_tx_bytes",
-    "container.podman.uptime_seconds"
-  ];
-  const query = metrics.map(m => `metric=${m}`).join("&") + `&hostname=${encodeURIComponent(hostname)}`;
+  const isExpanded = wrapper.classList.contains("expanded");
 
-  // Toggle visibility and expand icon
-  const expanded = !containerRow.classList.contains("hidden");
-  containerRow.classList.toggle("hidden");
-  if (expandIcon) expandIcon.classList.toggle("rotate-90");
+  if (isExpanded) {
+    wrapper.classList.remove("expanded");
+    wrapper.classList.add("collapsed");
+    wrapper.style.maxHeight = "0px";
+    wrapper.style.opacity = "0";
+    if (expandIcon) expandIcon.classList.remove("rotate-90");
+    return;
+  }
 
-  // Lazy-load container data on first expand
-  if (!expanded && !containerRow.dataset.loaded) {
-    containerRow.innerHTML = `<td colspan="13" class="p-4 text-gray-400">Loading...</td>`;
+  wrapper.classList.remove("collapsed");
+  wrapper.classList.add("expanded");
+  wrapper.style.opacity = "1";
+  wrapper.style.maxHeight = "1000px"; // enough for a full table
+  if (expandIcon) expandIcon.classList.add("rotate-90");
+
+  if (!wrapper.dataset.loaded) {
+    wrapper.innerHTML = `<div class="p-4 text-sm text-gray-400">Loading...</div>`;
+    const metrics = [
+  "container.podman.cpu_percent",
+  "container.podman.mem_usage_bytes",
+  "container.podman.net_rx_bytes",
+  "container.podman.net_tx_bytes",
+  "container.podman.uptime_seconds"
+];
+const query = metrics.map(m => `metric=${m}`).join("&") + `&hostname=${encodeURIComponent(hostname)}`;
 
     fetch(`/api/v1/query?${query}`)
       .then(res => res.json())
       .then(json => {
-        const grouped = groupContainers(Array.isArray(json) ? json : []);
-        containerRow.innerHTML = `<td colspan="13" class="p-4">${buildContainerTable(grouped)}</td>`;
-        containerRow.dataset.loaded = "true";
+        const rows = Array.isArray(json) ? json : [];
+        const grouped = groupContainers(rows);
+        wrapper.innerHTML = `<div class="p-4">${buildContainerTable(grouped)}</div>`;
+        wrapper.dataset.loaded = "true";
       })
       .catch(err => {
         console.error("❌ Failed to fetch containers:", err);
-        containerRow.innerHTML = `<td colspan="13" class="p-4 text-red-500">Container fetch failed: ${err}</td>`;
+        wrapper.innerHTML = `<div class="p-4 text-sm text-red-500">Container fetch failed: ${err}</div>`;
       });
   }
 }

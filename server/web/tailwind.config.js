@@ -13,6 +13,11 @@ module.exports = {
       'stat-card label',
       'stat-card value',
       'stat-card unit',
+    
+        'max-h-[1000px]',
+        'opacity-0',
+        'opacity-100',
+      
     ],
     darkMode: 'class', // Enables toggling via 'dark' class
     theme: {

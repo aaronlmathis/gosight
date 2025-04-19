@@ -1,4 +1,7 @@
 @import "tailwindcss";
+
+
+
 @layer components {
   .stat-card {
     @apply bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm;
@@ -11,12 +14,25 @@
   .stat-card > p:last-child {
     @apply text-xl font-bold text-blue-600 dark:text-blue-400;
   }
-}
-  @layer utilities {
-    @keyframes shake {
-      10%, 90% { transform: translateX(-1px); }
-      20%, 80% { transform: translateX(2px); }
-      30%, 50%, 70% { transform: translateX(-4px); }
-      40%, 60% { transform: translateX(4px); }
-    }
+
+  .container-subtable .collapsed {
+    @apply transition-all duration-300 ease-in-out;
+    max-height: 0 !important;
+    opacity: 0;
   }
+
+  .container-subtable .expanded {
+    @apply transition-all duration-300 ease-in-out;
+    max-height: 1000px;
+    opacity: 1;
+  }
+}
+
+@layer utilities {
+  @keyframes shake {
+    10%, 90% { transform: translateX(-1px); }
+    20%, 80% { transform: translateX(2px); }
+    30%, 50%, 70% { transform: translateX(-4px); }
+    40%, 60% { transform: translateX(4px); }
+  }
+}
