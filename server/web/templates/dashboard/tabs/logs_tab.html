@@ -1,0 +1,126 @@
+{{ define "tabs/logs_tab" }}
+<div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="logs" role="tabpanel"
+aria-labelledby="logs-tab">
+<!-- Advanced Search -->
+<!-- Advanced Search Panel -->
+<div id="advanced-log-search"
+    class="mb-4 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm space-y-4">
+    <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100">Advanced Log Search</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        <!-- Keyword -->
+        <div>
+            <label for="adv-keyword" class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Keyword</label>
+            <input type="text" id="adv-keyword" placeholder="Search messages, tags, metadata..."
+                class="w-full text-sm px-3 py-1.5 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+        </div>
+
+        <!-- Level -->
+        <div>
+            <label for="adv-level" class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Level</label>
+            <select id="adv-level"
+                class="w-full text-sm px-3 py-1.5 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+                <option value="">All Levels</option>
+                <option value="error">Error</option>
+                <option value="warn">Warn</option>
+                <option value="info">Info</option>
+                <option value="debug">Debug</option>
+                <option value="notice">Notice</option>
+            </select>
+        </div>
+
+        <!-- Source -->
+        <div>
+            <label for="adv-source" class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Source</label>
+            <input type="text" id="adv-source" placeholder="e.g. postgres-dev"
+                class="w-full text-sm px-3 py-1.5 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+        </div>
+
+        <!-- Start Date -->
+        <div>
+            <label for="adv-start" class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Start Time</label>
+            <input type="datetime-local" id="adv-start"
+                class="w-full text-sm px-3 py-1.5 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+        </div>
+
+        <!-- End Date -->
+        <div>
+            <label for="adv-end" class="block text-sm text-gray-600 dark:text-gray-300 mb-1">End Time</label>
+            <input type="datetime-local" id="adv-end"
+                class="w-full text-sm px-3 py-1.5 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-end gap-2">
+            <button id="log-search-button"
+                class="text-sm px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-full">🔍 Search</button>
+            <button id="log-reset-button"
+                class="text-sm px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-700 w-full">Reset</button>
+        </div>
+    </div>
+</div>
+
+
+<div
+    class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+    <!-- Controls -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Search Logs</h2>
+        <div class="flex flex-wrap gap-2 items-center">
+            <input id="logs-filter-search" type="text" placeholder="Search..."
+                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+
+            <select id="logs-filter-level"
+                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+                <option value="">All Levels</option>
+                <option value="error">Error</option>
+                <option value="warn">Warn</option>
+                <option value="info">Info</option>
+                <option value="debug">Debug</option>
+                <option value="notice">Notice</option>
+            </select>
+
+            <input type="date" id="logs-filter-start"
+                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+            <input type="date" id="logs-filter-end"
+                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+            <button id="logs-export-csv"
+                class="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                ⬇ Export CSV
+            </button>
+            <button id="logs-refresh-button"
+                class="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">↻
+                Refresh</button>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="overflow-x-auto">
+        <table class="min-w-full table-auto text-sm text-left text-gray-700 dark:text-gray-300">
+            <thead class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                <tr class="text-sm font-semibold">
+                    <th class="px-4 py-2 cursor-pointer" onclick="sortLogsBy('level')">Level</th>
+                    <th class="px-4 py-2 cursor-pointer" onclick="sortLogsBy('source')">Source</th>
+                    <th class="px-4 py-2 cursor-pointer" onclick="sortLogsBy('category')">Category</th>
+                    <th class="px-4 py-2 cursor-pointer" onclick="sortLogsBy('timestamp')">Time</th>
+                    <th class="px-4 py-2 cursor-pointer" onclick="sortLogsBy('message')">Message</th>
+                </tr>
+            </thead>
+            <tbody id="logs-table-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+                <!-- Rows go here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="flex justify-end items-center gap-2 pt-2">
+        <button id="logs-prev"
+            class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700">Previous</button>
+        <span id="logs-page-indicator" class="text-sm text-gray-500 dark:text-gray-400">Page 1 of 1</span>
+        <button id="logs-next"
+            class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700">Next</button>
+    </div>
+</div>
+</div>
+
+{{ end }}

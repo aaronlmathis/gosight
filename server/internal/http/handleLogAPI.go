@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,15 +16,16 @@ import (
 // It includes the limit of logs to return, the log levels to filter by,
 // the unit of the logs, the source of the logs, a string to search for in the logs,
 // and the start and end times for the logs.
+
 type LogQueryParams struct {
-	EndpointID string
-	Limit      int
-	Levels     map[string]bool
-	Unit       string
-	Source     string
-	Contains   string
-	Start      *time.Time
-	End        *time.Time
+	EndpointID string          `json:"endpointID"`
+	Levels     map[string]bool `json:"levels"`
+	Start      *time.Time      `json:"start"`
+	End        *time.Time      `json:"end"`
+	Keyword    string          `json:"keyword"`
+	Source     string          `json:"source"`
+	Unit       string          `json:"unit"`
+	Limit      int             `json:"limit"`
 }
 
 // HandleRecentLogs handles the HTTP request for recent logs.
@@ -82,6 +84,9 @@ func (s *HttpServer) HandleLogAPI(w http.ResponseWriter, r *http.Request) {
 	var filtered []model.LogEntry
 	for _, log := range all {
 
+		if params.EndpointID != "" && strings.ToLower(log.Tags["endpoint_id"]) != params.EndpointID {
+			continue
+		}
 		if len(filtered) >= params.Limit {
 			break
 		}
@@ -97,18 +102,18 @@ func (s *HttpServer) HandleLogAPI(w http.ResponseWriter, r *http.Request) {
 		if params.Source != "" && log.Source != params.Source {
 			continue
 		}
-		if params.Contains != "" && !strings.Contains(strings.ToLower(log.Message), strings.ToLower(params.Contains)) {
-			continue
-		}
+		fmt.Println("Parsed Start:", params.Start, "Parsed End:", params.End)
 		if params.Start != nil && log.Timestamp.Before(*params.Start) {
 			continue
 		}
-		if params.End != nil && log.Timestamp.After(*params.End) {
+		if params.End != nil && !log.Timestamp.Before(*params.End) {
+			continue // Exclude logs at or after the End time
+		}
+
+		if params.Keyword != "" && !matchesSearch(log, params.Keyword) {
 			continue
 		}
-		if params.EndpointID != "" && strings.ToLower(log.Tags["endpoint_id"]) != params.EndpointID {
-			continue
-		}
+
 		filtered = append(filtered, log)
 	}
 
@@ -143,25 +148,60 @@ func parseLogQueryParams(r *http.Request) LogQueryParams {
 	}
 
 	var start, end *time.Time
+	const layout = "2006-01-02T15:04:05" // no timezone
+
 	if s := q.Get("start"); s != "" {
-		if t, err := time.Parse(time.RFC3339, s); err == nil {
+		if t, err := time.Parse(layout, s); err == nil {
 			start = &t
 		}
 	}
 	if s := q.Get("end"); s != "" {
-		if t, err := time.Parse(time.RFC3339, s); err == nil {
+		if t, err := time.Parse(layout, s); err == nil {
 			end = &t
 		}
 	}
-
 	return LogQueryParams{
 		EndpointID: q.Get("endpointID"),
 		Limit:      limit,
 		Levels:     levels,
 		Unit:       q.Get("unit"),
 		Source:     q.Get("source"),
-		Contains:   q.Get("contains"),
+		Keyword:    q.Get("keyword"),
 		Start:      start,
 		End:        end,
 	}
+}
+
+// matchesSearch checks if a log entry matches the search keyword.
+// It checks if the keyword is present in the message, source, category,
+// or any of the meta fields, tags, or fields of the log entry.
+// The function is case-insensitive and uses strings.Contains to check for matches.
+// It returns true if the log entry matches the search keyword, false otherwise.
+func matchesSearch(log model.LogEntry, keyword string) bool {
+	kw := strings.ToLower(keyword)
+
+	for k, v := range log.Meta.Extra {
+		// already safe because map, but good habit:
+		if strings.Contains(strings.ToLower(k), kw) || strings.Contains(strings.ToLower(v), kw) {
+			return true
+		}
+	}
+
+	return strings.Contains(strings.ToLower(log.Message), kw) ||
+		strings.Contains(strings.ToLower(log.Source), kw) ||
+		strings.Contains(strings.ToLower(log.Category), kw) ||
+		strings.Contains(strings.ToLower(log.Level), kw) ||
+
+		strings.Contains(strings.ToLower(log.Meta.Platform), kw) ||
+		strings.Contains(strings.ToLower(log.Meta.AppName), kw) ||
+		strings.Contains(strings.ToLower(log.Meta.AppVersion), kw) ||
+		strings.Contains(strings.ToLower(log.Meta.ContainerID), kw) ||
+		strings.Contains(strings.ToLower(log.Meta.ContainerName), kw) ||
+		strings.Contains(strings.ToLower(log.Meta.Unit), kw) ||
+		strings.Contains(strings.ToLower(log.Meta.Service), kw) ||
+		strings.Contains(strings.ToLower(log.Meta.EventID), kw) ||
+		strings.Contains(strings.ToLower(log.Meta.User), kw) ||
+		strings.Contains(strings.ToLower(log.Meta.Executable), kw) ||
+		strings.Contains(strings.ToLower(log.Meta.Path), kw)
+
 }

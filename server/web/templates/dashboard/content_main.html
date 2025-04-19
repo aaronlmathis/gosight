@@ -93,6 +93,12 @@
             </button>
         </li>
         <li class="mr-2" role="presentation">
+            <button class="inline-block p-4 rounded-t-lg border-b-2" id="logs-tab" data-tabs-target="#logs"
+                type="button" role="tab" aria-controls="activity" aria-selected="false">
+                Logs
+            </button>
+        </li>
+        <li class="mr-2" role="presentation">
             <button class="inline-block p-4 rounded-t-lg border-b-2" id="console-tab" data-tabs-target="#console"
                 type="button" role="tab" aria-controls="console" aria-selected="false">
                 Console
@@ -720,7 +726,8 @@
                         class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700">
                         Previous
                     </button>
-                    <span id="activity-page-indicator" class="text-sm text-gray-500 dark:text-gray-400">Page 1 of 1</span>
+                    <span id="activity-page-indicator" class="text-sm text-gray-500 dark:text-gray-400">Page 1 of
+                        1</span>
                     <button id="activity-next"
                         class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700">
                         Next
@@ -728,6 +735,8 @@
                 </div>
             </div>
         </div>
+        <!-- LOGS TAB CONTENT -->
+        {{ template "tabs/logs_tab" . }}
         <div class="hidden p-4 bg-gray-50 dark:bg-gray-800" id="console" role="tabpanel" aria-labelledby="console-tab">
             <div
                 class="bg-black text-green-400 font-mono text-sm leading-relaxed whitespace-pre-wrap border border-gray-700 dark:border-gray-600 shadow-inner p-4 overflow-y-auto h-96 rounded-md">
@@ -747,8 +756,9 @@
 <script>
     window.endpointID = "{{ .Meta.EndpointID }}";
 </script>
-
+<script src="/js/logs.js"></script>
 <script src="/js/mockup.js"></script>
+
 <script>
     const themeToggleBtn = document.getElementById("theme-toggle");
     const lightIcon = document.getElementById("theme-toggle-light-icon");

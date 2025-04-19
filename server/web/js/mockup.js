@@ -32,9 +32,9 @@ let latestMemUsedPercent = 0;
 socket.onmessage = (event) => {
     try {
         const envelope = JSON.parse(event.data);
-        console.log("📦 WebSocket message:", envelope);
+        //console.log("📦 WebSocket message:", envelope);
         if (envelope.type === "logs") {
-            console.log("📄 Logs:\n" + JSON.stringify(envelope.data.Logs, null, 2));
+            //console.log("📄 Logs:\n" + JSON.stringify(envelope.data.Logs, null, 2));
         }
         if (envelope.type === "metrics") {
             const payload = envelope.data;
@@ -71,6 +71,43 @@ socket.onmessage = (event) => {
 // LOG STREAMING SECTION
 //
 //
+function appendActivityRow(log) {
+    const tbody = document.getElementById("activity-log-body");
+    if (!tbody || !log) return;
+
+    const row = document.createElement("tr");
+
+    // Determine badge color based on level
+    const level = (log.level || "").toLowerCase();
+    const badgeClass = {
+        error: "bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-200",
+        warn: "bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100",
+        info: "bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100",
+        debug: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
+        notice: "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-300",
+    }[level] || "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+
+    const category = log.category || log.meta?.unit || log.meta?.service || log.source || "unknown";
+    const message = log.message || "";
+    const timestamp = new Date(log.timestamp).toLocaleString();
+
+    row.innerHTML = `
+        <td class="px-4 py-2">
+            <span class="text-xs font-semibold px-2 py-0.5 rounded ${badgeClass}">
+                ${level.toUpperCase()}
+            </span>
+        </td>
+        <td class="px-4 py-2 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">${timestamp}</td>
+        <td class="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">${message}</td>
+    `;
+
+    tbody.prepend(row);
+
+    // Limit to 100 rows max
+    while (tbody.children.length > 100) {
+        tbody.removeChild(tbody.lastChild);
+    }
+}
 const maxLogLines = 10;
 const logContainer = document.getElementById("log-stream");
 
@@ -134,84 +171,12 @@ function logLevelColorClass(level) {
 ///
 /// ACTIVITY TAB SECTION
 ///
-const activityLogs = [];
-const logsPerPage = 50;
-let currentPage = 1;
 
 
-function appendActivityRow(log) {
-    activityLogs.unshift(log); // 👈 newest first
 
-    // Cap memory
-    if (activityLogs.length > 500) {
-        activityLogs.length = 500;
-    }
+//// END ACTIVITY TAB
+/////
 
-    // Re-render current page
-    renderActivityPage(currentPage);
-}
-
-function renderActivityPage(page) {
-    const tbody = document.getElementById("activity-log-body");
-    if (!tbody) return;
-
-    tbody.innerHTML = "";
-
-    const start = (page - 1) * logsPerPage;
-    const end = start + logsPerPage;
-    const pageLogs = activityLogs.slice(start, end);
-
-    for (const log of pageLogs) {
-        const row = document.createElement("tr");
-        const level = log.level || "info";
-        const timestamp = new Date(log.timestamp).toLocaleString();
-        const message = log.message || "";
-
-        const levelClass = {
-            error: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
-            warn: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
-            info: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-            notice: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-            debug: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
-        }[level] || "bg-gray-200 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-
-        row.innerHTML = `
-            <td class="px-4 py-2 whitespace-nowrap">
-                <span class="inline-block text-xs font-medium px-2 py-0.5 rounded ${levelClass}">${level}</span>
-            </td>
-            <td class="px-4 py-2 whitespace-nowrap">${timestamp}</td>
-            <td class="px-4 py-2">${message}</td>
-        `;
-        tbody.appendChild(row);
-    }
-
-    updateActivityPagination();
-}
-
-function updateActivityPagination() {
-    const pageIndicator = document.getElementById("activity-page-indicator");
-    if (pageIndicator) {
-        const maxPage = Math.max(1, Math.ceil(activityLogs.length / logsPerPage));
-        pageIndicator.textContent = `Page ${currentPage} of ${maxPage}`;
-    }
-}
-
-
-document.getElementById("activity-prev").addEventListener("click", () => {
-    if (currentPage > 1) {
-        currentPage--;
-        renderActivityPage(currentPage);
-    }
-});
-
-document.getElementById("activity-next").addEventListener("click", () => {
-    const maxPage = Math.ceil(activityLogs.length / logsPerPage);
-    if (currentPage < maxPage) {
-        currentPage++;
-        renderActivityPage(currentPage);
-    }
-});
-////
 
 
 function extractHostSummary(metrics, meta) {
@@ -361,6 +326,8 @@ function updateMiniCharts(metrics) {
             //console.log("🟢 SWAP METRIC RECEIVED:", m.name, m.value);
         }
     });
+    let swapTotal = null;
+let swapFree = null;
     for (const m of metrics) {
         if (
             m.namespace === "System" &&
@@ -382,11 +349,23 @@ function updateMiniCharts(metrics) {
         if (
             m.namespace === "System" &&
             m.subnamespace === "Memory" &&
-            m.name === "used_percent" &&
+            m.name === "total" &&
             m.dimensions?.source === "swap"
         ) {
-            swapVal = m.value;
+            swapTotal = m.value;
         }
+    
+        if (
+            m.namespace === "System" &&
+            m.subnamespace === "Memory" &&
+            m.name === "available" &&
+            m.dimensions?.source === "swap"
+        ) {
+            swapFree = m.value;
+        }
+
+            swapVal = ((swapTotal - swapFree) / swapTotal) * 100;
+
     }
 
     const timestamp = new Date().toLocaleTimeString([], {
@@ -448,7 +427,7 @@ function updateMiniCharts(metrics) {
         }
 
         miniCharts.swap.update();
-
+        console.log("🟣 Swap Value:", swapVal, "Label exists:", !!document.getElementById("swap-percent-label"));
         if (typeof swapVal === "number" && !isNaN(swapVal)) {
             latestSwapUsedPercent = swapVal;
             const label = document.getElementById("swap-percent-label");
