@@ -33,7 +33,9 @@ socket.onmessage = (event) => {
     try {
         const envelope = JSON.parse(event.data);
         console.log("📦 WebSocket message:", envelope);
-
+        if (envelope.type === "logs") {
+            console.log("📄 Logs:\n" + JSON.stringify(envelope.data.Logs, null, 2));
+        }
         if (envelope.type === "metrics") {
             const payload = envelope.data;
             if (!payload?.metrics || !payload?.meta) return;
@@ -54,7 +56,9 @@ socket.onmessage = (event) => {
             if (logPayload?.Logs?.length > 0) {
                 for (const log of logPayload.Logs) {
                     appendLogLine(log);
+                    appendActivityRow(log);    // Activity tab (table)
                 }
+
             }
         }
 
@@ -127,6 +131,88 @@ function logLevelColorClass(level) {
     }
 }
 // END LOG STREAMING
+///
+/// ACTIVITY TAB SECTION
+///
+const activityLogs = [];
+const logsPerPage = 50;
+let currentPage = 1;
+
+
+function appendActivityRow(log) {
+    activityLogs.unshift(log); // 👈 newest first
+
+    // Cap memory
+    if (activityLogs.length > 500) {
+        activityLogs.length = 500;
+    }
+
+    // Re-render current page
+    renderActivityPage(currentPage);
+}
+
+function renderActivityPage(page) {
+    const tbody = document.getElementById("activity-log-body");
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    const start = (page - 1) * logsPerPage;
+    const end = start + logsPerPage;
+    const pageLogs = activityLogs.slice(start, end);
+
+    for (const log of pageLogs) {
+        const row = document.createElement("tr");
+        const level = log.level || "info";
+        const timestamp = new Date(log.timestamp).toLocaleString();
+        const message = log.message || "";
+
+        const levelClass = {
+            error: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+            warn: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+            info: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+            notice: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+            debug: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
+        }[level] || "bg-gray-200 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+
+        row.innerHTML = `
+            <td class="px-4 py-2 whitespace-nowrap">
+                <span class="inline-block text-xs font-medium px-2 py-0.5 rounded ${levelClass}">${level}</span>
+            </td>
+            <td class="px-4 py-2 whitespace-nowrap">${timestamp}</td>
+            <td class="px-4 py-2">${message}</td>
+        `;
+        tbody.appendChild(row);
+    }
+
+    updateActivityPagination();
+}
+
+function updateActivityPagination() {
+    const pageIndicator = document.getElementById("activity-page-indicator");
+    if (pageIndicator) {
+        const maxPage = Math.max(1, Math.ceil(activityLogs.length / logsPerPage));
+        pageIndicator.textContent = `Page ${currentPage} of ${maxPage}`;
+    }
+}
+
+
+document.getElementById("activity-prev").addEventListener("click", () => {
+    if (currentPage > 1) {
+        currentPage--;
+        renderActivityPage(currentPage);
+    }
+});
+
+document.getElementById("activity-next").addEventListener("click", () => {
+    const maxPage = Math.ceil(activityLogs.length / logsPerPage);
+    if (currentPage < maxPage) {
+        currentPage++;
+        renderActivityPage(currentPage);
+    }
+});
+////
+
 
 function extractHostSummary(metrics, meta) {
     const summary = {

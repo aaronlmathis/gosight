@@ -144,7 +144,24 @@ func (s *HttpServer) setupAPIRoutes() {
 			),
 		)).Methods("GET")
 
-	api.HandleFunc("/logs/latest", s.HandleRecentLogs).Methods("GET")
+	api.Handle("/logs",
+		gosightauth.AuthMiddleware(s.UserStore)(
+			gosightauth.RequirePermission("gosight:logs:view",
+				http.HandlerFunc(s.HandleLogAPI), // <- pass your actual FileStore here
+				s.UserStore,
+			),
+		),
+	).Methods("GET")
+
+	api.Handle("/logs/latest",
+		gosightauth.AuthMiddleware(s.UserStore)(
+			gosightauth.RequirePermission("gosight:logs:view",
+				http.HandlerFunc(s.HandleRecentLogs), // <- pass your actual FileStore here
+				s.UserStore,
+			),
+		),
+	).Methods("GET")
+
 	api.HandleFunc("/{namespace}/{sub}/{metric}/latest", s.GetLatestValue).Methods("GET")
 	api.HandleFunc("/{namespace}/{sub}/{metric}/data", s.GetMetricData).Methods("GET")
 	api.HandleFunc("/{namespace}/{sub}/dimensions", s.GetDimensions).Methods("GET")

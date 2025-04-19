@@ -47,7 +47,7 @@ func NewRegistry(cfg *config.Config) *LogRegistry {
 		case "journald":
 			reg.LogCollectors["journald"] = linuxcollector.NewJournaldCollector(cfg)
 		case "security":
-			reg.LogCollectors["security"] = linuxcollector.NewSecurityLogCollector(cfg)
+			//reg.LogCollectors["security"] = linuxcollector.NewSecurityLogCollector(cfg)
 		default:
 			utils.Warn("⚠️ Unknown collector: %s (skipping) \n", name)
 		}

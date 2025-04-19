@@ -80,7 +80,7 @@ func NewServer(
 	webSocket *websocket.Hub,
 ) *HttpServer {
 	router := mux.NewRouter()
-
+	router.StrictSlash(true)
 	s := &HttpServer{
 		AgentTracker:   agentTracker,
 		APIMetricStore: &APIMetricStore{Store: metricStore},
