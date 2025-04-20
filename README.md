@@ -133,6 +133,8 @@ go build -o gosight-server ./server/cmd
 ```
 ---
 ## Dashboard (in current form)
+### Endpoint Detail Page (compute tab / live data)
+![Endpoint Detail Page (compute tab / live data)](images/gosight-endpoint-details-compute-tab-live-data.jpeg)
 
 ### Endpoints Page (live data)
 ![Endpoints Page](images/gosight-dev-live-data-Endpoints-Page.png)
