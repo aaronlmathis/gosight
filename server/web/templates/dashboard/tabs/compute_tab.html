@@ -76,71 +76,123 @@
     <div class="grid gap-4 lg:grid-cols-3 mb-6">
       <!-- CPU Info -->
       <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
-        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">CPU Information</h4>
-        <dl class="text-sm text-gray-600 dark:text-gray-400 grid grid-cols-2 gap-y-2">
-          <dt class="font-medium">Model</dt>
-          <dd class="text-right">Xeon E5-2676 v3</dd>
-          <dt class="font-medium">Vendor</dt>
-          <dd class="text-right">GenuineIntel</dd>
-          <dt class="font-medium">Cores</dt>
-          <dd class="text-right">8</dd>
-          <dt class="font-medium">Threads</dt>
-          <dd class="text-right">16</dd>
-          <dt class="font-medium">Base Clock</dt>
-          <dd class="text-right">2.40 GHz</dd>
-          <dt class="font-medium">Cache</dt>
-          <dd class="text-right">25600 KB</dd>
-          <dt class="font-medium">Family</dt>
-          <dd class="text-right">6</dd>
-          <dt class="font-medium">Model #</dt>
-          <dd class="text-right">63</dd>
-          <dt class="font-medium">Stepping</dt>
-          <dd class="text-right">2</dd>
-          <dt class="font-medium">Microcode</dt>
-          <dd class="text-right">0x3c</dd>
-        </dl>
+        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-100 mb-4 border-b pb-1 border-gray-200 dark:border-gray-700">
+          🧠 CPU Information
+        </h4>
+      
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6 text-sm text-gray-700 dark:text-gray-300">
+          <div>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Model</p>
+            <p id="cpu-model" class="font-semibold text-gray-800 dark:text-white">--</p>
+          </div>
+          <div>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Vendor</p>
+            <p id="cpu-vendor" class="font-semibold text-gray-800 dark:text-white">--</p>
+          </div>
+      
+          <div>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Cores</p>
+            <p id="cpu-cores" class="font-semibold text-gray-800 dark:text-white">--</p>
+          </div>
+          <div>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Threads</p>
+            <p id="cpu-threads" class="font-semibold text-gray-800 dark:text-white">--</p>
+          </div>
+      
+          <div>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Base Clock</p>
+            <p id="cpu-base-clock" class="font-semibold text-gray-800 dark:text-white">--</p>
+          </div>
+          <div>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Cache</p>
+            <p id="cpu-cache" class="font-semibold text-gray-800 dark:text-white">--</p>
+          </div>
+      
+          <div>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Family</p>
+            <p id="cpu-family" class="font-semibold text-gray-800 dark:text-white">--</p>
+          </div>
+          <div>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Stepping</p>
+            <p id="cpu-stepping" class="font-semibold text-gray-800 dark:text-white">--</p>
+          </div>
+      
+          <div>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Physical Package</p>
+            <p id="cpu-physical" class="font-semibold text-gray-800 dark:text-white">--</p>
+          </div>
+        </div>
       </div>
+      
 
       <!-- CPU Time Counters -->
-      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
-        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">CPU Time Counters</h4>
-        <dl class="text-sm text-gray-600 dark:text-gray-400 grid grid-cols-2 gap-y-2">
-          <dt class="font-medium">User</dt>
-          <dd class="text-right">12458.2s</dd>
-          <dt class="font-medium">System</dt>
-          <dd class="text-right">9342.8s</dd>
-          <dt class="font-medium">Idle</dt>
-          <dd class="text-right">98234.5s</dd>
-          <dt class="font-medium">Nice</dt>
-          <dd class="text-right">15.9s</dd>
-          <dt class="font-medium">Iowait</dt>
-          <dd class="text-right">123.4s</dd>
-          <dt class="font-medium">IRQ</dt>
-          <dd class="text-right">4.0s</dd>
-          <dt class="font-medium">SoftIRQ</dt>
-          <dd class="text-right">8.6s</dd>
-          <dt class="font-medium">Steal</dt>
-          <dd class="text-right">0.0s</dd>
-          <dt class="font-medium">Guest</dt>
-          <dd class="text-right">0.0s</dd>
-          <dt class="font-medium">GuestNice</dt>
-          <dd class="text-right">0.0s</dd>
-        </dl>
-      </div>
+<!-- CPU Time Counters (Styled to match CPU Info Card) -->
+<div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+  <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-100 mb-4 border-b pb-1 border-gray-200 dark:border-gray-700">
+    ⏱ CPU Time Counters
+  </h4>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6 text-sm text-gray-700 dark:text-gray-300">
+    <div>
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400">User</p>
+      <p id="cpu-time-user" class="font-semibold text-gray-800 dark:text-white">--</p>
+    </div>
+    <div>
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400">System</p>
+      <p id="cpu-time-system" class="font-semibold text-gray-800 dark:text-white">--</p>
+    </div>
+    <div>
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Idle</p>
+      <p id="cpu-time-idle" class="font-semibold text-gray-800 dark:text-white">--</p>
+    </div>
+    <div>
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Nice</p>
+      <p id="cpu-time-nice" class="font-semibold text-gray-800 dark:text-white">--</p>
+    </div>
+    <div>
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Iowait</p>
+      <p id="cpu-time-iowait" class="font-semibold text-gray-800 dark:text-white">--</p>
+    </div>
+    <div>
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400">IRQ</p>
+      <p id="cpu-time-irq" class="font-semibold text-gray-800 dark:text-white">--</p>
+    </div>
+    <div>
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400">SoftIRQ</p>
+      <p id="cpu-time-softirq" class="font-semibold text-gray-800 dark:text-white">--</p>
+    </div>
+    <div>
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Steal</p>
+      <p id="cpu-time-steal" class="font-semibold text-gray-800 dark:text-white">--</p>
+    </div>
+    <div>
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Guest</p>
+      <p id="cpu-time-guest" class="font-semibold text-gray-800 dark:text-white">--</p>
+    </div>
+    <div>
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400">GuestNice</p>
+      <p id="cpu-time-guestnice" class="font-semibold text-gray-800 dark:text-white">--</p>
+    </div>
+  </div>
+</div>
+
 
       <!-- CPU Stats -->
       <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
-        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">CPU Statistics</h4>
-        <dl class="text-sm text-gray-600 dark:text-gray-400 grid grid-cols-2 gap-y-2">
-          <dt class="font-medium">Context Switches</dt>
-          <dd class="text-right">1,324,556</dd>
-          <dt class="font-medium">Interrupts</dt>
-          <dd class="text-right">87,342</dd>
-          <dt class="font-medium">Soft Interrupts</dt>
-          <dd class="text-right">15,239</dd>
-          <dt class="font-medium">Syscalls</dt>
-          <dd class="text-right">N/A</dd>
-        </dl>
+        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Per-Core Usage</h4>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm text-left text-gray-700 dark:text-gray-300 border-t">
+            <thead class="text-xs uppercase text-gray-500 dark:text-gray-400">
+              <tr>
+                <th class="px-2 py-2">Core</th>
+                <th class="px-2 py-2 text-right">Usage</th>
+                <th class="px-2 py-2 text-right">Clock</th>
+              </tr>
+            </thead>
+            <tbody id="per-core-table">
+              <!-- JavaScript will inject rows here -->
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
     <div class="grid grid-cols-4 gap-4 w-full">

@@ -5,18 +5,41 @@ let cpuDonutChart = null;
 let memoryDonutChart = null;
 let swapLineChart = null;
 
-const cpuTimeMetrics = { User: 0, System: 0, Idle: 0, Nice: 0 };
+
 const memoryMetrics = { used: 0, free: 0, buffers: 0, cache: 0 };
 
 // Buffer for chart data before render
 const cpuUsageBuffer = [];
 const memoryUsageBuffer = [];
-const cpuDonutBuffer = {};
+
+const perCoreData = {}; // key: core name, e.g. "core0"
+
 const memoryDonutBuffer = {};
 const cpuLoadBuffer = []; // ✅ array of full { time, load1, load5, load15 }
 const swapUsageBuffer = [];
 const swapPercentMeta = { total: null, free: null };
+const cpuTimeMetrics = {
+    User: 0,
+    System: 0,
+    Idle: 0,
+    Nice: 0,
+    Other: 0, // 👈 new
+};
 
+const cpuDonutBuffer = {
+    User: null,
+    System: null,
+    Idle: null,
+    Nice: null,
+    OtherParts: {
+        iowait: null,
+        irq: null,
+        softirq: null,
+        steal: null,
+        guest: null,
+        guestnice: null,
+    }
+};
 // Aggregate load data
 const pendingLoadAvg = {
     "load_avg_1": null,
@@ -301,7 +324,7 @@ function createCpuCharts() {
     });
     cpuDonutChart = new Chart(document.getElementById("cpuDonutChart"), {
         type: "doughnut",
-        data: { labels: Object.keys(cpuTimeMetrics), datasets: [{ data: Object.values(cpuTimeMetrics), backgroundColor: ["#3b82f6", "#10b981", "#9ca3af", "#f59e0b"] }] },
+        data: { labels: Object.keys(cpuTimeMetrics), datasets: [{ data: Object.values(cpuTimeMetrics), backgroundColor: ["#3b82f6", "#10b981", "#9ca3af", "#f59e0b", "#f87171"] }] },
         options: { responsive: true }
     });
 
@@ -361,24 +384,30 @@ function updateComputeLineChart(chart, value, buffer, labelId) {
     if (labelId) {
         const el = document.getElementById(labelId);
         if (el) {
-          if (typeof value === "number" && !isNaN(value)) {
-            el.textContent = `${value.toFixed(1)}%`;
-          } else {
-            el.textContent = "--";
-          }
+            if (typeof value === "number" && !isNaN(value)) {
+                el.textContent = `${value.toFixed(1)}%`;
+            } else {
+                el.textContent = "--";
+            }
         }
-      }
-      
+    }
+
 }
+
 
 function updateCpuDonutChart() {
     if (!cpuDonutChart) return;
 
-    for (const key of Object.keys(cpuTimeMetrics)) {
-        if (cpuDonutBuffer[key] != null) {
-            cpuTimeMetrics[key] = cpuDonutBuffer[key];
-        }
+    cpuTimeMetrics.User = cpuDonutBuffer.User ?? 0;
+    cpuTimeMetrics.System = cpuDonutBuffer.System ?? 0;
+    cpuTimeMetrics.Idle = cpuDonutBuffer.Idle ?? 0;
+    cpuTimeMetrics.Nice = cpuDonutBuffer.Nice ?? 0;
+
+    let otherSum = 0;
+    for (const val of Object.values(cpuDonutBuffer.OtherParts)) {
+        if (val != null) otherSum += val;
     }
+    cpuTimeMetrics.Other = otherSum;
 
     cpuDonutChart.data.datasets[0].data = Object.values(cpuTimeMetrics);
     cpuDonutChart.update();
@@ -429,7 +458,72 @@ function updateMemoryAndSwapStats() {
     document.getElementById("swap-used").textContent = formatGB(usedSwap);
     document.getElementById("swap-free").textContent = formatGB(freeSwap);
 }
+function updateCpuInfo(metric) {
+    if (metric.name === "clock_mhz" && metric.dimensions?.core === "core0") {
+        document.getElementById("cpu-base-clock").textContent = `${metric.value.toFixed(0)} MHz`;
+        document.getElementById("cpu-vendor").textContent = metric.dimensions.vendor || "--";
+        document.getElementById("cpu-model").textContent = metric.dimensions.model || "--";
+        document.getElementById("cpu-family").textContent = metric.dimensions.family || "--";
+        document.getElementById("cpu-stepping").textContent = metric.dimensions.stepping || "--";
+        document.getElementById("cpu-cache").textContent = metric.dimensions.cache ? `${(parseInt(metric.dimensions.cache)).toLocaleString()} KB` : "--";
+        document.getElementById("cpu-physical").textContent = metric.dimensions.physical === "true" ? "Yes" : "No";
+    } else if (metric.name === "count_logical") {
+        document.getElementById("cpu-threads").textContent = metric.value;
+    } else if (metric.name === "count_physical") {
+        document.getElementById("cpu-cores").textContent = metric.value;
+    }
+}
+function updateCpuTimeCounters(metric) {
+    if (!metric || typeof metric.value !== "number") return;
 
+    const name = metric.name.replace("time_", "");
+    const el = document.getElementById(`cpu-time-${name}`);
+    if (el) {
+        el.textContent = `${metric.value.toFixed(1)}s`;
+    }
+}
+function updatePerCoreMetrics(metric) {
+    const core = metric.dimensions?.core;
+    if (!core) return;
+
+    if (!perCoreData[core]) {
+        perCoreData[core] = {};
+    }
+
+    if (metric.name === "usage_percent" && metric.dimensions.scope === "per_core") {
+        perCoreData[core].usage = metric.value;
+    } else if (metric.name === "clock_mhz") {
+        perCoreData[core].clock = metric.value;
+    }
+
+    renderPerCoreTable();
+}
+
+function renderPerCoreTable() {
+    const tbody = document.getElementById("per-core-table");
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    const sorted = Object.keys(perCoreData).sort((a, b) => {
+        const aNum = parseInt(a.replace("core", ""));
+        const bNum = parseInt(b.replace("core", ""));
+        return aNum - bNum;
+    });
+
+    for (const core of sorted) {
+        const usage = perCoreData[core].usage?.toFixed(1) ?? "--";
+        const clock = perCoreData[core].clock?.toFixed(0) ?? "--";
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+        <td class="px-2 py-1 font-medium">${core}</td>
+        <td class="px-2 py-1 text-right">${usage}%</td>
+        <td class="px-2 py-1 text-right">${clock} MHz</td>
+      `;
+        tbody.appendChild(row);
+    }
+}
 window.cpuMetricHandler = function (metrics) {
     console.log("📡 Received metrics:", metrics);
 
@@ -442,6 +536,8 @@ window.cpuMetricHandler = function (metrics) {
             case "system.cpu.usage_percent":
                 if (metric.dimensions.scope === "total") {
                     updateComputeLineChart(cpuLineChart, metric.value, cpuUsageBuffer, "label-cpu-percent");
+                } else if (metric.dimensions.scope === "per_core") {
+                    updatePerCoreMetrics(metric);
                 }
                 break;
             case "system.cpu.load_avg_1":
@@ -480,22 +576,64 @@ window.cpuMetricHandler = function (metrics) {
             case "system.cpu.time_user":
                 cpuDonutBuffer.User = metric.value;
                 if (cpuDonutChart) updateCpuDonutChart();
+                updateCpuTimeCounters(metric);
                 break;
 
             case "system.cpu.time_system":
                 cpuDonutBuffer.System = metric.value;
                 if (cpuDonutChart) updateCpuDonutChart();
+                updateCpuTimeCounters(metric);
                 break;
 
             case "system.cpu.time_idle":
                 cpuDonutBuffer.Idle = metric.value;
                 if (cpuDonutChart) updateCpuDonutChart();
+                updateCpuTimeCounters(metric);
                 break;
 
             case "system.cpu.time_nice":
                 cpuDonutBuffer.Nice = metric.value;
                 if (cpuDonutChart) updateCpuDonutChart();
+                updateCpuTimeCounters(metric);
                 break;
+            case "system.cpu.time_user":
+            case "system.cpu.time_system":
+            case "system.cpu.time_idle":
+            case "system.cpu.time_nice":
+            case "system.cpu.time_iowait":
+            case "system.cpu.time_irq":
+            case "system.cpu.time_softirq":
+            case "system.cpu.time_steal":
+            case "system.cpu.time_guest":
+            case "system.cpu.time_guest_nice":
+                updateCpuTimeCounters(metric);
+                const shortName = metric.name.replace("time_", "");
+                cpuDonutBuffer.OtherParts[shortName] = metric.value;
+                updateCpuDonutChart();
+                break;
+            case "system.cpu.count_logical":
+
+                document.getElementById("cpu-threads").textContent = metric.value;
+
+                break;
+            case "system.cpu.count_physical":
+
+                document.getElementById("cpu-cores").textContent = metric.value;
+
+                break;
+            case "system.cpu.clock_mhz":
+                if (metric.dimensions?.core === "core0") {
+                    document.getElementById("cpu-base-clock").textContent = `${metric.value.toFixed(0)} MHz`;
+                    document.getElementById("cpu-vendor").textContent = metric.dimensions.vendor || "--";
+                    document.getElementById("cpu-model").textContent = metric.dimensions.model || "--";
+                    document.getElementById("cpu-family").textContent = metric.dimensions.family || "--";
+                    document.getElementById("cpu-stepping").textContent = metric.dimensions.stepping || "--";
+                    document.getElementById("cpu-cache").textContent = metric.dimensions.cache ? `${(parseInt(metric.dimensions.cache)).toLocaleString()} KB` : "--";
+                    document.getElementById("cpu-physical").textContent = metric.dimensions.physical === "true" ? "Yes" : "No";
+                }
+                updatePerCoreMetrics(metric);
+                break;
+
 
             case "system.memory.used_percent":
                 if (metric.dimensions?.source === "physical") {

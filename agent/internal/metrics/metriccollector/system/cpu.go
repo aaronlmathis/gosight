@@ -130,6 +130,8 @@ func (c *CPUCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 					"core":     formatCore(i),
 					"vendor":   cpu.VendorID,
 					"model":    cpu.ModelName,
+					"stepping": strconv.Itoa(int(cpu.Stepping)),
+					"cache":    strconv.Itoa(int(cpu.CacheSize)),
 					"family":   cpu.Family,
 					"physical": formatBool(cpu.PhysicalID != ""),
 				},
