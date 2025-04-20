@@ -52,9 +52,9 @@ func main() {
 		sig := <-sigCh
 		utils.Warn("Received signal: %s", sig)
 
-		cancel() // cancels context for all background loops
+		cancel() 
 
-		// Optional: close server listeners explicitly here
+		
 	}()
 
 	// Bootstrap config loading (flags -> env -> file)
