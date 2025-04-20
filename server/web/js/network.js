@@ -5,6 +5,12 @@ let networkTrafficLineChart = null;
 const lastMetrics = {}; // key: interface, value: { metricName: value }
 const lastBandwidth = {}; // key: iface, value: { tx: Mbps, rx: Mbps }
 const lastBytesAndTime = {}; // key: iface, value: { sent, recv, timestamp }
+const queuedBandwidthSample = {
+    timestamp: null,
+    tx: null,
+    rx: null,
+};
+const lastBandwidthHistory = {}; // key: iface, value: { tx: [], rx: [] }
 
 function resetNetworkTrafficChart() {
     if (!networkTrafficLineChart) return;
@@ -12,7 +18,20 @@ function resetNetworkTrafficChart() {
     networkTrafficLineChart.data.datasets.forEach(ds => ds.data = []);
     networkTrafficLineChart.update();
 }
+function addToBandwidthHistory(iface, direction, value) {
+    if (!lastBandwidthHistory[iface]) {
+        lastBandwidthHistory[iface] = { tx: [], rx: [] };
+    }
+    const history = lastBandwidthHistory[iface][direction];
+    const now = Date.now();
+    history.push({ time: now, value });
 
+    // Keep only last 10 minutes
+    const cutoff = now - 10 * 60 * 1000;
+    while (history.length && history[0].time < cutoff) {
+        history.shift();
+    }
+}
 function updateCurrentBandwidthDisplay() {
     const bw = lastBandwidth[selectedInterface];
     const tx = bw?.tx;
@@ -25,12 +44,24 @@ function updateCurrentBandwidthDisplay() {
         rx != null ? formatMbps(rx) + " Mbps" : "--";
 
     document.getElementById("current-interface-label").textContent = selectedInterface;
+    const peak = getPeakBandwidthMbps(selectedInterface);
+    document.getElementById("peak-bandwidth").textContent = `↑ ${formatMbps(peak.tx)} / ↓ ${formatMbps(peak.rx)}`;
+
 }
 function formatMbps(val) {
     if (val >= 1) return val.toFixed(1);
     if (val > 0.01) return val.toFixed(2);
     if (val > 0) return "< 0.01";
     return "0.00";
+}
+
+function getPeakBandwidthMbps(iface) {
+    const hist = lastBandwidthHistory[iface];
+    if (!hist) return { tx: 0, rx: 0 };
+
+    const peakTx = Math.max(...hist.tx.map(p => p.value), 0);
+    const peakRx = Math.max(...hist.rx.map(p => p.value), 0);
+    return { tx: peakTx, rx: peakRx };
 }
 function calculateAndUpdateBandwidth(iface, metricName, newValue) {
     const now = Date.now();
@@ -85,6 +116,9 @@ function calculateAndUpdateBandwidth(iface, metricName, newValue) {
         state.recv = newValue;
         state.timestamp_recv = now;
     }
+    addToBandwidthHistory(iface, "tx", lastBandwidth[iface].tx);
+    addToBandwidthHistory(iface, "rx", lastBandwidth[iface].rx);
+
 }
 
 
@@ -124,16 +158,28 @@ function updateStaticStatCardsFromCache() {
 }
 function updateNetworkTrafficLineChart(direction, valueMbps) {
     if (!networkTrafficLineChart) return;
-    const dsIndex = direction === "tx" ? 0 : 1;
-    const ds = networkTrafficLineChart.data.datasets[dsIndex];
+
     const label = new Date().toLocaleTimeString();
-    ds.data.push(valueMbps);
-    networkTrafficLineChart.data.labels.push(label);
-    if (ds.data.length > 60) {
-        ds.data.shift();
-        networkTrafficLineChart.data.labels.shift();
+    const chart = networkTrafficLineChart;
+
+    chart.data.labels.push(label);
+
+    // Add to the appropriate dataset
+    if (direction === "tx") {
+        chart.data.datasets[0].data.push(valueMbps);
+    } else {
+        chart.data.datasets[1].data.push(valueMbps);
     }
-    networkTrafficLineChart.update();
+
+    // Keep everything in sync
+    const maxPoints = 60;
+    if (chart.data.labels.length > maxPoints) {
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+        chart.data.datasets[1].data.shift();
+    }
+
+    chart.update();
 }
 
 function updateInterfaceTable(metric) {
@@ -265,14 +311,13 @@ function createErrorRateChart() {
 }
 
 function createNetworkTrafficLineChart() {
-
     const canvas = document.getElementById("networkTrafficLineChart");
     if (!canvas || typeof Chart === "undefined") return;
 
     networkTrafficLineChart = new Chart(canvas, {
         type: "line",
         data: {
-            labels: [],
+            labels: [], // populated dynamically
             datasets: [
                 {
                     label: "Upload (Mbps)",
@@ -282,6 +327,7 @@ function createNetworkTrafficLineChart() {
                     fill: true,
                     tension: 0.3,
                     pointRadius: 2,
+                    spanGaps: true
                 },
                 {
                     label: "Download (Mbps)",
@@ -291,32 +337,48 @@ function createNetworkTrafficLineChart() {
                     fill: true,
                     tension: 0.3,
                     pointRadius: 2,
-                },
-            ],
+                    spanGaps: true
+                }
+            ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: {
+                duration: 0  // ⛔ disable animation so shift is immediate
+            },
             scales: {
+                x: {
+                    ticks: {
+                        autoSkip: true,
+                        maxTicksLimit: 10,
+                        color: "#9CA3AF"
+                    }
+                },
                 y: {
                     beginAtZero: true,
                     ticks: {
                         callback: (val) => `${val} Mbps`,
-                    },
-                },
+                        color: "#9CA3AF"
+                    }
+                }
             },
             plugins: {
-                legend: { labels: { color: "#4B5563" } },
+                legend: {
+                    labels: {
+                        color: "#4B5563"
+                    }
+                },
                 tooltip: {
                     callbacks: {
-                        label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)} Mbps`,
-                    },
-                },
-            },
-        },
+                        label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)} Mbps`
+                    }
+                }
+            }
+        }
     });
-    //console.log("✅ networkChart initialized");
 
+    console.log("✅ networkTrafficLineChart initialized");
 }
 function initNetworkTab() {
 
@@ -334,7 +396,7 @@ function initNetworkTab() {
         });
 
         dropdown._bound = true;
-        //console.log("✅ Bound interface switcher");
+        console.log("✅ Bound interface switcher");
     }
 }
 function redrawNetworkTrafficLineChartFromCache() {
@@ -347,14 +409,6 @@ function redrawNetworkTrafficLineChartFromCache() {
     updateNetworkTrafficLineChart("tx", bw.tx ?? 0);
     updateNetworkTrafficLineChart("rx", bw.rx ?? 0);
 }
-const observer = new MutationObserver(() => {
-    const panel = document.getElementById("network");
-    if (panel && !panel.classList.contains("hidden") && !panel._initialized) {
-        panel._initialized = true;
-        initNetworkTab();
-    }
-});
-observer.observe(document.body, { childList: true, subtree: true });
 
 window.networkMetricHandler = function (metrics) {
     for (const metric of metrics) {
@@ -397,10 +451,10 @@ window.networkMetricHandler = function (metrics) {
 
             if (metric.name === "bytes_sent") {
                 calculateAndUpdateBandwidth(iface, metric.name, metric.value);
-                updateNetworkTrafficLineChart("tx", lastBandwidth[iface].tx);
+                queuedBandwidthSample.tx = lastBandwidth[iface].tx;
             } else if (metric.name === "bytes_recv") {
                 calculateAndUpdateBandwidth(iface, metric.name, metric.value);
-                updateNetworkTrafficLineChart("rx", lastBandwidth[iface].rx);
+                queuedBandwidthSample.rx = lastBandwidth[iface].rx;
             } else if (metric.name === "packets_sent") {
                 document.getElementById("stat-packets-sent").textContent = metric.value.toLocaleString();
             } else if (metric.name === "packets_recv") {
@@ -409,6 +463,28 @@ window.networkMetricHandler = function (metrics) {
                 document.getElementById("stat-errors-in").textContent = metric.value.toLocaleString();
             } else if (metric.name === "err_out") {
                 document.getElementById("stat-errors-out").textContent = metric.value.toLocaleString();
+            }
+            if (!networkTrafficLineChart) return; // ⛔ Prevent crash if metric arrives mid-tab-load
+
+            if (iface === selectedInterface && queuedBandwidthSample.tx != null && queuedBandwidthSample.rx != null) {
+                const label = new Date().toLocaleTimeString();
+                networkTrafficLineChart.data.labels.push(label);
+                networkTrafficLineChart.data.datasets[0].data.push(queuedBandwidthSample.tx);
+                networkTrafficLineChart.data.datasets[1].data.push(queuedBandwidthSample.rx);
+
+                // keep sync
+                const max = 60;
+                if (networkTrafficLineChart.data.labels.length > max) {
+                    networkTrafficLineChart.data.labels.shift();
+                    networkTrafficLineChart.data.datasets[0].data.shift();
+                    networkTrafficLineChart.data.datasets[1].data.shift();
+                }
+
+                networkTrafficLineChart.update();
+
+                // reset for next tick
+                queuedBandwidthSample.tx = null;
+                queuedBandwidthSample.rx = null;
             }
 
             updateCurrentBandwidthDisplay();
@@ -430,9 +506,6 @@ window.networkMetricHandler = function (metrics) {
             const errPctInElem = document.getElementById("stat-error-percent-in");
             const errPctOutElem = document.getElementById("stat-error-percent-out");
 
-            console.log("🎯 stat-errors-in exists?", !!errInElem);
-            console.log("🎯 stat-errors-out exists?", !!errOutElem);
-
             if (errInElem) {
                 errInElem.textContent = errIn != null ? errIn.toLocaleString() : "--";
             }
@@ -450,3 +523,4 @@ window.networkMetricHandler = function (metrics) {
         updateInterfaceTable(metric);
     }
 };
+registerTabInitializer("network", initNetworkTab);

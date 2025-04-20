@@ -19,7 +19,7 @@
     <div class="flex-1 flex flex-col">
       {{ template "dashboard/partials/topbar" . }}
       <main class="flex-1 p-6 w-full pt-0">
-        {{ block "content_main" . }}{{ end }}
+        {{ block "content_endpoint_detail" . }}{{ end }}
       </main>
     </div>
   </div>
@@ -29,7 +29,38 @@
   {{ block "scripts" . }}
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
+  <script>
+    const themeToggleBtn = document.getElementById("theme-toggle");
+    const lightIcon = document.getElementById("theme-toggle-light-icon");
+    const darkIcon = document.getElementById("theme-toggle-dark-icon");
 
+    // Load stored theme
+    if (
+        localStorage.getItem("color-theme") === "dark" ||
+        (!localStorage.getItem("color-theme") &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches)
+    ) {
+        document.documentElement.classList.add("dark");
+        lightIcon.classList.remove("hidden");
+    } else {
+        document.documentElement.classList.remove("dark");
+        darkIcon.classList.remove("hidden");
+    }
+
+    themeToggleBtn?.addEventListener("click", function () {
+        lightIcon.classList.toggle("hidden");
+        darkIcon.classList.toggle("hidden");
+
+        // Toggle and store
+        if (document.documentElement.classList.contains("dark")) {
+            document.documentElement.classList.remove("dark");
+            localStorage.setItem("color-theme", "light");
+        } else {
+            document.documentElement.classList.add("dark");
+            localStorage.setItem("color-theme", "dark");
+        }
+    });
+</script>
 
   {{ end }}
 </body>

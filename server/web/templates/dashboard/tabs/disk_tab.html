@@ -1,0 +1,51 @@
+{{ define "tabs/disk_tab" }}
+<!-- dashboard/tabs/disk.html -->
+<div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="disk" role="tabpanel" aria-labelledby="disk-tab">
+  <div class="space-y-8">
+
+
+
+    <!-- Section: Disk Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Total Disk Space</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="disk-total"></span></p>
+      </div>
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Used Disk Space</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="disk-used"></span></p>
+      </div>
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Free Disk Space</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">200 GB</p>
+      </div>
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Disk Usage</p>
+        <p class="text-xl font-bold text-yellow-500 dark:text-yellow-400"><span id="disk-percent"></span>%
+        </p>
+      </div>
+    </div>
+
+    <!-- Section: Disk Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+      <!-- Disk Usage Donut -->
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Disk Usage</h4>
+        <div class="relative h-60 w-full">
+          <canvas id="diskUsageDonutChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+        </div>
+      </div>
+
+      <!-- Inode Usage Bar -->
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Inode Usage</h4>
+        <div class="relative h-60 w-full">
+          <canvas id="inodeUsageBarChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{{ end }}

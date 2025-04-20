@@ -1,0 +1,216 @@
+{{ define "tabs/compute_tab" }}
+<!-- dashboard/tabs/compute.html -->
+<div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="compute" role="tabpanel"
+aria-labelledby="compute-tab">
+<div class="space-y-8">
+    <!-- Section Header -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="flex flex-col gap-4">
+            <!-- Section: CPU Usage Chart -->
+            <div
+                class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    CPU Usage Over Time
+                </h3>
+                <div class="relative h-48 w-full">
+                    <canvas id="cpuUsageChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+                </div>
+            </div>
+
+            <!-- Section: CPU Load Chart -->
+            <div
+                class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    CPU Load Over Time
+                </h3>
+                <div class="relative h-48 w-full">
+                    <canvas id="cpuLoadChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+                </div>
+            </div>
+        </div>
+        <div
+            class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+            <div class="flex flex-col h-full">
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                        CPU Time Breakdown
+                    </h4>
+                    <select id="cpu-time-unit"
+                        class="text-xs border dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-2 py-1 rounded">
+                        <option value="ticks">Ticks</option>
+                        <option value="seconds">Seconds</option>
+                    </select>
+                </div>
+
+                <div class="flex-1 relative">
+                    <canvas id="cpuDonutChart" class="absolute inset-0 w-full h-full"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid gap-4 lg:grid-cols-3 mb-6">
+        <!-- CPU Info -->
+        <div
+            class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">CPU Information</h4>
+            <dl class="text-sm text-gray-600 dark:text-gray-400 grid grid-cols-2 gap-y-2">
+                <dt class="font-medium">Model</dt>
+                <dd class="text-right">Xeon E5-2676 v3</dd>
+                <dt class="font-medium">Vendor</dt>
+                <dd class="text-right">GenuineIntel</dd>
+                <dt class="font-medium">Cores</dt>
+                <dd class="text-right">8</dd>
+                <dt class="font-medium">Threads</dt>
+                <dd class="text-right">16</dd>
+                <dt class="font-medium">Base Clock</dt>
+                <dd class="text-right">2.40 GHz</dd>
+                <dt class="font-medium">Cache</dt>
+                <dd class="text-right">25600 KB</dd>
+                <dt class="font-medium">Family</dt>
+                <dd class="text-right">6</dd>
+                <dt class="font-medium">Model #</dt>
+                <dd class="text-right">63</dd>
+                <dt class="font-medium">Stepping</dt>
+                <dd class="text-right">2</dd>
+                <dt class="font-medium">Microcode</dt>
+                <dd class="text-right">0x3c</dd>
+            </dl>
+        </div>
+
+        <!-- CPU Time Counters -->
+        <div
+            class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">CPU Time Counters</h4>
+            <dl class="text-sm text-gray-600 dark:text-gray-400 grid grid-cols-2 gap-y-2">
+                <dt class="font-medium">User</dt>
+                <dd class="text-right">12458.2s</dd>
+                <dt class="font-medium">System</dt>
+                <dd class="text-right">9342.8s</dd>
+                <dt class="font-medium">Idle</dt>
+                <dd class="text-right">98234.5s</dd>
+                <dt class="font-medium">Nice</dt>
+                <dd class="text-right">15.9s</dd>
+                <dt class="font-medium">Iowait</dt>
+                <dd class="text-right">123.4s</dd>
+                <dt class="font-medium">IRQ</dt>
+                <dd class="text-right">4.0s</dd>
+                <dt class="font-medium">SoftIRQ</dt>
+                <dd class="text-right">8.6s</dd>
+                <dt class="font-medium">Steal</dt>
+                <dd class="text-right">0.0s</dd>
+                <dt class="font-medium">Guest</dt>
+                <dd class="text-right">0.0s</dd>
+                <dt class="font-medium">GuestNice</dt>
+                <dd class="text-right">0.0s</dd>
+            </dl>
+        </div>
+
+        <!-- CPU Stats -->
+        <div
+            class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">CPU Statistics</h4>
+            <dl class="text-sm text-gray-600 dark:text-gray-400 grid grid-cols-2 gap-y-2">
+                <dt class="font-medium">Context Switches</dt>
+                <dd class="text-right">1,324,556</dd>
+                <dt class="font-medium">Interrupts</dt>
+                <dd class="text-right">87,342</dd>
+                <dt class="font-medium">Soft Interrupts</dt>
+                <dd class="text-right">15,239</dd>
+                <dt class="font-medium">Syscalls</dt>
+                <dd class="text-right">N/A</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div
+        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            Memory Usage Over Time
+        </h3>
+        <div class="relative h-48 w-full">
+            <canvas id="memoryUsageChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+        </div>
+    </div>
+    <!-- Section: Memory Usage Chart -->
+    <!-- Section: Memory Donut + Memory/Swap Stats -->
+    <div class="grid gap-4 lg:grid-cols-2">
+        <!-- Left: Donut Chart -->
+        <div
+            class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm flex">
+            <!-- Donut chart -->
+            <div class="flex-1 h-60 relative">
+                <canvas id="memoryDonutChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+            </div>
+
+            <!-- Legend -->
+            <div
+                class="flex flex-col justify-center items-start pl-6 space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                <div class="flex items-center space-x-2">
+                    <span class="w-3 h-3 bg-green-500 rounded-full"></span>
+                    <span>Used</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="w-3 h-3 bg-blue-500 rounded-full"></span>
+                    <span>Free</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="w-3 h-3 bg-orange-400 rounded-full"></span>
+                    <span>Buffers</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="w-3 h-3 bg-red-400 rounded-full"></span>
+                    <span>Cache</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: 3 rows x 2 columns -->
+        <div class="grid grid-cols-3 gap-4">
+            <div
+                class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Memory</p>
+                <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="mem-total"></span>
+                </p>
+                <p>GB</p>
+            </div>
+            <div
+                class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Used Memory</p>
+                <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="mem-used"></span>
+                </p>
+                <p>GB</p>
+            </div>
+
+            <div
+                class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Free Memory</p>
+                <p class="text-xl font-bold text-blue-600 dark:text-blue-400">17.9</p>
+                <span id="mem-used"></span>
+                <span id="mem-total"></span>
+                <span id="mem-percent"></span>
+                <p>GB</p>
+            </div>
+            <div
+                class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Swap</p>
+                <p class="text-xl font-bold text-blue-600 dark:text-blue-400">4.0</p>
+                <p>GB</p>
+            </div>
+            <div
+                class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Used Swap</p>
+                <p class="text-xl font-bold text-blue-600 dark:text-blue-400">1.8</p>
+                <p>GB</p>
+            </div>
+            <div
+                class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Free Swap</p>
+                <p class="text-xl font-bold text-blue-600 dark:text-blue-400">2.2</p>
+                <p>GB</p>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{{ end }}

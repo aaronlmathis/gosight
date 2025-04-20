@@ -32,7 +32,7 @@ let latestMemUsedPercent = 0;
 socket.onmessage = (event) => {
     try {
         const envelope = JSON.parse(event.data);
-        console.log("📦 WebSocket message:", envelope);
+        //console.log("📦 WebSocket message:", envelope);
         if (envelope.type === "logs") {
             //console.log("📄 Logs:\n" + JSON.stringify(envelope.data.Logs, null, 2));
         }
@@ -46,6 +46,9 @@ socket.onmessage = (event) => {
                 renderOverviewSummary(summary);
                 if (window.networkMetricHandler) {
                     window.networkMetricHandler(payload.metrics);
+                }
+                if (window.cpuMetricHandler) {
+                    window.cpuMetricHandler(payload.metrics);
                 }
             }
 
@@ -430,7 +433,7 @@ let swapFree = null;
         }
 
         miniCharts.swap.update();
-        console.log("🟣 Swap Value:", swapVal, "Label exists:", !!document.getElementById("swap-percent-label"));
+        //console.log("🟣 Swap Value:", swapVal, "Label exists:", !!document.getElementById("swap-percent-label"));
         if (typeof swapVal === "number" && !isNaN(swapVal)) {
             latestSwapUsedPercent = swapVal;
             const label = document.getElementById("swap-percent-label");

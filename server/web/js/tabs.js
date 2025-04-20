@@ -1,0 +1,20 @@
+// tabs.js
+const tabInitRegistry = {};
+
+const observer = new MutationObserver(() => {
+    for (const [tabId, initFn] of Object.entries(tabInitRegistry)) {
+        const panel = document.getElementById(tabId);
+        if (panel && !panel.classList.contains("hidden") && !panel._initialized) {
+            panel._initialized = true;
+            initFn();
+            console.log(`✅ Initialized tab: ${tabId}`);
+        }
+    }
+});
+
+observer.observe(document.body, { childList: true, subtree: true });
+
+// Utility to register tab initializers
+function registerTabInitializer(tabId, initFn) {
+    tabInitRegistry[tabId] = initFn;
+}
