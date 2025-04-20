@@ -33,6 +33,7 @@ import (
 
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/load"
 )
 
 type CPUCollector struct{}
@@ -158,6 +159,39 @@ func (c *CPUCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 			Type:         "gauge",
 			Unit:         "count",
 		})
+	}
+
+	// Load averages (1, 5, 15 min)
+	if avg, err := load.AvgWithContext(ctx); err == nil {
+		metrics = append(metrics,
+			model.Metric{
+				Namespace:    "System",
+				SubNamespace: "CPU",
+				Name:         "load_avg_1",
+				Timestamp:    now,
+				Value:        avg.Load1,
+				Type:         "gauge",
+				Unit:         "load",
+			},
+			model.Metric{
+				Namespace:    "System",
+				SubNamespace: "CPU",
+				Name:         "load_avg_5",
+				Timestamp:    now,
+				Value:        avg.Load5,
+				Type:         "gauge",
+				Unit:         "load",
+			},
+			model.Metric{
+				Namespace:    "System",
+				SubNamespace: "CPU",
+				Name:         "load_avg_15",
+				Timestamp:    now,
+				Value:        avg.Load15,
+				Type:         "gauge",
+				Unit:         "load",
+			},
+		)
 	}
 
 	return metrics, nil

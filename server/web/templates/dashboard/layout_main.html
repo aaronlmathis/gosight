@@ -28,6 +28,8 @@
 
   {{ block "scripts" . }}
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/js/chartjs-plugin-annotation.min.js"></script>
+  <script>Chart.register(window['chartjs-plugin-annotation']);</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
   <script>
     const themeToggleBtn = document.getElementById("theme-toggle");

@@ -482,9 +482,7 @@ function renderOverviewSummary(summary) {
     document.getElementById("cpu-info").textContent =
         `${summary.cpu.model} (${summary.cpu.physical} physical / ${summary.cpu.logical} logical @ ${summary.cpu.clock_mhz} MHz)`;
 
-    document.getElementById("mem-used").textContent = formatBytes(summary.memory.used);
-    document.getElementById("mem-total").textContent = formatBytes(summary.memory.total);
-    document.getElementById("mem-percent").textContent = `${summary.memory.used_percent.toFixed(1)}%`;
+
 
     document.getElementById("disk-used").textContent = formatBytes(summary.disk.used);
     document.getElementById("disk-total").textContent = formatBytes(summary.disk.total);
