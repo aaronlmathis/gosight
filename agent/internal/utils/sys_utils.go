@@ -44,7 +44,6 @@ func Metric(ns, sub, name string, value interface{}, typ, unit string, dims map[
 		Dimensions:   dims,
 	}
 }
-
 func ToFloat64(v interface{}) float64 {
 	switch n := v.(type) {
 	case float64:
@@ -52,6 +51,12 @@ func ToFloat64(v interface{}) float64 {
 	case int:
 		return float64(n)
 	case uint64:
+		return float64(n)
+	case uint32:
+		return float64(n)
+	case int64:
+		return float64(n)
+	case int32:
 		return float64(n)
 	default:
 		return 0

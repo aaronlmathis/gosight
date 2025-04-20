@@ -32,7 +32,7 @@ let latestMemUsedPercent = 0;
 socket.onmessage = (event) => {
     try {
         const envelope = JSON.parse(event.data);
-        //console.log("📦 WebSocket message:", envelope);
+        console.log("📦 WebSocket message:", envelope);
         if (envelope.type === "logs") {
             //console.log("📄 Logs:\n" + JSON.stringify(envelope.data.Logs, null, 2));
         }
@@ -44,6 +44,9 @@ socket.onmessage = (event) => {
                 updateMiniCharts(payload.metrics);
                 const summary = extractHostSummary(payload.metrics, payload.meta);
                 renderOverviewSummary(summary);
+                if (window.networkMetricHandler) {
+                    window.networkMetricHandler(payload.metrics);
+                }
             }
 
             if (payload.meta.endpoint_id?.startsWith("ctr-")) {

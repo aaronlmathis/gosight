@@ -66,6 +66,7 @@ func (c *NetworkCollector) Collect(ctx context.Context) ([]model.Metric, error) 
 			agentutils.Metric("System", "Network", "err_in", iface.Errin, "counter", "count", dims, now),
 			agentutils.Metric("System", "Network", "err_out", iface.Errout, "counter", "count", dims, now),
 		)
+
 	}
 
 	return metrics, nil
