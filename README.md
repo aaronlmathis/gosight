@@ -142,12 +142,6 @@ go build -o gosight-server ./server/cmd
 ### Endpoint Detail / Overview Tab (live data)
 ![Endpoint Detail / Overview Tab (live data)](images/goSight-dev-live-data-Overview-Page.png)
 
-### Endpoint Detail / Overview Tab (mockup)
-![Endpoint Detail / Overview Tab (mockup)](images/goSight-dev-mockup-Compute-Page.png)
-
-### Endpoint Detail / Overview Tab (mockup)
-![Endpoint Detail / Overview Tab (mockup)](images/goSight-dev-mockup-Network-Page.png)
-
 
 ---
 
