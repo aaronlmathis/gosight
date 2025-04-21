@@ -56,6 +56,10 @@ type Config struct {
 		Socket string `yaml:"socket"`
 	}
 
+	Docker struct {
+		Socket string `yaml:"socket"`
+	}
+
 	Agent struct {
 		ServerURL      string              `yaml:"server_url"`
 		Interval       time.Duration       `yaml:"interval"`

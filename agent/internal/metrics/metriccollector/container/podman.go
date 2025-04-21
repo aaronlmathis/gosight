@@ -52,39 +52,6 @@ func (c *PodmanCollector) Name() string {
 	return "podman"
 }
 
-type PodmanStats struct {
-	Read string `json:"read"`
-	Name string `json:"name"`
-	ID   string `json:"id"`
-
-	CPUStats struct {
-		CPUUsage struct {
-			TotalUsage        uint64 `json:"total_usage"`
-			UsageInKernelmode uint64 `json:"usage_in_kernelmode"`
-			UsageInUsermode   uint64 `json:"usage_in_usermode"`
-		} `json:"cpu_usage"`
-		SystemCPUUsage uint64 `json:"system_cpu_usage"`
-		OnlineCPUs     int    `json:"online_cpus"`
-	} `json:"cpu_stats"`
-
-	PreCPUStats struct {
-		CPUUsage struct {
-			TotalUsage uint64 `json:"total_usage"`
-		} `json:"cpu_usage"`
-		SystemCPUUsage uint64 `json:"system_cpu_usage"`
-	} `json:"precpu_stats"`
-
-	MemoryStats struct {
-		Usage uint64 `json:"usage"`
-		Limit uint64 `json:"limit"`
-	} `json:"memory_stats"`
-
-	Networks map[string]struct {
-		RxBytes uint64 `json:"rx_bytes"`
-		TxBytes uint64 `json:"tx_bytes"`
-	} `json:"networks"`
-}
-
 type PodmanContainer struct {
 	ID        string            `json:"Id"`
 	Names     []string          `json:"Names"`
@@ -95,25 +62,11 @@ type PodmanContainer struct {
 	Ports     []PortMapping     `json:"Ports"`
 }
 
-type PortMapping struct {
-	PrivatePort int    `json:"PrivatePort"`
-	PublicPort  int    `json:"PublicPort"`
-	Type        string `json:"Type"`
-}
-
 type PodmanInspect struct {
 	State struct {
 		StartedAt string `json:"StartedAt"`
 	} `json:"State"`
 }
-
-var prevStats = map[string]struct {
-	CPUUsage  uint64
-	SystemCPU uint64
-	NetRx     uint64
-	NetTx     uint64
-	Timestamp time.Time
-}{}
 
 func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	containers, err := fetchContainers(c.socketPath)
@@ -287,82 +240,4 @@ func fetchContainerStats(socketPath, containerID string) (*PodmanStats, error) {
 		return nil, err
 	}
 	return &stats, nil
-}
-
-func formatPorts(ports []PortMapping) string {
-	if len(ports) == 0 {
-		return ""
-	}
-	var formatted []string
-	for _, p := range ports {
-		if p.PublicPort > 0 {
-			formatted = append(formatted, fmt.Sprintf("%d:%d/%s", p.PublicPort, p.PrivatePort, p.Type))
-		} else {
-			formatted = append(formatted, fmt.Sprintf("%d/%s", p.PrivatePort, p.Type))
-		}
-	}
-	return strings.Join(formatted, ",")
-}
-
-func calculateCPUPercent(containerID string, stats *PodmanStats) float64 {
-	now := time.Now()
-	prev, ok := prevStats[containerID]
-	currentCPU := stats.CPUStats.CPUUsage.TotalUsage
-	currentSystem := stats.CPUStats.SystemCPUUsage
-
-	var percent float64
-	if ok {
-		cpuDelta := float64(currentCPU - prev.CPUUsage)
-		sysDelta := float64(currentSystem - prev.SystemCPU)
-		if sysDelta > 0 && cpuDelta > 0 {
-			percent = (cpuDelta / sysDelta) * float64(stats.CPUStats.OnlineCPUs) * 100.0
-		}
-	}
-
-	// Update cache
-	prevStats[containerID] = struct {
-		CPUUsage  uint64
-		SystemCPU uint64
-		NetRx     uint64
-		NetTx     uint64
-		Timestamp time.Time
-	}{
-		CPUUsage:  currentCPU,
-		SystemCPU: currentSystem,
-		NetRx:     sumNetRxRaw(stats),
-		NetTx:     sumNetTxRaw(stats),
-		Timestamp: now,
-	}
-
-	return percent
-}
-
-func calculateNetRate(containerID string, now time.Time, rx, tx uint64) (float64, float64) {
-	prev, ok := prevStats[containerID]
-	if !ok || prev.Timestamp.IsZero() {
-		return 0, 0
-	}
-	seconds := now.Sub(prev.Timestamp).Seconds()
-	if seconds <= 0 {
-		return 0, 0
-	}
-	rxRate := float64(rx-prev.NetRx) / seconds
-	txRate := float64(tx-prev.NetTx) / seconds
-	return rxRate, txRate
-}
-
-func sumNetRxRaw(stats *PodmanStats) uint64 {
-	var rx uint64
-	for _, net := range stats.Networks {
-		rx += net.RxBytes
-	}
-	return rx
-}
-
-func sumNetTxRaw(stats *PodmanStats) uint64 {
-	var tx uint64
-	for _, net := range stats.Networks {
-		tx += net.TxBytes
-	}
-	return tx
 }
