@@ -31,6 +31,7 @@
   <script src="/js/chartjs-plugin-annotation.min.js"></script>
   <script>Chart.register(window['chartjs-plugin-annotation']);</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.46.0/dist/apexcharts.min.js"></script>
   <script>
     const themeToggleBtn = document.getElementById("theme-toggle");
     const lightIcon = document.getElementById("theme-toggle-light-icon");
@@ -38,31 +39,31 @@
 
     // Load stored theme
     if (
-        localStorage.getItem("color-theme") === "dark" ||
-        (!localStorage.getItem("color-theme") &&
-            window.matchMedia("(prefers-color-scheme: dark)").matches)
+      localStorage.getItem("color-theme") === "dark" ||
+      (!localStorage.getItem("color-theme") &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches)
     ) {
-        document.documentElement.classList.add("dark");
-        lightIcon.classList.remove("hidden");
+      document.documentElement.classList.add("dark");
+      lightIcon.classList.remove("hidden");
     } else {
-        document.documentElement.classList.remove("dark");
-        darkIcon.classList.remove("hidden");
+      document.documentElement.classList.remove("dark");
+      darkIcon.classList.remove("hidden");
     }
 
     themeToggleBtn?.addEventListener("click", function () {
-        lightIcon.classList.toggle("hidden");
-        darkIcon.classList.toggle("hidden");
+      lightIcon.classList.toggle("hidden");
+      darkIcon.classList.toggle("hidden");
 
-        // Toggle and store
-        if (document.documentElement.classList.contains("dark")) {
-            document.documentElement.classList.remove("dark");
-            localStorage.setItem("color-theme", "light");
-        } else {
-            document.documentElement.classList.add("dark");
-            localStorage.setItem("color-theme", "dark");
-        }
+      // Toggle and store
+      if (document.documentElement.classList.contains("dark")) {
+        document.documentElement.classList.remove("dark");
+        localStorage.setItem("color-theme", "light");
+      } else {
+        document.documentElement.classList.add("dark");
+        localStorage.setItem("color-theme", "dark");
+      }
     });
-</script>
+  </script>
 
   {{ end }}
 </body>

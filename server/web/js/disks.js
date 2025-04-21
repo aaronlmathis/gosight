@@ -6,6 +6,7 @@ let diskMetricsBuffer = [];
 let diskTabInitialized = false;
 let selectedDevice = null;
 
+
 const deviceMetricCache = {};  // { [device]: { timestamps: [], readCount: [], writeCount: [], readBytes: [], writeBytes: [] } }
 const MAX_POINTS = 30;         // Keep the charts to last 30 intervals
 
@@ -81,12 +82,256 @@ function renderDiskDonut(usageByMount) {
         diskUsageDonutChart.update();
     }
 }
-
 //
 // -------------------------------------------------
 // END Disk Summary Donut Chart
 // -------------------------------------------------
 
+
+//
+// Apex Radial Chart
+// This chart shows the disk usage as a radial chart
+//
+let diskRadialChart = null;
+
+
+
+export function createDiskUsageRadialChart() {
+    //console.log("Creating Disk Usage Radial Chart");
+
+    const options = {
+        chart: {
+            type: "radialBar",
+            height: 400,
+            toolbar: { show: false }
+        },
+        plotOptions: {
+            radialBar: {
+                offsetY: 0,
+                hollow: {
+                    size: "40%",
+                    background: "transparent"
+                },
+                track: {
+                    background: getGridColor()
+                },
+                dataLabels: {
+                    name: {
+                        show: true,
+                        fontSize: "14px",
+                        color: getTextColor()
+                    },
+                    value: {
+                        show: true,
+                        fontSize: "20px",
+                        fontWeight: 600,
+                        color: getTextColor(),
+                        formatter: (val) => `${val}%`
+                    },
+                    total: {
+                        show: true,
+                        label: "Avg Used",
+                        fontSize: "16px",
+                        fontWeight: 500,
+                        color: getTextColor(),
+                        formatter: () => "0%" // updated in render
+                    }
+                }
+            }
+        },
+        stroke: {
+            lineCap: "round"
+        },
+        labels: [],
+        series: [],
+        colors: ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#14b8a6"],
+        legend: {
+            show: true,
+            position: "bottom",
+            fontSize: "12px",
+            labels: {
+                colors: getTextColor()
+            },
+            markers: {
+                width: 10,
+                height: 10,
+                radius: 4
+            }
+        },
+        tooltip: {
+            y: {
+                formatter: val => `${val.toFixed(1)}% used`
+            }
+        },
+        theme: {
+            mode: document.documentElement.classList.contains("dark") ? "dark" : "light"
+        }
+    };
+
+    const el = document.querySelector("#diskRadialChart");
+    if (!el) return;
+    diskRadialChart = new ApexCharts(el, options);
+    diskRadialChart.render();
+}
+
+
+export function renderDiskUsageRadialChart(usageByMount) {
+    //console.log("renderDiskUsageRadialChart", usageByMount);
+
+    const labels = [];
+    const series = [];
+
+    for (const mount in usageByMount) {
+        const { total, used } = usageByMount[mount];
+        if (total > 0) {
+            const percent = (used / total) * 100;
+            labels.push(mount.length > 14 ? mount.slice(0, 12) + "…" : mount);
+            series.push(Math.round(percent));
+        }
+    }
+
+    const avg = series.length > 0
+        ? (series.reduce((a, b) => a + b, 0) / series.length).toFixed(1)
+        : "0.0";
+
+    if (diskRadialChart) {
+        diskRadialChart.updateOptions({
+            labels,
+            series,
+            plotOptions: {
+                radialBar: {
+                    dataLabels: {
+                        total: {
+                            formatter: () => `${avg}%`
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+
+function getTextColor() {
+    return document.documentElement.classList.contains("dark") ? "#d1d5db" : "#374151";
+}
+
+function getGridColor() {
+    return document.documentElement.classList.contains("dark") ? "#374151" : "#e5e7eb";
+}
+
+//
+// -------------------------------------------------
+// END Apex Radialt Chart
+// -------------------------------------------------
+
+//
+// ------------------------------------------------
+// Most active mountpoint
+// This chart shows the most active mountpoints
+
+
+function formatIO(val) {
+    if (val >= 1024 ** 3) return (val / 1024 ** 3).toFixed(2) + " GB/s";
+    if (val >= 1024 ** 2) return (val / 1024 ** 2).toFixed(1) + " MB/s";
+    if (val >= 1024) return (val / 1024).toFixed(1) + " KB/s";
+    return val.toFixed(0) + " B/s";
+}
+let activeMountChart = null;
+
+export function createActiveMountChart() {
+    const el = document.querySelector("#activeMountChart");
+    if (!el) return;
+
+    activeMountChart = new ApexCharts(el, {
+        chart: {
+            type: "bar",
+            height: 260,
+            stacked: true,
+            animations: { enabled: true, easing: "easeinout" },
+            toolbar: { show: false }
+        },
+        plotOptions: {
+            bar: {
+                horizontal: true,
+                borderRadius: 4,
+                barHeight: "70%",
+            },
+        },
+        dataLabels: {
+            enabled: false
+        },
+        xaxis: {
+            categories: [],
+            labels: {
+                style: { colors: getTextColor() },
+                formatter: val => formatIO(parseFloat(val))
+            },
+            title: {
+                text: "I/O Rate",
+                style: {
+                    color: getTextColor(),
+                    fontSize: "12px"
+                }
+            }
+        },
+        tooltip: {
+            shared: true,
+            intersect: false,
+            y: {
+                formatter: val => formatIO(val)
+            }
+        },
+        colors: ["#3b82f6", "#f59e0b"], // blue: read, amber: write
+        grid: {
+            borderColor: getGridColor()
+        },
+        theme: {
+            mode: document.documentElement.classList.contains("dark") ? "dark" : "light"
+        },
+        legend: {
+            position: "bottom",
+            labels: {
+                colors: getTextColor()
+            }
+        },
+        series: [
+            {
+                name: "Read",
+                data: []
+            },
+            {
+                name: "Write",
+                data: []
+            }
+        ],
+    });
+
+    activeMountChart.render();
+}
+export function renderActiveMountChart(ioMetricsByMount) {
+    const top = Object.entries(ioMetricsByMount)
+        .map(([mount, { read_bytes = 0, write_bytes = 0 }]) => ({
+            mount,
+            read: read_bytes,
+            write: write_bytes
+        }))
+        .sort((a, b) => (b.read + b.write) - (a.read + a.write))
+        .slice(0, 6);
+
+    const categories = top.map(m => m.mount);
+    const readSeries = top.map(m => m.read);
+    const writeSeries = top.map(m => m.write);
+
+    activeMountChart?.updateOptions({
+        xaxis: { categories }
+    });
+
+    activeMountChart?.updateSeries([
+        { name: "Read", data: readSeries },
+        { name: "Write", data: writeSeries }
+    ]);
+}
 //
 // ------------------------------------------------
 // Disk Inode Bar Chart
@@ -95,51 +340,61 @@ function renderDiskDonut(usageByMount) {
 let inodeUsageChart = null;
 
 function createInodeUsageBarChart() {
-    const ctx = document.getElementById("inodeUsageBarChart").getContext("2d");
+    const el = document.querySelector("#inodeUsageBarChart");
+    if (!el) return;
 
-    inodeUsageChart = new Chart(ctx, {
-        type: "bar",
-        data: {
-            labels: [],
-            datasets: [{
-                label: "Inodes Used %",
-                data: [],
-                backgroundColor: "#6366f1", // indigo
-                borderRadius: 4,
-            }]
+    inodeUsageChart = new ApexCharts(el, {
+        chart: {
+            type: "bar",
+            height: 250,
+            toolbar: { show: false }
         },
-        options: {
-            indexAxis: "y",
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: {
-                    beginAtZero: true,
-                    max: 100,
-                    ticks: {
-                        callback: (v) => `${v}%`,
-                        color: "#6B7280", // gray-500
-                    }
-                },
-                y: {
-                    ticks: {
-                        color: "#6B7280",
-                    }
+        plotOptions: {
+            bar: {
+                horizontal: true,
+                borderRadius: 4
+            }
+        },
+        dataLabels: {
+            enabled: false
+        },
+
+        xaxis: {
+            categories: [],
+            labels: {
+                formatter: (val) => `${parseFloat(val).toFixed(2)}%`,
+                style: { colors: getTextColor() }
+            },
+            title: {
+                text: "Inodes Used",
+                style: {
+                    color: getTextColor(),
+                    fontSize: "12px"
                 }
             },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: (ctx) => `${ctx.label}: ${ctx.parsed.x.toFixed(1)}%`
-                    }
-                }
+            max: 100
+        },
+        yaxis: {
+            labels: {
+                style: { colors: getTextColor() }
             }
+        },
+        series: [{
+            name: "Inodes Used %",
+            data: []
+        }],
+        colors: ["#6366f1"],
+        theme: {
+            mode: document.documentElement.classList.contains("dark") ? "dark" : "light"
+        },
+        grid: {
+            borderColor: getGridColor()
         }
     });
+
+    inodeUsageChart.render();
 }
 
-// Render Inode Bar Chart
 function renderInodeBar(usageByMount) {
     const labels = [];
     const values = [];
@@ -148,15 +403,12 @@ function renderInodeBar(usageByMount) {
         const usage = usageByMount[mount];
         if (usage.inodes_used_percent !== undefined) {
             labels.push(mount);
-            values.push(usage.inodes_used_percent);
+            values.push(usage.inodes_used_percent.toFixed(2));
         }
     }
 
-    if (inodeUsageChart) {
-        inodeUsageChart.data.labels = labels;
-        inodeUsageChart.data.datasets[0].data = values;
-        inodeUsageChart.update();
-    }
+    inodeUsageChart?.updateOptions({ xaxis: { categories: labels } });
+    inodeUsageChart?.updateSeries([{ name: "Inodes Used %", data: values }]);
 }
 
 //
@@ -209,99 +461,84 @@ let diskIopsChart = null;
 let diskThroughputChart = null;
 
 
-function createDiskIOCharts() {
-    // IOPS Chart
-    const iopsCtx = document.getElementById("diskIopsChart").getContext("2d");
-    diskIopsChart = new Chart(iopsCtx, {
-        type: "line",
-        data: {
-            labels: [], // Time buckets (e.g. "1m", "2m")
-            datasets: [
-                {
-                    label: "Read Count",
-                    data: [],
-                    borderColor: "#3b82f6",
-                    backgroundColor: "rgba(59, 130, 246, 0.1)",
-                    tension: 0.3,
-                    fill: true,
-                    pointRadius: 0,
-                },
-                {
-                    label: "Write Count",
-                    data: [],
-                    borderColor: "#10b981",
-                    backgroundColor: "rgba(16, 185, 129, 0.1)",
-                    tension: 0.3,
-                    fill: true,
-                    pointRadius: 0,
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: { display: true, text: "Ops/sec" },
-                }
-            },
-            plugins: {
-                legend: {
-                    labels: { color: "#6B7280" }
-                }
-            }
-        }
-    });
 
-    // Throughput Chart
-    const tpCtx = document.getElementById("diskThroughputChart").getContext("2d");
-    diskThroughputChart = new Chart(tpCtx, {
-        type: "line",
-        data: {
-            labels: [],
-            datasets: [
-                {
-                    label: "Read Bytes",
-                    data: [],
-                    borderColor: "#f59e0b",
-                    backgroundColor: "rgba(245, 158, 11, 0.1)",
-                    tension: 0.3,
-                    fill: true,
-                    pointRadius: 0,
-                },
-                {
-                    label: "Write Bytes",
-                    data: [],
-                    borderColor: "#ef4444",
-                    backgroundColor: "rgba(239, 68, 68, 0.1)",
-                    tension: 0.3,
-                    fill: true,
-                    pointRadius: 0,
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: { display: true, text: "Bytes/sec" },
-                    ticks: {
-                        callback: (v) => formatBytes(v)
-                    }
+
+export function createDiskIOCharts() {
+    const iopsEl = document.querySelector("#diskIopsChart");
+    const tpEl = document.querySelector("#diskThroughputChart");
+
+    if (iopsEl) {
+        diskIopsChart = new ApexCharts(iopsEl, {
+            chart: {
+                type: "line",
+                height: 250,
+                animations: { enabled: true },
+                toolbar: { show: false }
+            },
+            stroke: { curve: "smooth", width: 2 },
+            dataLabels: { enabled: false },
+            colors: ["#3b82f6", "#10b981"],
+            series: [
+                { name: "Read Count", data: [] },
+                { name: "Write Count", data: [] }
+            ],
+            xaxis: {
+                categories: [],
+                labels: { style: { colors: getTextColor() } }
+            },
+            yaxis: {
+                title: { text: "Ops/sec", style: { color: getTextColor() } },
+                labels: { style: { colors: getTextColor() } }
+            },
+            grid: { borderColor: getGridColor() },
+            theme: { mode: document.documentElement.classList.contains("dark") ? "dark" : "light" },
+            legend: { labels: { colors: getTextColor() } }
+        });
+        diskIopsChart.render();
+    }
+
+    if (tpEl) {
+        diskThroughputChart = new ApexCharts(tpEl, {
+            chart: {
+                type: "line",
+                height: 250,
+                animations: { enabled: true },
+                toolbar: { show: false }
+            },
+            stroke: { curve: "smooth", width: 2 },
+            dataLabels: { enabled: false },
+            colors: ["#f59e0b", "#ef4444"],
+            series: [
+                { name: "Read Bytes", data: [] },
+                { name: "Write Bytes", data: [] }
+            ],
+            xaxis: {
+                categories: [],
+                labels: { style: { colors: getTextColor() } }
+            },
+            yaxis: {
+                title: { text: "Throughput", style: { color: getTextColor() } },
+                labels: {
+                    style: { colors: getTextColor() },
+                    formatter: val => formatBytes(val)
                 }
             },
-            plugins: {
-                legend: {
-                    labels: { color: "#6B7280" }
+            tooltip: {
+                y: {
+                    formatter: val => formatBytes(val)
                 }
-            }
-        }
-    });
+            },
+            grid: { borderColor: getGridColor() },
+            theme: { mode: document.documentElement.classList.contains("dark") ? "dark" : "light" },
+            legend: { labels: { colors: getTextColor() } }
+        });
+        diskThroughputChart.render();
+        setTimeout(() => {
+            diskIopsChart?.render();
+            diskThroughputChart?.render();
+        }, 300);
+    }
 }
-
 //
 // ------------------------------------------------
 // END Disk IO Charts
@@ -317,8 +554,7 @@ function renderIODropdown(ioByDevice, usageByMount) {
 
     const current = selectedDevice;
     const keys = Object.keys(ioByDevice).sort();
-    console.log("🔧 Matching device-to-mount:", usageByMount);
-    console.log("🔧 Devices:", keys);
+
     dropdown.innerHTML = keys.map(dev => {
         // 🔍 Match mountpoint for this device
         const matchEntry = Object.entries(usageByMount).find(([_, usage]) => usage.device === dev);
@@ -411,37 +647,43 @@ function updateDeviceMetricCache(device, metrics) {
 
 function updateDiskIOChartsFromCache() {
     if (!selectedDevice || !deviceMetricCache[selectedDevice]) return;
-
     const cache = deviceMetricCache[selectedDevice];
 
-    // IOPS
     if (diskIopsChart) {
-        diskIopsChart.data.labels = cache.timestamps;
-        diskIopsChart.data.datasets[0].data = cache.readCount;
-        diskIopsChart.data.datasets[1].data = cache.writeCount;
-        diskIopsChart.update();
+        diskIopsChart.updateOptions({
+            xaxis: { categories: cache.timestamps }
+        });
+        diskIopsChart.updateSeries([
+            { name: "Read Count", data: cache.readCount },
+            { name: "Write Count", data: cache.writeCount }
+        ]);
     }
 
-    // Throughput
     if (diskThroughputChart) {
-        diskThroughputChart.data.labels = cache.timestamps;
-        diskThroughputChart.data.datasets[0].data = cache.readBytes;
-        diskThroughputChart.data.datasets[1].data = cache.writeBytes;
-        diskThroughputChart.update();
+        diskThroughputChart.updateOptions({
+            xaxis: { categories: cache.timestamps }
+        });
+        diskThroughputChart.updateSeries([
+            { name: "Read Bytes", data: cache.readBytes },
+            { name: "Write Bytes", data: cache.writeBytes }
+        ]);
     }
+    //console.log("Updating Apex IOPS chart with", cache.readCount, cache.writeCount);
+    //console.log("Updating Apex Throughput chart with", cache.readBytes, cache.writeBytes);
 }
 
 function resetDiskIOCharts() {
-    if (diskIopsChart) {
-        diskIopsChart.data.labels = [];
-        diskIopsChart.data.datasets.forEach(ds => ds.data = []);
-        diskIopsChart.update();
-    }
-    if (diskThroughputChart) {
-        diskThroughputChart.data.labels = [];
-        diskThroughputChart.data.datasets.forEach(ds => ds.data = []);
-        diskThroughputChart.update();
-    }
+    diskIopsChart?.updateOptions({ xaxis: { categories: [] } });
+    diskIopsChart?.updateSeries([
+        { name: "Read Count", data: [] },
+        { name: "Write Count", data: [] }
+    ]);
+
+    diskThroughputChart?.updateOptions({ xaxis: { categories: [] } });
+    diskThroughputChart?.updateSeries([
+        { name: "Read Bytes", data: [] },
+        { name: "Write Bytes", data: [] }
+    ]);
 }
 
 function renderMiniMountStats(usageByMount) {
@@ -533,25 +775,28 @@ function processDiskMetrics(metrics) {
             ioByDevice[dev][m.name] = m.value;
         }
     }
-    console.log("📦 Mountpoints received:");
-    for (const mp in usageByMount) {
-        console.log(`  • ${mp}:`, usageByMount[mp]);
-    }
+    console.log(usageByMount)
+
     renderMountpointTable(usageByMount);
     renderInodeBar(usageByMount);
     renderDiskDonut(usageByMount);
+    renderDiskUsageRadialChart(usageByMount);
     renderIODropdown(ioByDevice, usageByMount);
     renderTopMountUsage(usageByMount);
     renderMiniMountTable(usageByMount);
     renderTopMountsBar(usageByMount);
     renderMiniMountStats(usageByMount);
+    renderActiveMountChart(ioByDevice)
 }
 
 // INIT Disk TAB
 function initDiskTab() {
     createDiskUsageDonut();
+    createDiskUsageRadialChart();
     createInodeUsageBarChart();
     createDiskIOCharts();
+
+    createActiveMountChart()
 
     const dropdown = document.getElementById("disk-device-select");
     if (dropdown && !dropdown._bound) {
