@@ -9,6 +9,7 @@ agent:
     - disk
     - net
     - podman
+    - docker
   log_collection:
     sources:
       - journald
@@ -32,3 +33,7 @@ tls:
 podman:
   enabled: false
   socket: "/run/user/1000/podman/podman.sock"
+
+docker:
+  enabled: true
+  socket: "/var/run/docker.sock"
