@@ -1,0 +1,49 @@
+/*
+SPDX-License-Identifier: GPL-3.0-or-later
+
+Copyright (C) 2025 Aaron Mathis aaron.mathis@gmail.com
+
+This file is part of GoSight.
+
+GoSight is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+GoSight is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with GoSight. If not, see https://www.gnu.org/licenses/.
+*/
+
+// // gosight/agent/shared/model/event.go
+
+// Package model defines the data structures used in the GoSight application.
+package model
+
+import "time"
+
+// EventEntry represents a single event entry in the event store.
+// It includes fields for the event ID, timestamp, level, category, message,
+// source, endpoint ID, and any additional metadata.
+// The level indicates the severity of the event (e.g., info, warning, critical).
+// The category indicates the type of event (e.g., metric, log, system, security).
+// The message provides a description of the event.
+// The source indicates the origin of the event (e.g., metric name, log source).
+// The endpoint ID is used to identify the endpoint associated with the event.
+// The meta field is a map of additional tags or labels that can be used to
+// provide more context about the event.
+
+type EventEntry struct {
+	ID         string            `json:"id"`
+	Timestamp  time.Time         `json:"timestamp"`
+	Level      string            `json:"level"`    // info, warning, critical
+	Category   string            `json:"category"` // metric, log, system, security
+	Message    string            `json:"message"`
+	Source     string            `json:"source"` // metric name, log source, etc.
+	EndpointID string            `json:"endpoint_id"`
+	Meta       map[string]string `json:"meta"` // additional tags/labels
+}

@@ -39,6 +39,7 @@ import (
 	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
 	"github.com/aaronlmathis/gosight/server/internal/store/agenttracker"
 	"github.com/aaronlmathis/gosight/server/internal/store/datastore"
+	"github.com/aaronlmathis/gosight/server/internal/store/eventstore"
 	"github.com/aaronlmathis/gosight/server/internal/store/logstore"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/aaronlmathis/gosight/server/internal/store/metricindex"
@@ -62,6 +63,7 @@ type HttpServer struct {
 	Router         *mux.Router
 	UserStore      userstore.UserStore
 	DataStore      datastore.DataStore
+	EventStore     eventstore.EventStore
 	WebSocket      *websocket.Hub
 	httpServer     *http.Server
 }
@@ -77,6 +79,7 @@ func NewServer(
 	logStore logstore.LogStore,
 	userStore userstore.UserStore,
 	dataStore datastore.DataStore,
+	eventStore eventstore.EventStore,
 	webSocket *websocket.Hub,
 ) *HttpServer {
 	router := mux.NewRouter()
@@ -92,6 +95,7 @@ func NewServer(
 		Router:         router,
 		UserStore:      userStore,
 		DataStore:      dataStore,
+		EventStore:     eventStore,
 		WebSocket:      webSocket,
 		LogStore:       logStore,
 		httpServer: &http.Server{
@@ -112,6 +116,8 @@ func (s *HttpServer) Start() error {
 		"   MetaTracker:             %T\n"+
 		"   AgentTracker:            %T\n"+
 		"   UserStore:               %T\n"+
+		"   DataStore:               %T\n"+
+		"   EventStore:              %T\n"+
 		"   Router Initialized:      %v\n"+
 		"   AuthProviders:           %v\n",
 		s.Config != nil,
@@ -120,6 +126,8 @@ func (s *HttpServer) Start() error {
 		s.MetaTracker,
 		s.AgentTracker,
 		s.UserStore,
+		s.DataStore,
+		s.EventStore,
 		s.Router != nil,
 		getAuthProviderKeys(s.AuthProviders),
 	)

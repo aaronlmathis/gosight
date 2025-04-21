@@ -35,6 +35,7 @@ import (
 	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
 
 	"github.com/aaronlmathis/gosight/server/internal/store/agenttracker"
+	"github.com/aaronlmathis/gosight/server/internal/store/eventstore"
 	"github.com/aaronlmathis/gosight/server/internal/store/logstore"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/aaronlmathis/gosight/server/internal/store/metricindex"
@@ -47,7 +48,12 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-func NewGRPCServer(ctx context.Context, cfg *config.Config, store metricstore.MetricStore, logStore logstore.LogStore, tracker *agenttracker.AgentTracker, metricIndex *metricindex.MetricIndex, metaTracker *metastore.MetaTracker, ws *websocket.Hub) (*grpc.Server, net.Listener, error) {
+func NewGRPCServer(
+	ctx context.Context, cfg *config.Config, store metricstore.MetricStore,
+	logStore logstore.LogStore, tracker *agenttracker.AgentTracker,
+	metricIndex *metricindex.MetricIndex, metaTracker *metastore.MetaTracker,
+	eventStore eventstore.EventStore, ws *websocket.Hub) (*grpc.Server, net.Listener, error) {
+
 	tlsCfg, err := loadTLSConfig(cfg)
 	if err != nil {
 		return nil, nil, fmt.Errorf("TLS config failed: %w", err)

@@ -52,9 +52,8 @@ func main() {
 		sig := <-sigCh
 		utils.Warn("Received signal: %s", sig)
 
-		cancel() 
+		cancel()
 
-		
 	}()
 
 	// Bootstrap config loading (flags -> env -> file)
@@ -94,12 +93,16 @@ func main() {
 	userStore, err := bootstrap.InitUserStore(cfg)
 	utils.Must("User store", err)
 
+	// Initialize event store
+	eventStore, err := bootstrap.InitEventStore(ctx, cfg)
+	utils.Must("Event store", err)
+
 	// Initialize auth
 	authProviders, err := httpserver.InitAuth(cfg, userStore)
 	utils.Must("Auth providers", err)
 
 	// Start HTTP server for admin console/api
-	srv := httpserver.NewServer(ctx, agentTracker, authProviders, cfg, metaTracker, metricIndex, metricStore, logStore, userStore, dataStore, wsHub)
+	srv := httpserver.NewServer(ctx, agentTracker, authProviders, cfg, metaTracker, metricIndex, metricStore, logStore, userStore, dataStore, eventStore, wsHub)
 
 	go func() {
 		if err := srv.Start(); err != nil {
@@ -109,7 +112,7 @@ func main() {
 		}
 	}()
 
-	grpcServer, listener, err := grpcserver.NewGRPCServer(ctx, cfg, metricStore, logStore, agentTracker, metricIndex, metaTracker, wsHub)
+	grpcServer, listener, err := grpcserver.NewGRPCServer(ctx, cfg, metricStore, logStore, agentTracker, metricIndex, metaTracker, eventStore, wsHub)
 	if err != nil {
 		utils.Fatal("Failed to start gRPC server: %v", err)
 	} else {

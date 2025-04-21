@@ -66,6 +66,7 @@ type Config struct {
 	Debug struct {
 		EnableReflection bool `yaml:"enable_reflection"`
 	} `yaml:"debug"`
+
 	// TODO - split up storage engine configs.
 	Storage struct {
 		Engine        string `yaml:"engine"`
@@ -94,6 +95,11 @@ type Config struct {
 		DSN      string `yaml:"dsn"`       // e.g. PostgreSQL connection string
 		LDAPBase string `yaml:"ldap_base"` // optional: LDAP-specific config
 	} `yaml:"userstore"`
+
+	EventStore struct {
+		Engine string `yaml:"engine"` // "memory", "json", or "postgres"
+		Path   string `yaml:"path"`   // optional path for JSON file
+	} `yaml:"eventstore"`
 
 	Auth struct {
 		SSOEnabled bool         `yaml:"sso_enabled"`
