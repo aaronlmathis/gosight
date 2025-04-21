@@ -4,7 +4,7 @@ aria-labelledby="logs-tab">
 <!-- Advanced Search -->
 <!-- Advanced Search Panel -->
 <div id="advanced-log-search"
-    class="mb-4 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm space-y-4">
+    class="mb-4 p-4 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm space-y-4">
     <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100">Advanced Log Search</h3>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
@@ -12,14 +12,14 @@ aria-labelledby="logs-tab">
         <div>
             <label for="adv-keyword" class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Keyword</label>
             <input type="text" id="adv-keyword" placeholder="Search messages, tags, metadata..."
-                class="w-full text-sm px-3 py-1.5 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+                class="w-full text-sm px-3 py-1.5 rounded border dark:bg-gray-900 border-gray-200 dark:border-gray-700">
         </div>
 
         <!-- Level -->
         <div>
             <label for="adv-level" class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Level</label>
             <select id="adv-level"
-                class="w-full text-sm px-3 py-1.5 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+                class="w-full text-sm px-3 py-1.5 rounded border dark:bg-gray-900 border-gray-200 dark:border-gray-700">
                 <option value="">All Levels</option>
                 <option value="error">Error</option>
                 <option value="warn">Warn</option>
@@ -33,27 +33,27 @@ aria-labelledby="logs-tab">
         <div>
             <label for="adv-source" class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Source</label>
             <input type="text" id="adv-source" placeholder="e.g. postgres-dev"
-                class="w-full text-sm px-3 py-1.5 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+                class="w-full text-sm px-3 py-1.5 rounded border dark:bg-gray-900 border-gray-200 dark:border-gray-700">
         </div>
 
         <!-- Start Date -->
         <div>
             <label for="adv-start" class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Start Time</label>
             <input type="datetime-local" id="adv-start"
-                class="w-full text-sm px-3 py-1.5 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+                class="w-full text-sm px-3 py-1.5 rounded border dark:bg-gray-900 border-gray-200 dark:border-gray-700">
         </div>
 
         <!-- End Date -->
         <div>
             <label for="adv-end" class="block text-sm text-gray-600 dark:text-gray-300 mb-1">End Time</label>
             <input type="datetime-local" id="adv-end"
-                class="w-full text-sm px-3 py-1.5 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+                class="w-full text-sm px-3 py-1.5 rounded border dark:bg-gray-900 border-gray-200 dark:border-gray-700">
         </div>
 
         <!-- Actions -->
         <div class="flex items-end gap-2">
             <button id="log-search-button"
-                class="text-sm px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-full">🔍 Search</button>
+                class="text-sm px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-full">Search</button>
             <button id="log-reset-button"
                 class="text-sm px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-700 w-full">Reset</button>
         </div>
@@ -62,16 +62,16 @@ aria-labelledby="logs-tab">
 
 
 <div
-    class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+    class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4 space-y-4">
     <!-- Controls -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Search Logs</h2>
         <div class="flex flex-wrap gap-2 items-center">
             <input id="logs-filter-search" type="text" placeholder="Search..."
-                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-200 dark:border-gray-700">
 
             <select id="logs-filter-level"
-                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-200 dark:border-gray-700">
                 <option value="">All Levels</option>
                 <option value="error">Error</option>
                 <option value="warn">Warn</option>
@@ -81,9 +81,9 @@ aria-labelledby="logs-tab">
             </select>
 
             <input type="date" id="logs-filter-start"
-                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-200 dark:border-gray-700">
             <input type="date" id="logs-filter-end"
-                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-200 dark:border-gray-700">
             <button id="logs-export-csv"
                 class="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
                 ⬇ Export CSV

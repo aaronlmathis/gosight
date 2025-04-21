@@ -8,14 +8,14 @@
               Interface:
             </label>
             <select id="interface-select"
-                class="text-sm border rounded px-3 py-1 dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+                class="text-sm border rounded px-3 py-1 dark:bg-gray-900 border-gray-200 dark:border-gray-700">
               <!-- options populated dynamically -->
             </select>
           </div>
 
         <!-- Current Bandwidth -->
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+            <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
                 <p class="text-sm text-gray-500 dark:text-gray-400">
                     Current Bandwidth
                 </p>
@@ -26,7 +26,7 @@
                     <span id="current-interface-label">--</span> — 1m average
                 </p>
             </div>
-            <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+            <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
                 <p class="text-sm text-gray-500 dark:text-gray-400">Peak Bandwidth</p>
                 <p id="peak-bandwidth" class="text-xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">
                     ↑ -- / ↓ --
@@ -35,7 +35,7 @@
                     Observed in last 10m
                 </p>
             </div>
-            <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+            <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
                 <p class="text-sm text-gray-500 dark:text-gray-400">Packets Sent</p>
                 <p id="stat-packets-sent" class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
 
@@ -44,7 +44,7 @@
                     system.network.packets_sent
                 </p>
             </div>
-            <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+            <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
                 <p class="text-sm text-gray-500 dark:text-gray-400">
                     Packets Received
                 </p>
@@ -58,7 +58,7 @@
         </div>
 
         <div
-            class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm h-64 relative">
+            class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm h-64 relative">
             <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">
                 Bandwidth Over Time (Mbps)
             </h4>
@@ -76,7 +76,7 @@
             <div class="grid grid-cols-2 gap-4">
                 <!-- Input Errors -->
                 <div
-                    class="bg-white dark:bg-gray-900 border border-red-300 dark:border-red-500 rounded-lg p-4 shadow-sm">
+                    class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-red-500 rounded-lg p-4 shadow-sm">
                     <p class="text-sm text-gray-500 dark:text-gray-400">Input Errors</p>
                     <p id="stat-errors-in" class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">--</p>
                     <p class="text-xs text-gray-400 dark:text-gray-500">system.network.err_in</p>
@@ -84,7 +84,7 @@
 
                 <!-- Output Errors -->
                 <div
-                    class="bg-white dark:bg-gray-900 border border-red-300 dark:border-red-500 rounded-lg p-4 shadow-sm">
+                    class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-red-500 rounded-lg p-4 shadow-sm">
                     <p class="text-sm text-gray-500 dark:text-gray-400">Output Errors</p>
                     <p id="stat-errors-out" class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">--</p>
                     <p class="text-xs text-gray-400 dark:text-gray-500">system.network.err_out</p>
@@ -92,7 +92,7 @@
 
                 <!-- Input Error % -->
                 <div
-                    class="bg-white dark:bg-gray-900 border border-yellow-300 dark:border-yellow-500 rounded-lg p-4 shadow-sm">
+                    class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-yellow-500 rounded-lg p-4 shadow-sm">
                     <p class="text-sm text-gray-500 dark:text-gray-400">Input Error %</p>
                     <p id="stat-error-percent-in" class="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">
                         --</p>
@@ -101,7 +101,7 @@
 
                 <!-- Output Error % -->
                 <div
-                    class="bg-white dark:bg-gray-900 border border-yellow-300 dark:border-yellow-500 rounded-lg p-4 shadow-sm">
+                    class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-yellow-500 rounded-lg p-4 shadow-sm">
                     <p class="text-sm text-gray-500 dark:text-gray-400">Output Error %</p>
                     <p id="stat-error-percent-out" class="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">
                         --</p>
@@ -111,7 +111,7 @@
 
             <!-- Right: Chart -->
             <div
-                class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm h-64 relative">
+                class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm h-64 relative">
                 <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">
                     Packet Error Rate Over Time (%)
                 </h4>
@@ -125,7 +125,7 @@
         <div class="flex justify-between items-center mb-3">
 
             <input type="text" id="filter-interface" placeholder="Filter interfaces…"
-                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
+                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-200 dark:border-gray-700" />
             <button id="export-csv" class="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
                 ⬇ Export CSV
             </button>

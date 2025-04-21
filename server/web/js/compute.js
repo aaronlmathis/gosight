@@ -334,7 +334,29 @@ function createCpuCharts() {
         options: { responsive: true }
     });
 }
-
+function renderPerCoreGrid() {
+    const container = document.getElementById("per-core-grid");
+    if (!container) return;
+  
+    container.innerHTML = "";
+  
+    const sorted = Object.keys(perCoreData).sort((a, b) => {
+      return parseInt(a.replace("core", "")) - parseInt(b.replace("core", ""));
+    });
+  
+    for (const core of sorted) {
+      const usage = perCoreData[core].usage?.toFixed(1) ?? "--";
+      const clock = perCoreData[core].clock?.toFixed(0) ?? "--";
+  
+      const div = document.createElement("div");
+      div.className = "p-2 rounded border border-gray-200 dark:border-gray-700 text-center bg-gray-50 dark:bg-gray-800";
+      div.innerHTML = `
+        <p class="font-semibold text-blue-600 dark:text-blue-400">${core}</p>
+        <p class="text-xs text-gray-600 dark:text-gray-400">${usage}% @ ${clock} MHz</p>
+      `;
+      container.appendChild(div);
+    }
+  }
 function appendCpuLoadPoint(point) {
     cpuLoadChart.data.labels.push(point.time);
     cpuLoadChart.data.datasets[0].data.push(point.load1);
@@ -495,8 +517,8 @@ function updatePerCoreMetrics(metric) {
     } else if (metric.name === "clock_mhz") {
         perCoreData[core].clock = metric.value;
     }
-
-    renderPerCoreTable();
+    renderPerCoreGrid();
+    //renderPerCoreTable();
 }
 
 function renderPerCoreTable() {

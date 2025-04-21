@@ -26,9 +26,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package httpserver
 
 import (
-	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
 	"github.com/aaronlmathis/gosight/server/internal/http/templates"
@@ -74,59 +72,16 @@ func (s *HttpServer) HandleEndpointPage(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "failed to load user", http.StatusInternalServerError)
 		return
 	}
-
-	agents := s.AgentTracker.GetAgents()
-	utils.Debug("Agents: %v", agents)
-	active := map[string]bool{}
-	var hosts []HostRow
-
-	for _, agent := range agents {
-		if strings.HasPrefix(agent.EndpointID, "ctr-") {
-			continue
-		}
-		active[agent.AgentID] = true
-		agent.EndpointID = agent.Labels["endpoint_id"] // TODO figure out why Endpoint_ID is empty
-
-		hostMetrics, _ := s.MetricStore.QueryMultiInstant([]string{
-			"system.host.uptime", "system.host.procs", "system.mem.free",
-			"system.mem.used_percent", "system.cpu.percent",
-			"system.host.users_loggedin", "system.host.info",
-		}, map[string]string{"hostname": agent.Hostname})
-
-		hostMap := make(map[string]string)
-		for _, row := range hostMetrics {
-			switch row.Tags["__name__"] {
-			case "system.host.uptime":
-				hostMap["uptime"] = templates.FormatUptime(row.Value)
-			case "system.mem.free":
-				hostMap["mem_free"] = templates.HumanizeBytes(row.Value)
-			case "system.mem.used_percent":
-				hostMap["mem"] = fmt.Sprintf("%.1f%%", row.Value)
-			case "system.cpu.percent":
-				hostMap["cpu"] = fmt.Sprintf("%.1f%%", row.Value)
-			case "system.host.procs":
-				hostMap["procs"] = fmt.Sprintf("%.0f", row.Value)
-			case "system.host.users_loggedin":
-				hostMap["users"] = fmt.Sprintf("%.0f", row.Value)
-			case "system.host.info":
-				hostMap["arch"] = row.Tags["architecture"]
-				hostMap["os"] = row.Tags["os"]
-				hostMap["platform"] = fmt.Sprintf("%s %s", row.Tags["platform"], row.Tags["platform_version"])
-				hostMap["version"] = row.Tags["version"]
-			}
-		}
-		utils.Debug("HostMap: %v", hostMap)
-		hosts = append(hosts, HostRow{
-			Agent:   agent,
-			Metrics: hostMap,
-		})
+	pageData := templates.TemplateData{
+		Title: "Endpoints",
+		User:  user,
+		Breadcrumbs: []templates.Breadcrumb{
+			{Label: "Endpoints"},
+		},
 	}
 
-	err = templates.RenderTemplate(w, "dashboard/layout_endpoints", map[string]any{
-		"Title": "Endpoints",
-		"User":  user,
-		"Hosts": hosts,
-	})
+	err = templates.RenderTemplate(w, "dashboard/layout_endpoints", pageData)
+
 	if err != nil {
 		http.Error(w, "template error", 500)
 	}
@@ -159,17 +114,21 @@ func (s *HttpServer) HandleEndpointDetail(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Build Template data based on endpoint_id
-	data, err := templates.BuildHostDashboardData(ctx, s.MetricStore, s.MetaTracker, user, endpointID)
-	if err != nil {
-		utils.Debug("failed to build host dashboard data: %v", err)
-	}
-	fmt.Printf("Template Meta: %+v\n", data.Meta)
-	// Set breadcrumbs and endpoint id
-	data.Title = "Host: " + endpointID
-	data.Labels["EndpointID"] = endpointID
+	meta, _ := s.MetaTracker.Get(endpointID)
 
-	err = templates.RenderTemplate(w, "dashboard/layout_main", data)
+	// Build Template data based on endpoint_id
+	pageData := templates.TemplateData{
+		Title:  "Endpoints",
+		User:   user,
+		Labels: map[string]string{"endpoint_id": endpointID},
+		Breadcrumbs: []templates.Breadcrumb{
+			{Label: "Endpoints", URL: "/endpoints"},
+			{Label: endpointID},
+		},
+		Meta: meta,
+	}
+
+	err = templates.RenderTemplate(w, "dashboard/layout_main", pageData)
 	if err != nil {
 		utils.Error("Template error: %v", err)
 		http.Error(w, "template error", http.StatusInternalServerError)

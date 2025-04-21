@@ -151,10 +151,10 @@ func watchForChanges(baseDir string) {
 }
 
 func RenderTemplate(w http.ResponseWriter, layout string, data any) error {
+
 	mu.RLock()
 	defer mu.RUnlock()
 
-	utils.Debug("Rendering template: %s", layout)
 	err := Tmpl.ExecuteTemplate(w, layout, data)
 	if err != nil {
 		utils.Error("ExecuteTemplate failed: %v", err)

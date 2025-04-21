@@ -129,9 +129,9 @@ func (s *HttpServer) Start() error {
 	if err != nil {
 		utils.Fatal("template init failed: %v", err)
 	}
-	utils.Info("HTTP server running at %s", s.Config.Server.HTTPAddr)
-	if err := http.ListenAndServe(s.Config.Server.HTTPAddr, s.Router); err != nil {
-		utils.Error("HTTP server failed: %v", err)
+	utils.Info("HTTPS server running at %s", s.Config.Server.HTTPAddr)
+	if err := http.ListenAndServeTLS(s.Config.Server.HTTPAddr, s.Config.TLS.HttpsCertFile, s.Config.TLS.HttpsKeyFile, s.Router); err != nil {
+		utils.Error("HTTPS server failed: %v", err)
 		return err
 	}
 	return nil

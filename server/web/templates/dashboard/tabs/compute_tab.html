@@ -8,7 +8,7 @@
       <!-- Left side: stacked CPU charts (3/4 width) -->
       <div class="col-span-3 flex flex-col gap-4">
         <!-- CPU Usage Chart -->
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
           <div class="flex justify-between items-start mb-2">
             <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               CPU Usage Over Time
@@ -27,7 +27,7 @@
         </div>
 
         <!-- CPU Load Chart -->
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
           <div class="flex justify-between items-start mb-2">
             <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               CPU Load Over Time
@@ -51,7 +51,7 @@
       <!-- Right side: CPU donut (1/4 width) -->
       <div class="col-span-1">
         <div
-          class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm h-full">
+          class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm h-full">
           <div class="flex flex-col h-full">
             <div class="flex justify-between items-center mb-4">
               <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">
@@ -75,108 +75,113 @@
 
     <div class="grid gap-4 lg:grid-cols-3 mb-6">
       <!-- CPU Info -->
-      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
-        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-100 mb-4 border-b pb-1 border-gray-200 dark:border-gray-700">
-          🧠 CPU Information
+      <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <h4
+          class="text-sm font-semibold text-gray-700 dark:text-gray-100 mb-4 border-b pb-1 border-gray-200 dark:border-gray-700">
+          &#x1F9E0; CPU Info
         </h4>
-      
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6 text-sm text-gray-700 dark:text-gray-300">
-          <div>
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Model</p>
-            <p id="cpu-model" class="font-semibold text-gray-800 dark:text-white">--</p>
+
+        <dl class="divide-y divide-gray-200 dark:divide-gray-700 text-sm text-gray-700 dark:text-gray-300">
+          <div class="grid grid-cols-2 gap-x-4 px-2 py-2 bg-gray-50 dark:bg-gray-800">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">Model</dt>
+            <dd class="font-semibold text-blue-600 dark:text-blue-400 col-span-2 sm:col-span-1" id="cpu-model">--</dd>
           </div>
-          <div>
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Vendor</p>
-            <p id="cpu-vendor" class="font-semibold text-gray-800 dark:text-white">--</p>
+          <div class="grid grid-cols-2 gap-x-4 px-2 py-2">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">Vendor</dt>
+            <dd class="font-semibold col-span-2 sm:col-span-1" id="cpu-vendor">--</dd>
           </div>
-      
-          <div>
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Cores</p>
-            <p id="cpu-cores" class="font-semibold text-gray-800 dark:text-white">--</p>
+          <div class="grid grid-cols-2 gap-x-4 px-2 py-2 bg-gray-50 dark:bg-gray-800">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">Cores</dt>
+            <dd class="font-semibold col-span-2 sm:col-span-1" id="cpu-cores">--</dd>
           </div>
-          <div>
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Threads</p>
-            <p id="cpu-threads" class="font-semibold text-gray-800 dark:text-white">--</p>
+          <div class="grid grid-cols-2 gap-x-4 px-2 py-2">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">Threads</dt>
+            <dd class="font-semibold col-span-2 sm:col-span-1" id="cpu-threads">--</dd>
           </div>
-      
-          <div>
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Base Clock</p>
-            <p id="cpu-base-clock" class="font-semibold text-gray-800 dark:text-white">--</p>
+          <div class="grid grid-cols-2 gap-x-4 px-2 py-2 bg-gray-50 dark:bg-gray-800">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">Base Clock</dt>
+            <dd class="font-semibold col-span-2 sm:col-span-1" id="cpu-base-clock">--</dd>
           </div>
-          <div>
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Cache</p>
-            <p id="cpu-cache" class="font-semibold text-gray-800 dark:text-white">--</p>
+          <div class="grid grid-cols-2 gap-x-4 px-2 py-2">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">Cache</dt>
+            <dd class="font-semibold col-span-2 sm:col-span-1" id="cpu-cache">--</dd>
           </div>
-      
-          <div>
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Family</p>
-            <p id="cpu-family" class="font-semibold text-gray-800 dark:text-white">--</p>
+          <div class="grid grid-cols-2 gap-x-4 px-2 py-2 bg-gray-50 dark:bg-gray-800">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">Family</dt>
+            <dd class="font-semibold col-span-2 sm:col-span-1" id="cpu-family">--</dd>
           </div>
-          <div>
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Stepping</p>
-            <p id="cpu-stepping" class="font-semibold text-gray-800 dark:text-white">--</p>
+          <div class="grid grid-cols-2 gap-x-4 px-2 py-2">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">Stepping</dt>
+            <dd class="font-semibold col-span-2 sm:col-span-1" id="cpu-stepping">--</dd>
           </div>
-      
-          <div>
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Physical Package</p>
-            <p id="cpu-physical" class="font-semibold text-gray-800 dark:text-white">--</p>
+          <div class="grid grid-cols-2 gap-x-4 px-2 py-2 bg-gray-50 dark:bg-gray-800">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">Physical Socket</dt>
+            <dd class="font-semibold col-span-2 sm:col-span-1" id="cpu-physical">--</dd>
           </div>
-        </div>
+        </dl>
+        
       </div>
-      
+
 
       <!-- CPU Time Counters -->
-<!-- CPU Time Counters (Styled to match CPU Info Card) -->
-<div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
-  <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-100 mb-4 border-b pb-1 border-gray-200 dark:border-gray-700">
-    ⏱ CPU Time Counters
-  </h4>
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6 text-sm text-gray-700 dark:text-gray-300">
-    <div>
-      <p class="text-xs font-medium text-gray-500 dark:text-gray-400">User</p>
-      <p id="cpu-time-user" class="font-semibold text-gray-800 dark:text-white">--</p>
-    </div>
-    <div>
-      <p class="text-xs font-medium text-gray-500 dark:text-gray-400">System</p>
-      <p id="cpu-time-system" class="font-semibold text-gray-800 dark:text-white">--</p>
-    </div>
-    <div>
-      <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Idle</p>
-      <p id="cpu-time-idle" class="font-semibold text-gray-800 dark:text-white">--</p>
-    </div>
-    <div>
-      <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Nice</p>
-      <p id="cpu-time-nice" class="font-semibold text-gray-800 dark:text-white">--</p>
-    </div>
-    <div>
-      <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Iowait</p>
-      <p id="cpu-time-iowait" class="font-semibold text-gray-800 dark:text-white">--</p>
-    </div>
-    <div>
-      <p class="text-xs font-medium text-gray-500 dark:text-gray-400">IRQ</p>
-      <p id="cpu-time-irq" class="font-semibold text-gray-800 dark:text-white">--</p>
-    </div>
-    <div>
-      <p class="text-xs font-medium text-gray-500 dark:text-gray-400">SoftIRQ</p>
-      <p id="cpu-time-softirq" class="font-semibold text-gray-800 dark:text-white">--</p>
-    </div>
-    <div>
-      <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Steal</p>
-      <p id="cpu-time-steal" class="font-semibold text-gray-800 dark:text-white">--</p>
-    </div>
-    <div>
-      <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Guest</p>
-      <p id="cpu-time-guest" class="font-semibold text-gray-800 dark:text-white">--</p>
-    </div>
-    <div>
-      <p class="text-xs font-medium text-gray-500 dark:text-gray-400">GuestNice</p>
-      <p id="cpu-time-guestnice" class="font-semibold text-gray-800 dark:text-white">--</p>
-    </div>
-  </div>
-</div>
+      <!-- CPU Time Counters (Styled to match CPU Info Card) -->
+      <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <h4
+          class="text-sm font-semibold text-gray-700 dark:text-gray-100 mb-4 border-b pb-1 border-gray-200 dark:border-gray-700">
+          ⏱ CPU Time Counters
+        </h4>
+        <dl class="divide-y divide-gray-200 dark:divide-gray-700 text-sm text-gray-700 dark:text-gray-300">
+          <div class="grid grid-cols-2 gap-x-4 px-2 py-2">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">User</dt>
+            <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-user">--</dd>
+          </div>
+          <div class="grid grid-cols-2 gap-x-4 px-2 py-2 bg-gray-50 dark:bg-gray-800">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">System</dt>
+            <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-system">--</dd>
+          </div>
+          <div class="grid grid-cols-2 gap-x-4 px-2 py-2">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">Idle</dt>
+            <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-idle">--</dd>
+          </div>
+          <div class="grid grid-cols-2 gap-x-4 px-2 py-2 bg-gray-50 dark:bg-gray-800">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">Nice</dt>
+            <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-nice">--</dd>
+          </div>
+          <div class="grid grid-cols-2 gap-x-4 px-2 py-2">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">Iowait</dt>
+            <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-iowait">--</dd>
+          </div>
+          <div class="grid grid-cols-2 gap-x-4 px-2 py-2 bg-gray-50 dark:bg-gray-800">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">IRQ</dt>
+            <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-irq">--</dd>
+          </div>
+          <div class="grid grid-cols-2 gap-x-4 px-2 py-2">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">SoftIRQ</dt>
+            <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-softirq">--</dd>
+          </div>
+          <div class="grid grid-cols-2 gap-x-4 px-2 py-2 bg-gray-50 dark:bg-gray-800">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">Steal</dt>
+            <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-steal">--</dd>
+          </div>
+          <div class="grid grid-cols-2 gap-x-4 px-2 py-2">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">Guest</dt>
+            <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-guest">--</dd>
+          </div>
+          <div class="grid grid-cols-2 gap-x-4 px-2 py-2 bg-gray-50 dark:bg-gray-800">
+            <dt class="font-medium text-gray-500 dark:text-gray-400">GuestNice</dt>
+            <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-guestnice">--</dd>
+          </div>
+        </dl>
+      </div>
 
-
-      <!-- CPU Stats -->
+      <!-- Per-Core Usage Grid -->
+      <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-100 mb-4 border-b pb-1 border-gray-200 dark:border-gray-700">Per-Core Usage</h4>
+        <div id="per-core-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <!-- JS will inject per-core blocks here -->
+        </div>
+      </div>
+      <!-- CPU Stats 
       <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
         <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Per-Core Usage</h4>
         <div class="overflow-x-auto">
@@ -189,17 +194,61 @@
               </tr>
             </thead>
             <tbody id="per-core-table">
-              <!-- JavaScript will inject rows here -->
+
             </tbody>
           </table>
         </div>
+      </div>-->
+    </div>
+     <!-- Right: 3 rows x 2 columns -->
+     <div class="grid grid-cols-6 gap-4">
+      <!-- Total Memory -->
+      <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Total Memory</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="mem-total">--</span></p>
+        <p>GB</p>
+      </div>
+
+      <!-- Used Memory -->
+      <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Used Memory</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="mem-used">--</span></p>
+        <p>GB</p>
+      </div>
+
+      <!-- Free Memory -->
+      <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Free Memory</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="mem-free">--</span></p>
+        <p>GB</p>
+      </div>
+
+      <!-- Total Swap -->
+      <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Total Swap</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="swap-total">--</span></p>
+        <p>GB</p>
+      </div>
+
+      <!-- Used Swap -->
+      <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Used Swap</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="swap-used">--</span></p>
+        <p>GB</p>
+      </div>
+
+      <!-- Free Swap -->
+      <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Free Swap</p>
+        <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="swap-free">--</span></p>
+        <p>GB</p>
       </div>
     </div>
     <div class="grid grid-cols-4 gap-4 w-full">
       <!-- Donut on right (1/4 width) -->
       <div class="col-span-1">
         <div
-          class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm h-full">
+          class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm h-full">
           <div class="flex flex-col h-full">
             <div class="flex justify-between items-center mb-4">
               <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">Memory Breakdown</h4>
@@ -218,7 +267,7 @@
 
       <!-- Line charts (3/4 width) -->
       <div class="col-span-3 flex flex-col gap-4">
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
           <div class="flex justify-between items-start mb-2">
             <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Memory Usage Over Time</h3>
             <div id="memoryUsageLabel" class="text-right">
@@ -234,82 +283,29 @@
           </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+        <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
           <div class="flex justify-between items-start mb-2">
-          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Swap Usage Over Time</h3>
-          <div id="swapUsageLabel" class="text-right">
-            <p id="label-swap-percent" class="text-2xl font-bold text-blue-600 dark:text-blue-400 leading-tight">0.0%
-            </p>
-            <p class="text-xs text-gray-500 dark:text-gray-400">Swap Used</p>
-            <p class="text-[10px] text-gray-400 dark:text-gray-500">percent</p>
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Swap Usage Over Time</h3>
+            <div id="swapUsageLabel" class="text-right">
+              <p id="label-swap-percent" class="text-2xl font-bold text-blue-600 dark:text-blue-400 leading-tight">0.0%
+              </p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">Swap Used</p>
+              <p class="text-[10px] text-gray-400 dark:text-gray-500">percent</p>
+            </div>
           </div>
-        </div>
           <div class="relative h-48 w-full">
             <canvas id="swapUsageChart" class="absolute top-0 left-0 w-full h-full"></canvas>
-            
+
           </div>
         </div>
       </div>
     </div>
 
 
-    <!-- Section: Memory Usage Chart -->
-    <!-- Section: Memory Donut + Memory/Swap Stats -->
-    <div class="grid gap-4 lg:grid-cols-2">
-      <!-- Left: Donut Chart -->
-      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm flex">
 
+   
 
-
-
-      </div>
-
-      <!-- Right: 3 rows x 2 columns -->
-      <div class="grid grid-cols-3 gap-4">
-        <!-- Total Memory -->
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
-          <p class="text-sm text-gray-500 dark:text-gray-400">Total Memory</p>
-          <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="mem-total">--</span></p>
-          <p>GB</p>
-        </div>
-      
-        <!-- Used Memory -->
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
-          <p class="text-sm text-gray-500 dark:text-gray-400">Used Memory</p>
-          <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="mem-used">--</span></p>
-          <p>GB</p>
-        </div>
-      
-        <!-- Free Memory -->
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
-          <p class="text-sm text-gray-500 dark:text-gray-400">Free Memory</p>
-          <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="mem-free">--</span></p>
-          <p>GB</p>
-        </div>
-      
-        <!-- Total Swap -->
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
-          <p class="text-sm text-gray-500 dark:text-gray-400">Total Swap</p>
-          <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="swap-total">--</span></p>
-          <p>GB</p>
-        </div>
-      
-        <!-- Used Swap -->
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
-          <p class="text-sm text-gray-500 dark:text-gray-400">Used Swap</p>
-          <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="swap-used">--</span></p>
-          <p>GB</p>
-        </div>
-      
-        <!-- Free Swap -->
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
-          <p class="text-sm text-gray-500 dark:text-gray-400">Free Swap</p>
-          <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="swap-free">--</span></p>
-          <p>GB</p>
-        </div>
-      </div>
-      
-    </div>
   </div>
+</div>
 </div>
 {{ end }}

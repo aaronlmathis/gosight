@@ -56,9 +56,11 @@ type Config struct {
 	} `yaml:"web"`
 
 	TLS struct {
-		CertFile     string `yaml:"cert_file"`
-		KeyFile      string `yaml:"key_file"`
-		ClientCAFile string `yaml:"client_ca_file"`
+		HttpsCertFile string `yaml:"https_cert_file"`
+		HttpsKeyFile  string `yaml:"https_key_file"`
+		CertFile      string `yaml:"cert_file"`
+		KeyFile       string `yaml:"key_file"`
+		ClientCAFile  string `yaml:"client_ca_file"`
 	} `yaml:"tls"`
 
 	Debug struct {

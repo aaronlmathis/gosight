@@ -1,5 +1,5 @@
-const socket = new WebSocket("ws://" + location.host + "/ws/metrics?endpointID=" + encodeURIComponent(window.endpointID));
-
+const socket = new WebSocket("wss://" + location.host + "/ws/metrics?endpointID=" + encodeURIComponent(window.endpointID));
+console.log(window.endpointID)
 const chartAnimation = {
     tension: {
         duration: 1000,
@@ -269,7 +269,7 @@ function renderMiniCharts() {
             },
             scales: { y: { display: true }, x: { display: false } },
             elements: { line: { borderWidth: 2 } },
-            animations: chartAnimation,
+
         },
     });
 
@@ -294,7 +294,7 @@ function renderMiniCharts() {
             },
             scales: { y: { display: true }, x: { display: false } },
             elements: { line: { borderWidth: 2 } },
-            animations: chartAnimation,
+
         },
     });
     miniCharts.swap = new Chart(document.getElementById("miniSwapChart"), {
@@ -318,7 +318,7 @@ function renderMiniCharts() {
             },
             scales: { y: { display: true }, x: { display: false } },
             elements: { line: { borderWidth: 2 } },
-            animations: chartAnimation,
+
         },
     });
 }
