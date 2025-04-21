@@ -14,7 +14,6 @@ const observer = new MutationObserver(() => {
 
 observer.observe(document.body, { childList: true, subtree: true });
 
-// Utility to register tab initializers
-function registerTabInitializer(tabId, initFn) {
+export function registerTabInitializer(tabId, initFn) {
     tabInitRegistry[tabId] = initFn;
 }

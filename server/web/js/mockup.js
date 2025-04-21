@@ -1,3 +1,5 @@
+import { formatBytes, formatUptime } from "./format.js";
+
 const socket = new WebSocket("wss://" + location.host + "/ws/metrics?endpointID=" + encodeURIComponent(window.endpointID));
 console.log(window.endpointID)
 const chartAnimation = {
@@ -49,6 +51,9 @@ socket.onmessage = (event) => {
                 }
                 if (window.cpuMetricHandler) {
                     window.cpuMetricHandler(payload.metrics);
+                }
+                if (window.diskMetricHandler) {
+                    window.diskMetricHandler(payload.metrics);
                 }
             }
 
@@ -333,7 +338,7 @@ function updateMiniCharts(metrics) {
         }
     });
     let swapTotal = null;
-let swapFree = null;
+    let swapFree = null;
     for (const m of metrics) {
         if (
             m.namespace === "System" &&
@@ -360,7 +365,7 @@ let swapFree = null;
         ) {
             swapTotal = m.value;
         }
-    
+
         if (
             m.namespace === "System" &&
             m.subnamespace === "Memory" &&
@@ -370,7 +375,7 @@ let swapFree = null;
             swapFree = m.value;
         }
 
-            swapVal = ((swapTotal - swapFree) / swapTotal) * 100;
+        swapVal = ((swapTotal - swapFree) / swapTotal) * 100;
 
     }
 
@@ -573,26 +578,6 @@ function updateContainerTable(payload) {
 }
 
 
-function formatBytes(bytes) {
-    if (bytes === undefined || bytes === null || isNaN(bytes)) return "—";
-
-    const units = ["B", "KB", "MB", "GB", "TB"];
-    let i = 0;
-    while (bytes >= 1024 && i < units.length - 1) {
-        bytes /= 1024;
-        i++;
-    }
-    return `${bytes.toFixed(1)} ${units[i]}`;
-}
-
-function formatUptime(seconds) {
-    if (typeof seconds !== "number" || isNaN(seconds) || seconds <= 0) return "—";
-
-    const d = Math.floor(seconds / (3600 * 24));
-    const h = Math.floor((seconds % (3600 * 24)) / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    return `${d}d ${h}h ${m}m`;
-}
 
 
 document.addEventListener("DOMContentLoaded", () => {

@@ -1,13 +1,22 @@
+// format.js
+
 export function formatBytes(bytes) {
-    if (bytes === 0 || bytes == null) return "—";
-    const sizes = ["B", "KB", "MB", "GB", "TB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + sizes[i];
+  if (bytes === undefined || bytes === null || isNaN(bytes)) return "—";
+
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let i = 0;
+  while (bytes >= 1024 && i < units.length - 1) {
+    bytes /= 1024;
+    i++;
   }
-  
-export  function formatUptime(seconds) {
-    if (!seconds || seconds >= 9e9) return "—"; // catch absurd values
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    return `${h}h ${m}m`;
-  }
+  return `${bytes.toFixed(1)} ${units[i]}`;
+}
+
+export function formatUptime(seconds) {
+  if (typeof seconds !== "number" || isNaN(seconds) || seconds <= 0) return "—";
+
+  const d = Math.floor(seconds / (3600 * 24));
+  const h = Math.floor((seconds % (3600 * 24)) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return `${d}d ${h}h ${m}m`;
+}

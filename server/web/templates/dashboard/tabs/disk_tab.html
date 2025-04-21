@@ -1,36 +1,80 @@
 {{ define "tabs/disk_tab" }}
 <!-- dashboard/tabs/disk.html -->
 <div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="disk" role="tabpanel" aria-labelledby="disk-tab">
+
   <div class="space-y-8">
+    <!-- Disk Summary Section -->
+    <div class="grid grid-cols-4 gap-6 w-full items-start">
 
+      <!-- LEFT (1/4 width): Stat cards in 2x2 -->
+      <div class="col-span-1">
+        <div class="grid grid-cols-2 gap-4">
+          <!-- Total Disk Space -->
+          <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Total Disk Space</p>
+            <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="disk-total">—</span></p>
+          </div>
 
+          <!-- Used Disk Space -->
+          <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Used Disk Space</p>
+            <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="disk-used">—</span></p>
+          </div>
 
-    <!-- Section: Disk Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <p class="text-sm text-gray-500 dark:text-gray-400">Total Disk Space</p>
-        <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="disk-total"></span></p>
+          <!-- Free Disk Space -->
+          <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Free Disk Space</p>
+            <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="disk-free">—</span></p>
+          </div>
+
+          <!-- Disk Usage -->
+          <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Disk Usage</p>
+            <p class="text-xl font-bold text-yellow-500 dark:text-yellow-400"><span id="disk-percent">—</span>%</p>
+          </div>
+        </div>
       </div>
-      <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <p class="text-sm text-gray-500 dark:text-gray-400">Used Disk Space</p>
-        <p class="text-xl font-bold text-blue-600 dark:text-blue-400"><span id="disk-used"></span></p>
+
+      <!-- RIGHT (3/4 width): Top mounts + mini overview side-by-side -->
+      <div class="col-span-3 grid grid-cols-2 gap-4">
+        <!-- Most Used Mountpoints -->
+        <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+          <h4
+            class="text-sm font-semibold text-gray-700 dark:text-gray-100 mb-4 border-b pb-1 border-gray-200 dark:border-gray-700">
+            📌 Most Used Mountpoints
+          </h4>
+          <dl id="top-mount-usage"
+            class="divide-y divide-gray-200 dark:divide-gray-700 text-sm text-gray-700 dark:text-gray-300">
+            <!-- Injected via JS as <div>s or <template> -->
+          </dl>
+        </div>
+
+        <!-- Mountpoint Overview -->
+        <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+          <h4
+            class="text-sm font-semibold text-gray-700 dark:text-gray-100 mb-4 border-b pb-1 border-gray-200 dark:border-gray-700">
+            📊 Mountpoint Overview
+          </h4>
+          <dl id="disk-mini-mounts"
+            class="divide-y divide-gray-200 dark:divide-gray-700 text-sm text-gray-700 dark:text-gray-300">
+            <!-- Injected via JS as <div class="grid grid-cols-2 gap-x-4 px-2 py-2">...</div> -->
+          </dl>
+        </div>
       </div>
-      <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <p class="text-sm text-gray-500 dark:text-gray-400">Free Disk Space</p>
-        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">200 GB</p>
-      </div>
-      <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <p class="text-sm text-gray-500 dark:text-gray-400">Disk Usage</p>
-        <p class="text-xl font-bold text-yellow-500 dark:text-yellow-400"><span id="disk-percent"></span>%
-        </p>
-      </div>
+
     </div>
+
+
+
+
+    <!-- Section: Disk Charts -->
+
 
     <!-- Section: Disk Charts -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
       <!-- Disk Usage Donut -->
-      <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4">
         <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Disk Usage</h4>
         <div class="relative h-60 w-full">
           <canvas id="diskUsageDonutChart" class="absolute top-0 left-0 w-full h-full"></canvas>
@@ -38,7 +82,7 @@
       </div>
 
       <!-- Inode Usage Bar -->
-      <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4">
         <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Inode Usage</h4>
         <div class="relative h-60 w-full">
           <canvas id="inodeUsageBarChart" class="absolute top-0 left-0 w-full h-full"></canvas>
@@ -46,6 +90,53 @@
       </div>
 
     </div>
+    <!-- Section: Mountpoint Table -->
+    <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+      <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Disk Usage by Mountpoint</h4>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm table-auto border-collapse">
+          <thead class="bg-gray-50 dark:bg-gray-800 text-left text-gray-600 dark:text-gray-300">
+            <tr>
+
+              <th class="px-4 py-2">Mountpoint</th>
+              <th class="px-4 py-2">FS Type</th>
+              <th class="px-4 py-2">Total</th>
+              <th class="px-4 py-2">Used</th>
+              <th class="px-4 py-2">Free</th>
+              <th class="px-4 py-2">% Used</th>
+              <th class="px-4 py-2">Device</th>
+            </tr>
+          </thead>
+          <tbody id="mountpoint-table-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+            <!-- Rows injected via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Section: Disk IO Charts -->
+    <div
+      class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4 space-y-6">
+      <div class="flex items-center justify-between">
+        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">Disk I/O by Device</h4>
+        <select id="disk-device-select"
+          class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+          <!-- Options injected via JS -->
+        </select>
+      </div>
+
+      <!-- IOPS Chart -->
+      <div class="relative h-48">
+        <canvas id="diskIopsChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+      </div>
+
+      <!-- Throughput Chart -->
+      <div class="relative h-48">
+        <canvas id="diskThroughputChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+      </div>
+    </div>
+
   </div>
+</div>
 </div>
 {{ end }}

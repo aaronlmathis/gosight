@@ -1,3 +1,5 @@
+import { registerTabInitializer } from "./tabs.js";
+
 const seenInterfaces = new Set();
 let selectedInterface = null;
 
@@ -380,6 +382,19 @@ function createNetworkTrafficLineChart() {
 
     console.log("✅ networkTrafficLineChart initialized");
 }
+
+function redrawNetworkTrafficLineChartFromCache() {
+    const iface = selectedInterface;
+    const bw = lastBandwidth[iface];
+    if (!bw) return;
+
+    // You could optionally store historical samples per interface
+    // For now, we just seed with the latest point
+    updateNetworkTrafficLineChart("tx", bw.tx ?? 0);
+    updateNetworkTrafficLineChart("rx", bw.rx ?? 0);
+}
+
+// INIT NETWORK TAB
 function initNetworkTab() {
 
     createNetworkTrafficLineChart();
@@ -399,16 +414,7 @@ function initNetworkTab() {
         console.log("✅ Bound interface switcher");
     }
 }
-function redrawNetworkTrafficLineChartFromCache() {
-    const iface = selectedInterface;
-    const bw = lastBandwidth[iface];
-    if (!bw) return;
 
-    // You could optionally store historical samples per interface
-    // For now, we just seed with the latest point
-    updateNetworkTrafficLineChart("tx", bw.tx ?? 0);
-    updateNetworkTrafficLineChart("rx", bw.rx ?? 0);
-}
 
 window.networkMetricHandler = function (metrics) {
     for (const metric of metrics) {

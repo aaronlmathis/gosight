@@ -29,6 +29,7 @@ package system
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"strings"
 	"time"
 
@@ -57,14 +58,30 @@ func (c *DiskCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	}
 
 	for _, p := range partitions {
+		// Platform-neutral filtering
+		if runtime.GOOS != "windows" {
+			// Linux/macOS: skip virtual, pseudo, temp filesystems
+			if strings.HasPrefix(p.Mountpoint, "/sys") ||
+				strings.HasPrefix(p.Mountpoint, "/proc") ||
+				strings.HasPrefix(p.Mountpoint, "/run") ||
+				p.Fstype == "tmpfs" || p.Fstype == "devtmpfs" || p.Fstype == "overlay" {
+				continue
+			}
+		} else {
+			// Windows: skip reserved/empty/mapped/unmounted drives
+			if p.Fstype == "" || p.Mountpoint == "" {
+				continue
+			}
+		}
+
 		usage, err := disk.Usage(p.Mountpoint)
 		if err != nil || usage == nil {
 			continue
 		}
 
 		dims := map[string]string{
-			"mountpoint": p.Mountpoint,
-			"device":     strings.TrimPrefix(p.Device, "/dev/"),
+			"mountpoint": p.Mountpoint,                            // e.g. "/", "/data", or "C:\"
+			"device":     strings.TrimPrefix(p.Device, "\\\\.\\"), /* Windows-style */
 			"fstype":     p.Fstype,
 		}
 
@@ -78,6 +95,7 @@ func (c *DiskCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 			agentutils.Metric("System", "Disk", "inodes_free", usage.InodesFree, "gauge", "count", dims, now),
 			agentutils.Metric("System", "Disk", "inodes_used_percent", usage.InodesUsedPercent, "gauge", "percent", dims, now),
 		)
+
 	}
 
 	if ioCounters, err := disk.IOCounters(); err == nil {

@@ -18,11 +18,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
-
+// Package model contains the data structures used in GoSight.
 package model
 
 import "time"
 
+// StatisticValues represents the minimum, maximum, count, and sum of a metric.
 type StatisticValues struct {
 	Minimum     float64 `json:"min"`
 	Maximum     float64 `json:"max"`
@@ -34,6 +35,9 @@ type Point struct {
 	Timestamp string  `json:"timestamp"`
 	Value     float64 `json:"value"`
 }
+
+// Metric represents a single metric data point.
+// It includes the namespace, subnamespace, name, timestamp, value, and other data.
 
 type Metric struct {
 	Namespace         string            `json:"namespace,omitempty"`
@@ -47,6 +51,10 @@ type Metric struct {
 	StorageResolution int               `json:"resolution,omitempty"`
 	Type              string            `json:"type,omitempty"`
 }
+
+// MetricPayload represents a collection of metrics to be sent to the server.
+// It includes the agent ID, host ID, hostname, endpoint ID, and a list of metrics.
+// The timestamp is the time at which the paylaod was packaged.
 
 type MetricPayload struct {
 	AgentID    string    `json:"agent_id"`
