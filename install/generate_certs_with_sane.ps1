@@ -34,6 +34,9 @@ openssl genrsa -out server.key 4096
 openssl req -new -key server.key -out server.csr -config server.cnf
 openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial `
   -out server.crt -days 365 -sha256 -extensions req_ext -extfile server.cnf
+Get-Content server.crt, ca.crt | Set-Content server-cert.pem
+Copy-Item server.key server-key.pem
+
 
 # === 4. Create client.cnf with SANs ===
 @"
