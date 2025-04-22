@@ -101,6 +101,11 @@ type Config struct {
 		Path   string `yaml:"path"`   // optional path for JSON file
 	} `yaml:"eventstore"`
 
+	RuleStore struct {
+		Engine string `yaml:"engine"` // "memory", "json", or "postgres"
+		Path   string `yaml:"path"`   // optional path for JSON file
+	}
+
 	Auth struct {
 		SSOEnabled bool         `yaml:"sso_enabled"`
 		MFASecret  string       `yaml:"mfa_secret_key"`

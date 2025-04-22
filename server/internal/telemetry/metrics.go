@@ -25,7 +25,10 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package telemetry
 
 import (
+	"context"
+
 	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
+	"github.com/aaronlmathis/gosight/server/internal/rules"
 	"github.com/aaronlmathis/gosight/server/internal/store/agenttracker"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/aaronlmathis/gosight/server/internal/store/metricindex"
@@ -38,21 +41,25 @@ import (
 // MetricsHandler implements pb.MetricsServiceServer
 // MetricsHandler implements MetricsServiceServer
 type MetricsHandler struct {
+	ctx          context.Context
 	store        metricstore.MetricStore
 	AgentTracker *agenttracker.AgentTracker
 	metricIndex  *metricindex.MetricIndex
 	metaTracker  *metastore.MetaTracker
+	evaluator    *rules.Evaluator
 	websocket    *websocket.Hub
 	pb.UnimplementedMetricsServiceServer
 }
 
-func NewMetricsHandler(s metricstore.MetricStore, tracker *agenttracker.AgentTracker, metricIndex *metricindex.MetricIndex, meta *metastore.MetaTracker, ws *websocket.Hub) *MetricsHandler {
+func NewMetricsHandler(ctx context.Context, s metricstore.MetricStore, tracker *agenttracker.AgentTracker, metricIndex *metricindex.MetricIndex, meta *metastore.MetaTracker, evaluator *rules.Evaluator, ws *websocket.Hub) *MetricsHandler {
 	utils.Debug("MetricsHandler initialized with store: %T", s)
 	return &MetricsHandler{
+		ctx:          ctx,
 		store:        s,
 		AgentTracker: tracker,
 		metricIndex:  metricIndex,
 		metaTracker:  meta,
+		evaluator:    evaluator,
 		websocket:    ws,
 	}
 }
@@ -74,6 +81,10 @@ func (h *MetricsHandler) SubmitStream(stream pb.MetricsService_SubmitStreamServe
 		// Convert payload into a model.MetricPayload.
 		converted := ConvertToModelPayload(req)
 		utils.Debug("Received metrics from %s", converted.Meta.EndpointID)
+
+		// Check rules
+		h.evaluator.Evaluate(h.ctx, converted.Metrics, converted.Meta)
+
 		h.AgentTracker.UpdateAgent(converted.Meta)
 
 		// Broadcast to WebSocket clients

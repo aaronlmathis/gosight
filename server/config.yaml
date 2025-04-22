@@ -52,6 +52,20 @@ logs:
   access_log_file: "./access.log"
   log_level: "debug"               # Or "info", etc.
 
+eventstore:
+  engine: memory # (memory/json)
+  path: "../rulestore/"
+  
+rulestore:
+  engine: yaml   # (yaml, json,, memory, postgres)
+  path: "./internal/store/rulestore/samples/rules.yaml"
+  
+logs:
+  error_log_file: "./error.log"
+  app_log_file: "./server.log"
+  access_log_file: "./access.log"
+  log_level: "debug"           # Or "debug", etc.
+  
 # Auth Provider Configuration
 google:
   client_id: ""

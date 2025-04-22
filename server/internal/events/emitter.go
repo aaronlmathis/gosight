@@ -24,11 +24,11 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package events
 
 import (
+	"context"
 	"time"
 
 	"github.com/aaronlmathis/gosight/server/internal/store/eventstore"
 	"github.com/aaronlmathis/gosight/shared/model"
-	"github.com/google/uuid"
 )
 
 // Emitter is an event emitter that stores events in an event store.
@@ -43,15 +43,12 @@ func NewEmitter(store eventstore.EventStore) *Emitter {
 }
 
 // Emit emits an event with the specified attributes.
-func (e *Emitter) Emit(level, category, message, source, endpointID string, meta map[string]string) {
-	e.Store.AddEvent(model.EventEntry{
-		ID:         uuid.NewString(),
-		Timestamp:  time.Now().UTC(),
-		Level:      level,
-		Category:   category,
-		Message:    message,
-		Source:     source,
-		EndpointID: endpointID,
-		Meta:       meta,
-	})
+func (e *Emitter) Emit(ctx context.Context, event model.EventEntry) {
+	if event.ID == "" {
+		event.ID = model.GenerateID()
+	}
+	if event.Timestamp.IsZero() {
+		event.Timestamp = time.Now().UTC()
+	}
+	e.Store.AddEvent(event)
 }

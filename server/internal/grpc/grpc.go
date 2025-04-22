@@ -31,8 +31,10 @@ import (
 	"net"
 	"os"
 
+	"github.com/aaronlmathis/gosight/server/internal/alerts"
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
+	"github.com/aaronlmathis/gosight/server/internal/rules"
 
 	"github.com/aaronlmathis/gosight/server/internal/store/agenttracker"
 	"github.com/aaronlmathis/gosight/server/internal/store/eventstore"
@@ -52,7 +54,7 @@ func NewGRPCServer(
 	ctx context.Context, cfg *config.Config, store metricstore.MetricStore,
 	logStore logstore.LogStore, tracker *agenttracker.AgentTracker,
 	metricIndex *metricindex.MetricIndex, metaTracker *metastore.MetaTracker,
-	eventStore eventstore.EventStore, ws *websocket.Hub) (*grpc.Server, net.Listener, error) {
+	eventStore eventstore.EventStore, alertsMgr *alerts.Manager, evaluator *rules.Evaluator, ws *websocket.Hub) (*grpc.Server, net.Listener, error) {
 
 	tlsCfg, err := loadTLSConfig(cfg)
 	if err != nil {
@@ -66,7 +68,7 @@ func NewGRPCServer(
 	creds := credentials.NewTLS(tlsCfg)
 	server := grpc.NewServer(grpc.Creds(creds))
 
-	handler := telemetry.NewMetricsHandler(store, tracker, metricIndex, metaTracker, ws)
+	handler := telemetry.NewMetricsHandler(ctx, store, tracker, metricIndex, metaTracker, evaluator, ws)
 	proto.RegisterMetricsServiceServer(server, handler)
 	utils.Debug("📨 NewGRPCServer received metric store at: %p", store)
 

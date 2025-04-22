@@ -171,6 +171,15 @@ func (s *HttpServer) setupAPIRoutes() {
 		),
 	).Methods("GET")
 
+	api.Handle("/alerts",
+		gosightauth.AuthMiddleware(s.UserStore)(
+			gosightauth.RequirePermission("gosight:events:view",
+				http.HandlerFunc(s.HandleAlertsAPI), // <- pass your actual FileStore here
+				s.UserStore,
+			),
+		),
+	).Methods("GET")
+
 	api.HandleFunc("/{namespace}/{sub}/{metric}/latest", s.GetLatestValue).Methods("GET")
 	api.HandleFunc("/{namespace}/{sub}/{metric}/data", s.GetMetricData).Methods("GET")
 	api.HandleFunc("/{namespace}/{sub}/dimensions", s.GetDimensions).Methods("GET")

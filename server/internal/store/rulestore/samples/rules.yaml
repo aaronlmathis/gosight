@@ -1,0 +1,32 @@
+- id: test-high-cpu
+  name: CPU Over 50%
+  enabled: true
+  level: warning
+  message: "CPU usage exceeded 50%"
+  match:
+    namespace: System
+    subnamespace: CPU
+    metric: usage
+  trigger:
+    operator: gt
+    threshold: 50
+    duration: 0s
+
+- id: high-network-in
+  name: High Network Inbound
+  enabled: true
+  level: warning
+  message: "Interface wlp4s0 received > 100 Mbps for 5s"
+  match:
+    namespace: System
+    subnamespace: Network
+    metric: bytes_recv
+    labels:
+      interface: wlp4s0
+    endpoint_ids:
+      - host-1159a1a8-3bb
+  trigger:
+    operator: gt
+    threshold: 12500000     # 100 Mbps = 12.5 MB/s = 12,500,000 bytes/s
+    duration: 5s
+

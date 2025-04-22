@@ -33,10 +33,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aaronlmathis/gosight/server/internal/alerts"
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/http/templates"
 	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
+	"github.com/aaronlmathis/gosight/server/internal/rules"
 	"github.com/aaronlmathis/gosight/server/internal/store/agenttracker"
 	"github.com/aaronlmathis/gosight/server/internal/store/datastore"
 	"github.com/aaronlmathis/gosight/server/internal/store/eventstore"
@@ -64,6 +66,8 @@ type HttpServer struct {
 	UserStore      userstore.UserStore
 	DataStore      datastore.DataStore
 	EventStore     eventstore.EventStore
+	AlertsMgr      *alerts.Manager
+	Evaluator      *rules.Evaluator
 	WebSocket      *websocket.Hub
 	httpServer     *http.Server
 }
@@ -80,6 +84,8 @@ func NewServer(
 	userStore userstore.UserStore,
 	dataStore datastore.DataStore,
 	eventStore eventstore.EventStore,
+	alertsMgr *alerts.Manager,
+	evaluator *rules.Evaluator,
 	webSocket *websocket.Hub,
 ) *HttpServer {
 	router := mux.NewRouter()
@@ -93,11 +99,13 @@ func NewServer(
 		MetricIndex:    metricIndex,
 		MetricStore:    metricStore,
 		Router:         router,
+		LogStore:       logStore,
 		UserStore:      userStore,
 		DataStore:      dataStore,
 		EventStore:     eventStore,
+		Evaluator:      evaluator,
+		AlertsMgr:      alertsMgr,
 		WebSocket:      webSocket,
-		LogStore:       logStore,
 		httpServer: &http.Server{
 			Addr:    cfg.Server.HTTPAddr,
 			Handler: router,

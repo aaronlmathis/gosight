@@ -24,7 +24,11 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 // Package model defines the data structures used in the GoSight application.
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // EventEntry represents a single event entry in the event store.
 // It includes fields for the event ID, timestamp, level, category, message,
@@ -46,4 +50,8 @@ type EventEntry struct {
 	Source     string            `json:"source"` // metric name, log source, etc.
 	EndpointID string            `json:"endpoint_id"`
 	Meta       map[string]string `json:"meta"` // additional tags/labels
+}
+
+func GenerateID() string {
+	return uuid.NewString()
 }
