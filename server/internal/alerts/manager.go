@@ -38,7 +38,7 @@ func (m *Manager) HandleState(ctx context.Context, rule model.AlertRule, meta *m
 
 	if triggered {
 		if current == nil {
-			//  NEW firing
+			// NEW firing
 			inst := &model.AlertInstance{
 				RuleID:     rule.ID,
 				EndpointID: meta.EndpointID,
