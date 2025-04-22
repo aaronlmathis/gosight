@@ -1,122 +1,87 @@
 # GoSight Project Status
 
-Last updated: 2025-04-10
+_Last Updated: April 22, 2025_
 
-## 📦 Project Status
+GoSight is a modern observability and infrastructure monitoring platform built for system administrators, cloud operators, and DevOps engineers. It provides real-time visibility, secure telemetry collection, and intelligent event-based alerting.
 
-GoSight now supports:
+See: our [Contributing Guidelines](https://github.com/aaronlmathis/gosight/blob/main/CONTRIBUTING.md) for full instructions on how to setup a dev environment (including victoria metrics and pgsql containers) for gosight using Make.
 
-- Secure, stateless login sessions
-- Granular RBAC with auto-refresh
-- Structured trace-aware logging
-- A clean and extensible context model
+---
 
-🛡️ Authentication and session infrastructure is now **production-ready**.
+## Agent Capabilities
 
-## ✅ Completed Milestones
+- **System Metrics Collection**  
+  - Supports CPU, memory, disk usage, disk I/O, and network statistics.  
+  - Emits structured metrics with namespaces and dimensions.
 
-- [x] **Agent ↔ Server gRPC streaming works**
-  - CPU metrics collector implemented
-  - Worker pool and retry logic in agent sender
-- [x] **Server uses TLS**
-  - gRPC server now serves over TLS using a server certificate signed by a local CA
-  - TLS configuration is fully loaded from `server/config.yaml`
-- [x] **Agent connects securely over TLS**
-  - Agent validates the server using the CA certificate
-  - TLS configuration is fully loaded from `agent/config.yaml`
-- [x] **Mutual TLS (mTLS) implemented**
-  - Agent presents client certificate during handshake
-  - Server validates agent certificate using client CA (same CA used to sign both)
-- [x] **Cert generation tooling added**
-  - Bash and PowerShell scripts support SAN-based certs
-  - Scripts located in `install/`, output to `/certs`
-- [x] **gRPC server bootstrapping refactored**
-  - Clean `NewGRPCServer(cfg)` returns `*grpc.Server` and `net.Listener`
-  - Optional reflection controlled via `debug.enable_reflection` in config
-- [x] **Project folder structure audit complete**
-  - TLS helpers, sender, and runner logic separated cleanly
-  - Internal paths follow Go idioms (e.g. `internal/config`, `internal/sender`)
-- [x] **Graceful shutdown and signal handling for gRPC server and agent**
-  - Agent and server now exit cleanly on `SIGINT` or `SIGTERM`
-- [x] **TLS fingerprint logging**
-  - TLS fingerprint or Common Name from connecting agent cert is logged at connect
-- [x] **Podman container collector added**
-  - Native Podman REST API integration (no Docker dependency)
-  - Includes memory, CPU, network, and metadata collection per container
-  - Integrated into agent and dashboard
-- [x] **Admin Dashboard Mocked-up**
-  - Responsive design using JS / TailwindCSS / Flowbite
-  - Includes animated graphs / charts
-- [X] **Persistent metric storage backend**
-  - Implemented MetricStore abstraction layer implemented to support multiple time-series backends
-  - Initial backend integration completed using VictoriaMetrics:
-    - Prometheus-compatible label formatting
-    - Batch write support via /api/v1/import/prometheus
-    - Gzip compression and retry logic
-    - Tag enrichment with metadata (e.g. hostname, container ID)
-- [X] Design and implement auth package with support for:
-    - Single Sign-On (SSO) via Google, AWS Cognito, and Azure AD
-    - Multi-factor authentication (MFA) including TOTP and hardware tokens (e.g. YubiKey)
-    - Role-based access control (RBAC) for dashboard and API endpoints
+- **Container Metrics**  
+  - Full support for **Podman** and **Docker** runtime metrics.  
+  - Per-container CPU, memory, I/O, uptime, and status.
 
-## 🔜 In Progress / Next
+- **Log Collection**  
+  - Journald streaming with cursor tracking.  
+  - Auth logs from `/var/log/auth.log` or `/var/log/secure`.  
+  - Deduplicated, filtered, and enriched with host metadata.
 
-- [ ] Design and implement UserStore abstraction layer implemented to support multiple SQL backends for storing User / Role / Permission data
-- [ ] Finalize front-end html/css/js templates for administration panel
-- [ ] Refactor agent and server config structs to support full TLS/mTLS config validation
-- [ ] Historical dashboard views and time-series charting
-- [ ] Alerting engine and trigger conditions
-- [ ] Podman container lifecycle tracking and restart alerting
+- **Data Streaming**  
+  - Secure **mTLS-encrypted gRPC** streaming.  
+  - Supports `SubmitMetrics` and `SubmitStream` API.  
+  - Batching, retry logic, and worker pool for resilience and throughput.
 
+---
 
-# GoSight Project Status: Authentication & Session Security ✅
+## Server Capabilities
 
-## 🔐 JWT-Based Session System
+- **Authentication & Access Control**  
+  - Local login with **bcrypt** password hashing and TOTP-based **MFA**.  
+  - **SSO** via Google, AWS Cognito, and Azure AD (OIDC).  
+  - **JWT-based session system** with secure cookies and expiration.  
+  - **RBAC** with assignable roles and fine-grained **permissions**.
+  - **Audit/Tracing** with trace-id injection on every api call.
 
-- ✔️ Implemented secure, stateless JWT authentication
-- ✔️ Created `SessionClaims` struct with:
-  - `sub` (user ID)
-  - `roles []string`
-  - `trace_id` (request correlation)
-  - `roles_refreshed_at` (for TTL-based role caching)
-- ✔️ Enforced secure cookie handling (`HttpOnly`, `Secure`, `SameSite=Strict`)
-- ✔️ Accepted tokens from cookies or `Authorization: Bearer` header
+- **Live Observability Dashboard**  
+  - Dashboard built with Tailwind + Flowbite.  
+  - **Real-time charts** using ApexCharts for CPU, memory, disk, and network.  
+  - Interactive host and container explorer.  
+  - Expandable metric detail view per endpoint.  
+  - Role-restricted UI panels.
 
-## 👤 RBAC (Roles & Permissions)
+- **WebSocket Streaming**  
+  - Live updates for metrics and logs to the frontend via `/ws/metrics` and `/ws/logs`.
 
-- ✔️ IAM-style permissions using `namespace:resource:action` format
-- ✔️ DB schema includes `roles`, `permissions`, `user_roles`, and `role_permissions`
-- ✔️ Built `GetUserWithPermissions()` to load roles and permissions for any user
-- ✔️ Flattened permissions and extracted role names for efficient permission checks
+- **Rules, Events, and Alerts**  
+  - Expression-based **Rules** with threshold logic.  
+  - **Alerts** trigger actions like webhook/email dispatch. (runbook execution to come)
+  - YAML/JSON-based definition and configuration of rules and actions.  
+  - Inspired by **CloudWatch Alarms** and **EventBridge**.
 
-## 🧠 Context Utilities
+- **Storage and Querying**  
+  - **VictoriaMetrics** is used for scalable metric storage.  
+  - Abstracted interface supports future backends (e.g., InfluxDB, TimescaleDB).  
+  - API supports:  
+    - Full PromQL-style query (`/api/v1/query`)  
+    - RESTful discovery endpoints (`/api/v1/{namespace}/{sub}/dimensions`, etc.)  
+    - Latest metric values and historical range queries.
+    - Querying Logs, Events, Alerts (`/api/v1/logs` `/api/v1/events` `/api/v1/alerts`)
 
-- ✔️ Injected `user_id`, `roles`, `permissions`, and `trace_id` into request context
-- ✔️ Decoupled logic from `contextutil` to avoid circular imports
-- ✔️ Centralized session context injection via `InjectSessionContext()` in `gosightauth`
+---
 
-## 🔁 Role Revalidation & Caching
+## In Progress / Upcoming
 
-- ✔️ Roles are embedded in JWT at login
-- ✔️ TTL-based revalidation using `roles_refreshed_at`
-- ✔️ Auto-refresh from DB if roles are stale or missing
-- ✔️ Ready for token regeneration or session versioning if needed
+- Full UI completion across all dashboard tabs.  
+- Log archive backend selector (File, JSONL, Elasticsearch).  
+- Additional collector types (Windows Event Log, Cloud Metrics).  
+- Alert routing engine (webhook, email, script targets).  
+- CLI tools for audit and manual query.  
+- Contributor guide and simplified dev setup via `dev/Makefile`.
 
-## 🧪 Observability & Logging
+---
 
-- ✔️ Structured JSON access logs via `AccessLogMiddleware`
-- ✔️ Full support for `X-Trace-ID` propagation and response headers
-- ✔️ Logged:
-  - Timestamp
-  - Method & path
-  - User ID
-  - Trace ID
-  - Roles & permissions
-  - Status code
-  - Duration in milliseconds
-  - User agent & IP
+##  Technologies Used
 
-## 🚀 Middleware Stack
-
-- `AccessLogMiddleware`: trace ID, structured logging
-- `AuthMiddleware`: validates JWT, injects context, handles role TTL
+- **Go** for all backend and agent components.  
+- **PostgreSQL** for user/role/session metadata.  
+- **VictoriaMetrics** for time-series metrics.  
+- **Tailwind CSS + Flowbite** for UI design.  
+- **Chart.js / ApexCharts** for real-time graphs.  
+- **gRPC**, **mTLS**, **JWT**, **OAuth2**, **TOTP** for secure telemetry and auth.
