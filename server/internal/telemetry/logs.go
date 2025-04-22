@@ -3,24 +3,21 @@ package telemetry
 import (
 	"io"
 
-	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
-	"github.com/aaronlmathis/gosight/server/internal/store/logstore"
+	"github.com/aaronlmathis/gosight/server/internal/sys"
 	"github.com/aaronlmathis/gosight/shared/model"
 	pb "github.com/aaronlmathis/gosight/shared/proto"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 type LogsHandler struct {
-	logstore logstore.LogStore
+	Sys *sys.SystemContext
 	pb.UnimplementedLogServiceServer
-	websocket *websocket.Hub
 }
 
-func NewLogsHandler(s logstore.LogStore, ws *websocket.Hub) *LogsHandler {
-	utils.Debug("LogsHandler initialized with store: %T", s)
+func NewLogsHandler(sys *sys.SystemContext) *LogsHandler {
+	utils.Debug("LogsHandler initialized with store: %T", sys.Stores.Logs)
 	return &LogsHandler{
-		logstore:  s,
-		websocket: ws,
+		Sys: sys,
 	}
 }
 
@@ -38,11 +35,12 @@ func (h *LogsHandler) SubmitStream(stream pb.LogService_SubmitStreamServer) erro
 			return err
 		}
 
+		// Convert payload into a model.LogPayload.
 		payload := ConvertToModelLogPayload(pbPayload)
 
 		// Websocket broadcast
-		h.websocket.BroadcastLog(payload)
-		err = h.logstore.Write([]model.LogPayload{payload}, stream.Context())
+		h.Sys.Web.BroadcastLog(payload)
+		err = h.Sys.Stores.Logs.Write([]model.LogPayload{payload}, stream.Context())
 		if err != nil {
 			utils.Error("Failed to store logs from host %s: %v", payload.EndpointID, err)
 		} else {

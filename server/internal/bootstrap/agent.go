@@ -33,6 +33,9 @@ import (
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
+// InitAgentTracker initializes the agent tracker for the GoSight agent.
+// The agent tracker is responsible for tracking the state of agents and
+// their associated metrics and logs.
 func InitAgentTracker(ctx context.Context, env string, dataStore datastore.DataStore) (*agenttracker.AgentTracker, error) {
 	tracker := agenttracker.NewAgentTracker()
 

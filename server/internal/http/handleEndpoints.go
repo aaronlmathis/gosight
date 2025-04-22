@@ -66,7 +66,7 @@ func (s *HttpServer) HandleEndpointPage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	user, err := s.UserStore.GetUserWithPermissions(ctx, userID)
+	user, err := s.Sys.Stores.Users.GetUserWithPermissions(ctx, userID)
 	if err != nil {
 		utils.Error("Failed to load user %s: %v", userID, err)
 		http.Error(w, "failed to load user", http.StatusInternalServerError)
@@ -107,14 +107,14 @@ func (s *HttpServer) HandleEndpointDetail(w http.ResponseWriter, r *http.Request
 		return
 	}
 	// Check if user has permission to view the dashboard
-	user, err := s.UserStore.GetUserWithPermissions(ctx, userID)
+	user, err := s.Sys.Stores.Users.GetUserWithPermissions(ctx, userID)
 	if err != nil {
 		utils.Error("Failed to load user %s: %v", userID, err)
 		http.Error(w, "failed to load user", http.StatusInternalServerError)
 		return
 	}
 
-	meta, _ := s.MetaTracker.Get(endpointID)
+	meta, _ := s.Sys.Tele.Meta.Get(endpointID)
 
 	// Build Template data based on endpoint_id
 	pageData := templates.TemplateData{

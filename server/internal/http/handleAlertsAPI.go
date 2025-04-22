@@ -9,7 +9,7 @@ func (s *HttpServer) HandleAlertsAPI(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	alerts := s.AlertsMgr.ListActive()
+	alerts := s.Sys.Tele.Alerts.ListActive()
 	if err := json.NewEncoder(w).Encode(alerts); err != nil {
 		http.Error(w, "failed to encode alerts", http.StatusInternalServerError)
 		return

@@ -40,7 +40,7 @@ func (s *HttpServer) setupRoutes() {
 }
 
 func (s *HttpServer) setupStaticRoutes() {
-	staticFS := http.FileServer(http.Dir(s.Config.Web.StaticDir))
+	staticFS := http.FileServer(http.Dir(s.Sys.Cfg.Web.StaticDir))
 
 	/*
 		cacheWrapper := func(h http.Handler) http.Handler {
@@ -63,7 +63,7 @@ func (s *HttpServer) setupStaticRoutes() {
 			if ct, ok := contentTypeMap[ext]; ok {
 				w.Header().Set("Content-Type", ct)
 			}
-			fullPath := filepath.Join(s.Config.Web.StaticDir, subdir, filepath.Base(r.URL.Path))
+			fullPath := filepath.Join(s.Sys.Cfg.Web.StaticDir, subdir, filepath.Base(r.URL.Path))
 			http.ServeFile(w, r, fullPath)
 		}))
 	}
@@ -90,12 +90,12 @@ func (s *HttpServer) setupAuthRoutes() {
 
 func (s *HttpServer) setupIndexRoutes() {
 	s.Router.Handle("/",
-		gosightauth.AuthMiddleware(s.UserStore)(
+		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
 			gosightauth.RequirePermission("gosight:dashboard:view",
 				gosightauth.AccessLogMiddleware(
 					http.HandlerFunc(s.HandleEndpointPage),
 				),
-				s.UserStore,
+				s.Sys.Stores.Users,
 			),
 		),
 	)
@@ -103,22 +103,22 @@ func (s *HttpServer) setupIndexRoutes() {
 
 func (s *HttpServer) setupEndpointRoutes() {
 	s.Router.Handle("/endpoints",
-		gosightauth.AuthMiddleware(s.UserStore)(
+		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
 			gosightauth.RequirePermission("gosight:dashboard:view",
 				gosightauth.AccessLogMiddleware(
 					http.HandlerFunc(s.HandleEndpointPage),
 				),
-				s.UserStore,
+				s.Sys.Stores.Users,
 			),
 		),
 	)
 	s.Router.Handle("/endpoints/{endpoint_id}",
-		gosightauth.AuthMiddleware(s.UserStore)(
+		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
 			gosightauth.RequirePermission("gosight:dashboard:view",
 				gosightauth.AccessLogMiddleware(
 					http.HandlerFunc(s.HandleEndpointDetail),
 				),
-				s.UserStore,
+				s.Sys.Stores.Users,
 			),
 		),
 	)
@@ -137,45 +137,45 @@ func (s *HttpServer) setupAPIRoutes() {
 	api.HandleFunc("/", s.GetNamespaces).Methods("GET")
 
 	api.Handle("/agents",
-		gosightauth.AuthMiddleware(s.UserStore)(
+		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
 			gosightauth.RequirePermission("gosight:dashboard:view",
 				http.HandlerFunc(s.HandleAgentsAPI),
-				s.UserStore,
+				s.Sys.Stores.Users,
 			),
 		)).Methods("GET")
 
 	api.Handle("/logs",
-		gosightauth.AuthMiddleware(s.UserStore)(
+		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
 			gosightauth.RequirePermission("gosight:logs:view",
 				http.HandlerFunc(s.HandleLogAPI), // <- pass your actual FileStore here
-				s.UserStore,
+				s.Sys.Stores.Users,
 			),
 		),
 	).Methods("GET")
 
 	api.Handle("/logs/latest",
-		gosightauth.AuthMiddleware(s.UserStore)(
+		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
 			gosightauth.RequirePermission("gosight:logs:view",
 				http.HandlerFunc(s.HandleRecentLogs), // <- pass your actual FileStore here
-				s.UserStore,
+				s.Sys.Stores.Users,
 			),
 		),
 	).Methods("GET")
 
 	api.Handle("/events",
-		gosightauth.AuthMiddleware(s.UserStore)(
+		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
 			gosightauth.RequirePermission("gosight:events:view",
 				http.HandlerFunc(s.HandleEventsAPI), // <- pass your actual FileStore here
-				s.UserStore,
+				s.Sys.Stores.Users,
 			),
 		),
 	).Methods("GET")
 
 	api.Handle("/alerts",
-		gosightauth.AuthMiddleware(s.UserStore)(
+		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
 			gosightauth.RequirePermission("gosight:events:view",
 				http.HandlerFunc(s.HandleAlertsAPI), // <- pass your actual FileStore here
-				s.UserStore,
+				s.Sys.Stores.Users,
 			),
 		),
 	).Methods("GET")
@@ -189,5 +189,5 @@ func (s *HttpServer) setupAPIRoutes() {
 }
 
 func (s *HttpServer) setupWebSocketRoutes() {
-	s.Router.HandleFunc("/ws/metrics", s.WebSocket.ServeWS)
+	s.Router.HandleFunc("/ws/metrics", s.Sys.Web.ServeWS)
 }

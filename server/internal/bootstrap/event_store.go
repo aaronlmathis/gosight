@@ -19,9 +19,7 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// gosight/agent/internal/bootstrap/user_store.go
-// // Package bootstrap initializes the user store
-// Package store provides an interface for storing and retrieving user / permission data
+// gosight/agent/internal/bootstrap/event_store.go
 
 package bootstrap
 
@@ -40,6 +38,7 @@ import (
 // and retrieval of events, whether it's in memory, a database, or any other
 // storage mechanism.
 
+// InitEventStore initializes the event store for the GoSight server.
 func InitEventStore(ctx context.Context, cfg *config.Config) (eventstore.EventStore, error) {
 	utils.Info("Initializing user store type: %s", cfg.EventStore.Engine)
 	switch cfg.EventStore.Engine {

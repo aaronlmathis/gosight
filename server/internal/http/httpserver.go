@@ -25,7 +25,6 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package httpserver
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -33,20 +32,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aaronlmathis/gosight/server/internal/alerts"
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
-	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/http/templates"
-	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
-	"github.com/aaronlmathis/gosight/server/internal/rules"
-	"github.com/aaronlmathis/gosight/server/internal/store/agenttracker"
-	"github.com/aaronlmathis/gosight/server/internal/store/datastore"
-	"github.com/aaronlmathis/gosight/server/internal/store/eventstore"
-	"github.com/aaronlmathis/gosight/server/internal/store/logstore"
-	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
-	"github.com/aaronlmathis/gosight/server/internal/store/metricindex"
-	"github.com/aaronlmathis/gosight/server/internal/store/metricstore"
-	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
+	"github.com/aaronlmathis/gosight/server/internal/sys"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/gorilla/mux"
 	"golang.org/x/text/cases"
@@ -54,62 +42,23 @@ import (
 )
 
 type HttpServer struct {
-	AgentTracker   *agenttracker.AgentTracker
-	APIMetricStore *APIMetricStore
-	AuthProviders  map[string]gosightauth.AuthProvider
-	Config         *config.Config
-	MetricIndex    *metricindex.MetricIndex
-	MetricStore    metricstore.MetricStore
-	LogStore       logstore.LogStore
-	MetaTracker    *metastore.MetaTracker
-	Router         *mux.Router
-	UserStore      userstore.UserStore
-	DataStore      datastore.DataStore
-	EventStore     eventstore.EventStore
-	AlertsMgr      *alerts.Manager
-	Evaluator      *rules.Evaluator
-	WebSocket      *websocket.Hub
-	httpServer     *http.Server
+	httpServer *http.Server
+	Router     *mux.Router
+	Sys        *sys.SystemContext
 }
 
-func NewServer(
-	ctx context.Context,
-	agentTracker *agenttracker.AgentTracker,
-	authProviders map[string]gosightauth.AuthProvider,
-	cfg *config.Config,
-	metaTracker *metastore.MetaTracker,
-	metricIndex *metricindex.MetricIndex,
-	metricStore metricstore.MetricStore,
-	logStore logstore.LogStore,
-	userStore userstore.UserStore,
-	dataStore datastore.DataStore,
-	eventStore eventstore.EventStore,
-	alertsMgr *alerts.Manager,
-	evaluator *rules.Evaluator,
-	webSocket *websocket.Hub,
-) *HttpServer {
+// NewServer creates a new HTTP server instance with the provided system context.
+// It initializes the router and sets up the server configuration.
+func NewServer(sys *sys.SystemContext) *HttpServer {
 	router := mux.NewRouter()
 	router.StrictSlash(true)
 	s := &HttpServer{
-		AgentTracker:   agentTracker,
-		APIMetricStore: &APIMetricStore{Store: metricStore},
-		AuthProviders:  authProviders,
-		Config:         cfg,
-		MetaTracker:    metaTracker,
-		MetricIndex:    metricIndex,
-		MetricStore:    metricStore,
-		Router:         router,
-		LogStore:       logStore,
-		UserStore:      userStore,
-		DataStore:      dataStore,
-		EventStore:     eventStore,
-		Evaluator:      evaluator,
-		AlertsMgr:      alertsMgr,
-		WebSocket:      webSocket,
 		httpServer: &http.Server{
-			Addr:    cfg.Server.HTTPAddr,
+			Addr:    sys.Cfg.Server.HTTPAddr,
 			Handler: router,
 		},
+		Router: router,
+		Sys:    sys,
 	}
 
 	return s
@@ -126,27 +75,31 @@ func (s *HttpServer) Start() error {
 		"   UserStore:               %T\n"+
 		"   DataStore:               %T\n"+
 		"   EventStore:              %T\n"+
+		"   RuleStore:               %T\n"+
+		"   AlertManager:            %T\n"+
 		"   Router Initialized:      %v\n"+
 		"   AuthProviders:           %v\n",
-		s.Config != nil,
-		s.MetricStore,
-		s.MetricIndex,
-		s.MetaTracker,
-		s.AgentTracker,
-		s.UserStore,
-		s.DataStore,
-		s.EventStore,
+		s.Sys.Cfg != nil,
+		s.Sys.Stores.Metrics,
+		s.Sys.Tele.Index,
+		s.Sys.Tele.Meta,
+		s.Sys.Agents,
+		s.Sys.Stores.Users,
+		s.Sys.Stores.Data,
+		s.Sys.Stores.Events,
+		s.Sys.Stores.Rules,
+		s.Sys.Tele.Alerts,
 		s.Router != nil,
-		getAuthProviderKeys(s.AuthProviders),
+		getAuthProviderKeys(s.Sys.Auth),
 	)
 	s.setupRoutes()
 
-	err := templates.InitTemplates(s.Config, s.templateFuncs())
+	err := templates.InitTemplates(s.Sys.Cfg, s.templateFuncs())
 	if err != nil {
 		utils.Fatal("template init failed: %v", err)
 	}
-	utils.Info("HTTPS server running at %s", s.Config.Server.HTTPAddr)
-	if err := http.ListenAndServeTLS(s.Config.Server.HTTPAddr, s.Config.TLS.HttpsCertFile, s.Config.TLS.HttpsKeyFile, s.Router); err != nil {
+	utils.Info("HTTPS server running at %s", s.Sys.Cfg.Server.HTTPAddr)
+	if err := http.ListenAndServeTLS(s.Sys.Cfg.Server.HTTPAddr, s.Sys.Cfg.TLS.HttpsCertFile, s.Sys.Cfg.TLS.HttpsKeyFile, s.Router); err != nil {
 		utils.Error("HTTPS server failed: %v", err)
 		return err
 	}
@@ -193,10 +146,10 @@ func (s *HttpServer) templateFuncs() template.FuncMap {
 	}
 }
 
-func (s *HttpServer) Shutdown(ctx context.Context) error {
+func (s *HttpServer) Shutdown() error {
 	utils.Info("Shutting down HTTP server...")
 
-	if err := s.httpServer.Shutdown(ctx); err != nil {
+	if err := s.httpServer.Shutdown(s.Sys.Ctx); err != nil {
 		utils.Error("HTTP shutdown error: %v", err)
 		return err
 	}

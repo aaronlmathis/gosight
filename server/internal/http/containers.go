@@ -63,7 +63,7 @@ func (s *HttpServer) HandleContainers(w http.ResponseWriter, r *http.Request) {
 	for metricKey, shortName := range queries {
 		for _, sub := range []string{"podman", "docker"} { // TODO: Dynamically track this
 			fullMetric := fmt.Sprintf("container.%s.%s", sub, shortName)
-			rows, err := s.MetricStore.QueryInstant(fullMetric, map[string]string{
+			rows, err := s.Sys.Stores.Metrics.QueryInstant(fullMetric, map[string]string{
 				"namespace": "container",
 			})
 			if err != nil {

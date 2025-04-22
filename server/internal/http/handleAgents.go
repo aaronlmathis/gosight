@@ -55,7 +55,7 @@ func (s *HttpServer) HandleAgentsPage(w http.ResponseWriter, r *http.Request, te
 // HandleAgentsAPI returns a JSON list of active agents
 
 	func (s *HttpServer) HandleAgentsAPI(w http.ResponseWriter, r *http.Request) {
-		agents := s.AgentTracker.GetAgents()
+		agents := s.Sys.Agents.GetAgents()
 
 		sort.SliceStable(agents, func(i, j int) bool {
 			return agents[i].Hostname < agents[j].Hostname
@@ -69,7 +69,7 @@ func (s *HttpServer) HandleAgentsAPI(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	storedAgents, err := s.DataStore.ListAgents(ctx)
+	storedAgents, err := s.Sys.Stores.Data.ListAgents(ctx)
 
 	if err != nil {
 		http.Error(w, "failed to load agents", http.StatusInternalServerError)
@@ -77,7 +77,7 @@ func (s *HttpServer) HandleAgentsAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 2. Get current in-memory live agents
-	liveMap := s.AgentTracker.GetAgentMap()
+	liveMap := s.Sys.Agents.GetAgentMap()
 
 	// 3. Merge: overwrite stored fields with live status if found
 	for i := range storedAgents {

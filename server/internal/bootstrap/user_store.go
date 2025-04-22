@@ -39,7 +39,7 @@ import (
 func InitUserStore(cfg *config.Config) (userstore.UserStore, error) {
 	userStoreType := cfg.UserStore.Type
 
-	utils.Info("📦 Initializing user store type: %s", userStoreType)
+	utils.Info("Initializing user store type: %s", userStoreType)
 	var userStore userstore.UserStore
 	switch cfg.UserStore.Type {
 	case "postgres":

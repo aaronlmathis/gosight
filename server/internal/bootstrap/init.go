@@ -19,10 +19,7 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// gosight/agent/internal/bootstrap/metric_store.go
-// // Package bootstrap initializes the metric store and metric index for the GoSight agent.
-// Package store provides an interface for storing and retrieving metrics.
-// It includes an in-memory store and a file-based store for persistence.
+// gosight/agent/internal/bootstrap/init.go
 
 package bootstrap
 
@@ -30,60 +27,117 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aaronlmathis/gosight/server/internal/config"
-	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
-
-	"github.com/aaronlmathis/gosight/server/internal/store/logstore"
+	"github.com/aaronlmathis/gosight/server/internal/alerts"
+	"github.com/aaronlmathis/gosight/server/internal/events"
+	"github.com/aaronlmathis/gosight/server/internal/rules"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
-	"github.com/aaronlmathis/gosight/server/internal/store/metricindex"
-	"github.com/aaronlmathis/gosight/server/internal/store/metricstore"
+	"github.com/aaronlmathis/gosight/server/internal/sys"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func InitMetricIndex() (*metricindex.MetricIndex, error) {
+// initGoSight initializes the GoSight server by setting up various components
+// such as logging, metric index, log store, metric store, data store,
+// agent tracker, meta tracker, websocket hub, user store, event store,
+// rule store, emitter/alert manager, evaluator, and authentication providers.
 
-	metricIndex := metricindex.NewMetricIndex()
+// It loads these components into a SystemContext and returns an error if any
+// of the components fail to initialize.
 
-	return metricIndex, nil
+func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
+	// Initialize the GoSight server
+	fmt.Println("Initializing GoSight server...")
 
-}
-func InitMetricStore(ctx context.Context, cfg *config.Config, metricIndex *metricindex.MetricIndex) (metricstore.MetricStore, error) {
-	engine := cfg.Storage.Engine
-	utils.Info("Initializing metric store engine: %s", engine)
+	// Load the configuration
+	// Bootstrap config loading (flags -> env -> file)
+	cfg := LoadServerConfig()
+	fmt.Printf("About to init logger with level = %s\n", cfg.Logs.LogLevel)
 
-	s, err := metricstore.InitStore(ctx, cfg, metricIndex)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init metric store: %w", err)
+	// Initialize logging
+	SetupLogging(cfg)
+
+	// Initialize metric index
+	metricIndex, err := InitMetricIndex()
+	utils.Must("Metric index", err)
+
+	// Initialize log store
+	logStore, err := InitLogStore(ctx, cfg)
+	utils.Must("Log store", err)
+
+	// Init metric store
+	metricStore, err := InitMetricStore(ctx, cfg, metricIndex)
+	utils.Must("Metric store", err)
+
+	// Initialize data store
+	dataStore, err := InitDataStore(cfg)
+	utils.Must("Data store", err)
+
+	// Initialize agent tracker
+	agentTracker, err := InitAgentTracker(ctx, cfg.Server.Environment, dataStore)
+	utils.Must("Agent tracker", err)
+
+	// Initialize meta tracker
+	metaTracker := metastore.NewMetaTracker()
+
+	// Initialize the websocket hub
+	wsHub := InitWebSocketHub(metaTracker)
+
+	// Initialize user store
+	userStore, err := InitUserStore(cfg)
+	utils.Must("User store", err)
+
+	// Initialize event store
+	eventStore, err := InitEventStore(ctx, cfg)
+	utils.Must("Event store", err)
+
+	// Initialize rule store
+	ruleStore, err := InitRuleStore(cfg)
+	utils.Must("Rule store", err)
+
+	// Initialize emitter/alert manager
+	emitter := events.NewEmitter(eventStore)
+	alertMgr := alerts.NewManager(emitter)
+
+	// Initialize the evaluator
+	evaluator := rules.NewEvaluator(ruleStore, alertMgr)
+
+	// Initialize auth
+	authProviders, err := InitAuth(cfg, userStore)
+	utils.Must("Auth providers", err)
+
+	// Build stores
+	stores := &sys.StoreModule{
+		Metrics: metricStore,
+		Logs:    logStore,
+		Users:   userStore,
+		Data:    dataStore,
+		Events:  eventStore,
+		Rules:   ruleStore,
+		//Actions: actionStore,
 	}
 
-	utils.Info("Metric store [%s] initialized successfully", engine)
-	return s, nil
-}
-
-func InitMetaStore() *metastore.MetaTracker {
-	return metastore.NewMetaTracker()
-}
-
-func InitWebSocketHub(metaStore *metastore.MetaTracker) *websocket.Hub {
-	ws := websocket.NewHub(metaStore)
-	// Start WebSocket server
-
-	go func() {
-		utils.Info("Starting WebSocket hub...")
-		ws.Run() // no error returned, but safe to log around
-	}()
-	return ws
-}
-
-func InitLogStore(ctx context.Context, cfg *config.Config) (logstore.LogStore, error) {
-	engine := cfg.LogStore.Engine
-	utils.Info("Initializing log store engine: %s", engine)
-
-	s, err := logstore.InitLogStore(ctx, cfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init log store: %w", err)
+	// Build telemetry
+	telemetry := &sys.TelemetryModule{
+		Index:     metricIndex,
+		Meta:      metaTracker,
+		Evaluator: evaluator,
+		Alerts:    alertMgr,
+		Emitter:   emitter,
+		//Dispatcher: dispatcher,
 	}
 
-	utils.Info("Log store [%s] initialized successfully", engine)
-	return s, nil
+	// Initialize the system context
+	// The system context holds all the components of the GoSight server
+	// and provides a way to access them throughout the application.
+	sys := &sys.SystemContext{
+		Ctx:    context.Background(),
+		Cfg:    cfg,
+		Agents: agentTracker,
+		Web:    wsHub,
+		Auth:   authProviders,
+		Stores: stores,
+		Tele:   telemetry,
+	}
+
+	return sys, nil
+
 }

@@ -16,7 +16,7 @@ func (s *HttpServer) HandleEventsAPI(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	events := s.EventStore.GetRecent(limit)
+	events := s.Sys.Stores.Events.GetRecent(limit)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(events); err != nil {

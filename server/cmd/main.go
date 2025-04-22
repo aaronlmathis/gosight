@@ -24,18 +24,13 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/aaronlmathis/gosight/server/internal/alerts"
 	"github.com/aaronlmathis/gosight/server/internal/bootstrap"
-	"github.com/aaronlmathis/gosight/server/internal/events"
 	grpcserver "github.com/aaronlmathis/gosight/server/internal/grpc"
 	httpserver "github.com/aaronlmathis/gosight/server/internal/http"
-	"github.com/aaronlmathis/gosight/server/internal/rules"
-	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
@@ -59,66 +54,12 @@ func main() {
 
 	}()
 
-	// Bootstrap config loading (flags -> env -> file)
-	cfg := bootstrap.LoadServerConfig()
-	fmt.Printf("About to init logger with level = %s\n", cfg.Logs.LogLevel)
-
-	// Initialize logging
-	bootstrap.SetupLogging(cfg)
-
-	// Initialize metric index
-	metricIndex, err := bootstrap.InitMetricIndex()
-	utils.Must("Metric index", err)
-
-	// Initialize log store
-	logStore, err := bootstrap.InitLogStore(ctx, cfg)
-	utils.Must("Log store", err)
-
-	// Init metric store
-	metricStore, err := bootstrap.InitMetricStore(ctx, cfg, metricIndex)
-	utils.Must("Metric store", err)
-
-	// Initialize data store
-	dataStore, err := bootstrap.InitDataStore(cfg)
-	utils.Must("Data store", err)
-
-	// Initialize agent tracker
-	agentTracker, err := bootstrap.InitAgentTracker(ctx, cfg.Server.Environment, dataStore)
-	utils.Must("Agent tracker", err)
-
-	// Initialize meta tracker
-	metaTracker := metastore.NewMetaTracker()
-
-	// Initialize the websocket hub
-	wsHub := bootstrap.InitWebSocketHub(metaTracker)
-
-	// Initialize user store
-	userStore, err := bootstrap.InitUserStore(cfg)
-	utils.Must("User store", err)
-
-	// Initialize event store
-	eventStore, err := bootstrap.InitEventStore(ctx, cfg)
-	utils.Must("Event store", err)
-
-	// Initialize rule store
-	ruleStore, err := bootstrap.InitRuleStore(cfg)
-	utils.Must("Rule store", err)
-
-	// Initialize emitter/alert manager
-	emitter := events.NewEmitter(eventStore)
-	alertMgr := alerts.NewManager(emitter)
-
-	// Initialize the evaluator
-	evaluator := rules.NewEvaluator(ruleStore, alertMgr)
-
-	// Initialize auth
-	authProviders, err := httpserver.InitAuth(cfg, userStore)
-	utils.Must("Auth providers", err)
+	// Init System Context for Gosight
+	sys, err := bootstrap.InitGoSight(ctx)
+	utils.Must("System Context", err)
 
 	// Start HTTP server for admin console/api
-	// TODO: Clean this up - too many params.
-	// Need to organize things into SystemContext and Dependencies.
-	srv := httpserver.NewServer(ctx, agentTracker, authProviders, cfg, metaTracker, metricIndex, metricStore, logStore, userStore, dataStore, eventStore, alertMgr, evaluator, wsHub)
+	srv := httpserver.NewServer(sys)
 
 	go func() {
 		if err := srv.Start(); err != nil {
@@ -128,13 +69,13 @@ func main() {
 		}
 	}()
 
-	grpcServer, listener, err := grpcserver.NewGRPCServer(ctx, cfg, metricStore, logStore, agentTracker, metricIndex, metaTracker, eventStore, alertMgr, evaluator, wsHub)
+	grpcServer, err := grpcserver.NewGRPCServer(sys)
 	if err != nil {
 		utils.Fatal("Failed to start gRPC server: %v", err)
 	} else {
 		go func() {
-			utils.Info("GoSight server listening on %s", cfg.Server.GRPCAddr)
-			if err := grpcServer.Serve(listener); err != nil {
+			utils.Info("GoSight server listening on %s", sys.Cfg.Server.GRPCAddr)
+			if err := grpcServer.Server.Serve(grpcServer.Listener); err != nil {
 				utils.Fatal("Failed to serve gRPC: %v", err)
 			}
 		}()
@@ -143,17 +84,17 @@ func main() {
 	<-ctx.Done()
 	utils.Info("🧹 Shutting down GoSight...")
 
-	grpcServer.GracefulStop()
-	if err := srv.Shutdown(ctx); err != nil {
-		utils.Fatal("Failed to shutdown HTTP server: %v", err)
+	grpcServer.Server.GracefulStop()
+	if err := srv.Shutdown(); err != nil {
+		utils.Warn("Failed to shutdown HTTP server: %v", err)
 	}
-	if err := metricStore.Close(); err != nil {
+	if err := sys.Stores.Metrics.Close(); err != nil {
 		utils.Warn("Failed to close metric store: %v", err)
 	}
-	if err := dataStore.Close(); err != nil {
+	if err := sys.Stores.Data.Close(); err != nil {
 		utils.Warn("Failed to close datastore: %v", err)
 	}
-	if err := userStore.Close(); err != nil {
+	if err := sys.Stores.Users.Close(); err != nil {
 		utils.Warn("Failed to close userstore: %v", err)
 	}
 }

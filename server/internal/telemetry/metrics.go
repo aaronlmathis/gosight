@@ -25,14 +25,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package telemetry
 
 import (
-	"context"
-
-	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
-	"github.com/aaronlmathis/gosight/server/internal/rules"
-	"github.com/aaronlmathis/gosight/server/internal/store/agenttracker"
-	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
-	"github.com/aaronlmathis/gosight/server/internal/store/metricindex"
-	"github.com/aaronlmathis/gosight/server/internal/store/metricstore"
+	"github.com/aaronlmathis/gosight/server/internal/sys"
 	"github.com/aaronlmathis/gosight/shared/model"
 	pb "github.com/aaronlmathis/gosight/shared/proto"
 	"github.com/aaronlmathis/gosight/shared/utils"
@@ -41,26 +34,14 @@ import (
 // MetricsHandler implements pb.MetricsServiceServer
 // MetricsHandler implements MetricsServiceServer
 type MetricsHandler struct {
-	ctx          context.Context
-	store        metricstore.MetricStore
-	AgentTracker *agenttracker.AgentTracker
-	metricIndex  *metricindex.MetricIndex
-	metaTracker  *metastore.MetaTracker
-	evaluator    *rules.Evaluator
-	websocket    *websocket.Hub
+	Sys *sys.SystemContext
 	pb.UnimplementedMetricsServiceServer
 }
 
-func NewMetricsHandler(ctx context.Context, s metricstore.MetricStore, tracker *agenttracker.AgentTracker, metricIndex *metricindex.MetricIndex, meta *metastore.MetaTracker, evaluator *rules.Evaluator, ws *websocket.Hub) *MetricsHandler {
-	utils.Debug("MetricsHandler initialized with store: %T", s)
+func NewMetricsHandler(sys *sys.SystemContext) *MetricsHandler {
+	utils.Debug("MetricsHandler initialized with store: %T", sys.Stores.Metrics)
 	return &MetricsHandler{
-		ctx:          ctx,
-		store:        s,
-		AgentTracker: tracker,
-		metricIndex:  metricIndex,
-		metaTracker:  meta,
-		evaluator:    evaluator,
-		websocket:    ws,
+		Sys: sys,
 	}
 }
 
@@ -83,29 +64,31 @@ func (h *MetricsHandler) SubmitStream(stream pb.MetricsService_SubmitStreamServe
 		utils.Debug("Received metrics from %s", converted.Meta.EndpointID)
 
 		// Check rules
-		h.evaluator.Evaluate(h.ctx, converted.Metrics, converted.Meta)
+		h.Sys.Tele.Evaluator.Evaluate(h.Sys.Ctx, converted.Metrics, converted.Meta)
 
-		h.AgentTracker.UpdateAgent(converted.Meta)
+		// Update Agent Tracker
+		h.Sys.Agents.UpdateAgent(converted.Meta)
 
 		// Broadcast to WebSocket clients
-		h.websocket.BroadcastMetric(converted)
+		h.Sys.Web.BroadcastMetric(converted)
 
-		//fmt.Printf("Server received proto.Meta: %+v\n", req.Meta)
-		if err := h.store.Write([]model.MetricPayload{converted}); err != nil {
+		// Enqueue metrics for storage
+		if err := h.Sys.Stores.Metrics.Write([]model.MetricPayload{converted}); err != nil {
 			utils.Warn("Failed to enqueue metrics from %s: %v", converted.EndpointID, err)
 		} else {
 			utils.Info("Enqueued %d metrics from host: %s at %s", len(converted.Metrics), converted.EndpointID, converted.Timestamp)
 
 			if converted.Meta != nil && converted.Meta.EndpointID != "" {
-				//fmt.Printf("Setting meta for %s\n", converted.Meta.EndpointID)
-				h.metaTracker.Set(converted.Meta.EndpointID, *converted.Meta)
+				// Store the meta information in the MetaTracker
+				h.Sys.Tele.Meta.Set(converted.Meta.EndpointID, *converted.Meta)
 			} else {
 				utils.Debug("Missing EndpointID — not storing meta")
 			}
 
 			for _, m := range converted.Metrics {
-				h.metricIndex.Add(m.Namespace, m.SubNamespace, m.Name, m.Dimensions)
-				//utils.Debug("Indexed: %s / %s / %s", m.Namespace, m.SubNamespace, m.Name)
+				// Index the metric in the MetricIndex
+				h.Sys.Tele.Index.Add(m.Namespace, m.SubNamespace, m.Name, m.Dimensions)
+
 			}
 		}
 	}

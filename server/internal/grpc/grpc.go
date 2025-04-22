@@ -22,7 +22,6 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package grpcserver
 
 import (
-	"context"
 	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
@@ -31,17 +30,9 @@ import (
 	"net"
 	"os"
 
-	"github.com/aaronlmathis/gosight/server/internal/alerts"
 	"github.com/aaronlmathis/gosight/server/internal/config"
-	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
-	"github.com/aaronlmathis/gosight/server/internal/rules"
+	"github.com/aaronlmathis/gosight/server/internal/sys"
 
-	"github.com/aaronlmathis/gosight/server/internal/store/agenttracker"
-	"github.com/aaronlmathis/gosight/server/internal/store/eventstore"
-	"github.com/aaronlmathis/gosight/server/internal/store/logstore"
-	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
-	"github.com/aaronlmathis/gosight/server/internal/store/metricindex"
-	"github.com/aaronlmathis/gosight/server/internal/store/metricstore"
 	"github.com/aaronlmathis/gosight/server/internal/telemetry"
 	"github.com/aaronlmathis/gosight/shared/proto"
 	"github.com/aaronlmathis/gosight/shared/utils"
@@ -50,39 +41,60 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-func NewGRPCServer(
-	ctx context.Context, cfg *config.Config, store metricstore.MetricStore,
-	logStore logstore.LogStore, tracker *agenttracker.AgentTracker,
-	metricIndex *metricindex.MetricIndex, metaTracker *metastore.MetaTracker,
-	eventStore eventstore.EventStore, alertsMgr *alerts.Manager, evaluator *rules.Evaluator, ws *websocket.Hub) (*grpc.Server, net.Listener, error) {
+type GrpcServer struct {
+	Sys           *sys.SystemContext
+	LogHandler    *telemetry.LogsHandler
+	MetricHandler *telemetry.MetricsHandler
+	Listener      net.Listener
+	Server        *grpc.Server
+}
 
-	tlsCfg, err := loadTLSConfig(cfg)
+// NewGRPCServer creates a new gRPC server instance with the provided system context.
+// It initializes the server with TLS configuration and registers the metrics and log services.
+// The server listens on the address specified in the system context configuration.
+
+func NewGRPCServer(sys *sys.SystemContext) (*GrpcServer, error) {
+
+	// Load TLS for mTLS
+	tlsCfg, err := loadTLSConfig(sys.Cfg)
 	if err != nil {
-		return nil, nil, fmt.Errorf("TLS config failed: %w", err)
-	}
-	listener, err := net.Listen("tcp", cfg.Server.GRPCAddr)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to listen on %s: %w", cfg.Server.GRPCAddr, err)
+		return nil, fmt.Errorf("TLS config failed: %w", err)
 	}
 
+	// Create gRPC listener
+	listener, err := net.Listen("tcp", sys.Cfg.Server.GRPCAddr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to listen on %s: %w", sys.Cfg.Server.GRPCAddr, err)
+	}
+
+	// Generate credentials from tlsCfg and start gRPC Server
 	creds := credentials.NewTLS(tlsCfg)
 	server := grpc.NewServer(grpc.Creds(creds))
 
-	handler := telemetry.NewMetricsHandler(ctx, store, tracker, metricIndex, metaTracker, evaluator, ws)
-	proto.RegisterMetricsServiceServer(server, handler)
-	utils.Debug("📨 NewGRPCServer received metric store at: %p", store)
+	// Create metric and log handlers
+	metricHandler := telemetry.NewMetricsHandler(sys)
+	proto.RegisterMetricsServiceServer(server, metricHandler)
+	logHandler := telemetry.NewLogsHandler(sys)
 
-	loghandler := telemetry.NewLogsHandler(logStore, ws)
-	proto.RegisterLogServiceServer(server, loghandler)
-
-	utils.Debug("📨 NewGRPCServer received log store at: %p", store)
-	if cfg.Debug.EnableReflection {
+	if sys.Cfg.Debug.EnableReflection {
 		utils.Info("Enabling gRPC reflection")
 		reflection.Register(server)
 	}
 
-	return server, listener, nil
+	return &GrpcServer{
+		Sys:           sys,
+		LogHandler:    logHandler,
+		MetricHandler: metricHandler,
+		Listener:      listener,
+		Server:        server,
+	}, nil
+
 }
+
+// logTLSConfig loads the TLS configuration for the gRPC server.
+// It loads the server certificate and key, and sets up client authentication
+// if a client CA file is provided. It also verifies the client certificate
+// and logs the common name and SHA256 fingerprint of the client certificate.
 
 func loadTLSConfig(cfg *config.Config) (*tls.Config, error) {
 	cert, err := tls.LoadX509KeyPair(cfg.TLS.CertFile, cfg.TLS.KeyFile)

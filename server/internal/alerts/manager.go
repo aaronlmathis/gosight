@@ -38,7 +38,7 @@ func (m *Manager) HandleState(ctx context.Context, rule model.AlertRule, meta *m
 
 	if triggered {
 		if current == nil {
-			// 🔥 NEW firing
+			//  NEW firing
 			inst := &model.AlertInstance{
 				RuleID:     rule.ID,
 				EndpointID: meta.EndpointID,
@@ -61,13 +61,13 @@ func (m *Manager) HandleState(ctx context.Context, rule model.AlertRule, meta *m
 				Meta:       meta.Tags,
 			})
 		} else {
-			// ✅ Still firing — update last seen
+			// Still firing — update last seen
 			current.LastFired = now.Format(time.RFC3339)
 			current.LastValue = value
 		}
 	} else {
 		if current != nil {
-			// ✅ Resolved
+			// Resolved
 			delete(m.active, k)
 			m.emitter.Emit(ctx, model.EventEntry{
 				Timestamp:  now,

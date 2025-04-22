@@ -42,7 +42,7 @@ import (
 )
 
 func (s *HttpServer) GetNamespaces(w http.ResponseWriter, r *http.Request) {
-	utils.JSON(w, http.StatusOK, s.MetricIndex.GetNamespaces())
+	utils.JSON(w, http.StatusOK, s.Sys.Tele.Index.GetNamespaces())
 }
 
 func (s *HttpServer) GetSubNamespaces(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +52,7 @@ func (s *HttpServer) GetSubNamespaces(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing namespace in URL path", http.StatusBadRequest)
 		return
 	}
-	utils.JSON(w, http.StatusOK, s.MetricIndex.GetSubNamespaces(ns))
+	utils.JSON(w, http.StatusOK, s.Sys.Tele.Index.GetSubNamespaces(ns))
 }
 
 func (s *HttpServer) GetMetricNames(w http.ResponseWriter, r *http.Request) {
@@ -63,11 +63,11 @@ func (s *HttpServer) GetMetricNames(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing namespace or subnamespace in URL path", http.StatusBadRequest)
 		return
 	}
-	utils.JSON(w, http.StatusOK, s.MetricIndex.GetMetricNames(ns, sub))
+	utils.JSON(w, http.StatusOK, s.Sys.Tele.Index.GetMetricNames(ns, sub))
 }
 
 func (s *HttpServer) GetDimensions(w http.ResponseWriter, r *http.Request) {
-	utils.JSON(w, http.StatusOK, s.MetricIndex.GetDimensions())
+	utils.JSON(w, http.StatusOK, s.Sys.Tele.Index.GetDimensions())
 }
 
 func (s *HttpServer) GetMetricData(w http.ResponseWriter, r *http.Request) {
@@ -109,7 +109,7 @@ func (s *HttpServer) GetMetricData(w http.ResponseWriter, r *http.Request) {
 		end = time.Now()
 	}
 
-	points, err := s.MetricStore.QueryRange(fullMetric, start, end, filters)
+	points, err := s.Sys.Stores.Metrics.QueryRange(fullMetric, start, end, filters)
 	if err != nil {
 		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to query range data: %v", err)})
 		return
@@ -126,7 +126,7 @@ func (s *HttpServer) GetLatestValue(w http.ResponseWriter, r *http.Request) {
 	fullMetric := fmt.Sprintf("%s.%s.%s", ns, sub, metric)
 	filters := parseQueryFilters(r)
 
-	rows, err := s.MetricStore.QueryInstant(fullMetric, filters)
+	rows, err := s.Sys.Stores.Metrics.QueryInstant(fullMetric, filters)
 	if err != nil {
 		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to query latest value: %v", err)})
 		return
@@ -144,7 +144,7 @@ func (s *HttpServer) GetLatestValue(w http.ResponseWriter, r *http.Request) {
 
 func (s *HttpServer) HandleAPIQuery(w http.ResponseWriter, r *http.Request) {
 
-	utils.Debug("Known dimensions: %+v", s.MetricIndex.GetDimensions())
+	utils.Debug("Known dimensions: %+v", s.Sys.Tele.Index.GetDimensions())
 
 	query := r.URL.Query()
 
@@ -191,16 +191,16 @@ func (s *HttpServer) HandleAPIQuery(w http.ResponseWriter, r *http.Request) {
 
 	switch {
 	case len(metricNames) > 0 && !start.IsZero() && !end.IsZero():
-		result, err = s.MetricStore.QueryMultiRange(metricNames, start, end, filters)
+		result, err = s.Sys.Stores.Metrics.QueryMultiRange(metricNames, start, end, filters)
 
 	case len(metricNames) > 0:
-		result, err = s.MetricStore.QueryMultiInstant(metricNames, filters)
+		result, err = s.Sys.Stores.Metrics.QueryMultiInstant(metricNames, filters)
 
 	case len(metricNames) == 0:
 		// Power mode — return matching metrics across all known names
 		utils.Debug("📡 Metric omitted — searching all available metrics")
 
-		names := s.MetricIndex.FilterMetricNames(filters)
+		names := s.Sys.Tele.Index.FilterMetricNames(filters)
 		utils.Debug("🧪 Filtered metric names: %v", names)
 		if len(names) == 0 {
 			http.Error(w, "no metrics matched filters", http.StatusNotFound)
@@ -208,9 +208,9 @@ func (s *HttpServer) HandleAPIQuery(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !start.IsZero() && !end.IsZero() {
-			result, err = s.MetricStore.QueryMultiRange(names, start, end, filters)
+			result, err = s.Sys.Stores.Metrics.QueryMultiRange(names, start, end, filters)
 		} else {
-			result, err = s.MetricStore.QueryMultiInstant(names, filters)
+			result, err = s.Sys.Stores.Metrics.QueryMultiInstant(names, filters)
 		}
 	}
 
@@ -279,7 +279,7 @@ func (s *HttpServer) HandleExportQuery(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build final URL
-	exportURL := fmt.Sprintf("%s?%s", s.Config.Storage.URL+"/api/v1/export", params.Encode())
+	exportURL := fmt.Sprintf("%s?%s", s.Sys.Cfg.Storage.URL+"/api/v1/export", params.Encode())
 
 	resp, err := http.Get(exportURL)
 	if err != nil {

@@ -40,7 +40,7 @@ import (
 // startLogin handles the login/start route for various auth providers.
 func (s *HttpServer) HandleLoginStart(w http.ResponseWriter, r *http.Request) {
 	provider := r.URL.Query().Get("provider")
-	if handler, ok := s.AuthProviders[provider]; ok {
+	if handler, ok := s.Sys.Auth[provider]; ok {
 		handler.StartLogin(w, r)
 		return
 	}
@@ -51,7 +51,7 @@ func (s *HttpServer) HandleLoginStart(w http.ResponseWriter, r *http.Request) {
 func (s *HttpServer) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	provider := r.URL.Query().Get("provider")
 
-	handler, ok := s.AuthProviders[provider]
+	handler, ok := s.Sys.Auth[provider]
 	fmt.Println(handler)
 	if !ok {
 		http.Error(w, "invalid provider", http.StatusBadRequest)
@@ -65,7 +65,7 @@ func (s *HttpServer) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err = s.UserStore.GetUserWithPermissions(r.Context(), user.ID)
+	user, err = s.Sys.Stores.Users.GetUserWithPermissions(r.Context(), user.ID)
 	if err != nil {
 		utils.Error("❌ Failed to load roles for user %s: %v", user.Email, err)
 		http.Error(w, "failed to load user roles", http.StatusInternalServerError)
@@ -117,7 +117,7 @@ func (s *HttpServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var providers []string
-	for name := range s.AuthProviders {
+	for name := range s.Sys.Auth {
 		providers = append(providers, name)
 	}
 
@@ -156,14 +156,14 @@ func (s *HttpServer) HandleMFA(w http.ResponseWriter, r *http.Request) {
 		}
 		utils.Debug("Code Check for %s", userID)
 		code := r.FormValue("code")
-		user, err := s.UserStore.GetUserByID(r.Context(), userID)
+		user, err := s.Sys.Stores.Users.GetUserByID(r.Context(), userID)
 		if err != nil || !gosightauth.ValidateTOTP(user.TOTPSecret, code) {
 			http.Error(w, "Invalid TOTP code", http.StatusUnauthorized)
 			return
 		}
 		utils.Debug("Role Check for %s", userID)
 		// Load full roles/permissions
-		user, err = s.UserStore.GetUserWithPermissions(r.Context(), user.ID)
+		user, err = s.Sys.Stores.Users.GetUserWithPermissions(r.Context(), user.ID)
 		if err != nil {
 			http.Error(w, "failed to load roles", http.StatusInternalServerError)
 			return
