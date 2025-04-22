@@ -26,7 +26,6 @@ package metriccollector
 
 import (
 	"context"
-	"log"
 
 	"github.com/aaronlmathis/gosight/agent/internal/config"
 	"github.com/aaronlmathis/gosight/agent/internal/metrics/metriccollector/container"
@@ -43,13 +42,7 @@ type MetricRegistry struct {
 // NewRegistry initializes and registers enabled collectors
 func NewRegistry(cfg *config.Config) *MetricRegistry {
 	reg := &MetricRegistry{Collectors: make(map[string]MetricCollector)}
-	log.Printf("🔍 Available collectors: %v", func() []string {
-		collectors := []string{}
-		for _, name := range cfg.Agent.MetricsEnabled {
-			collectors = append(collectors, name)
-		}
-		return collectors
-	})
+
 	for _, name := range cfg.Agent.MetricsEnabled {
 		switch name {
 		case "cpu":

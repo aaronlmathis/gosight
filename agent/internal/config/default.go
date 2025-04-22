@@ -26,25 +26,50 @@ import (
 	"path/filepath"
 )
 
-const defaultAgentYAML = `server_url: "localhost:50051"
-interval: 2s
-host: "dev-machine-01-from config"
-metrics_enabled:
-  - cpu
-  - mem
-  - host
-  - disk
-  - net
-  - podman
-log_file: "./agent.log"     # Optional — empty means stdout/stderr
-log_level: "debug"     # Or "debug", etc.
-environment: "dev"   # Or "test", "prod"
+const defaultAgentYAML = `agent:
+  server_url: "localhost:50051"    # domain/ip:port
+  interval: 2s              # Metric collection / send interval
+  host: "dev-machine-01"    # Hostname of agent machine
+  metrics_enabled:          # Enabled collectors (found in agent/internal/collector and loaded from agent/internal/collector/registry.go)
+    - cpu
+    - mem
+    - host
+    - disk
+    - net
+    - podman
+    - docker
+  log_collection:
+    sources:
+      - journald
+    batch_size:  50     # Number of log entries to send in a payload
+    message_max: 1000   # Max size of messages before truncating (like in journald)
+  environment: "dev" # (dev/prod)
 
+# Log Config
+logs:
+  app_log_file: "./agent.log"      # Relative to path of execution
+  error_log_file: "error.log"      # Relative to path of execution
+  log_level: "debug"               # Or "info", etc.
+
+# TLS Config
 tls:
-  ca_file: "/certs/ca.crt"
-  cert_file: "/certs/client.crt"         # (only needed if doing mTLS)
-  key_file: "/certs/client.key"          # (only needed if doing mTLS)
+  ca_file: "../certs/ca.crt"
+  cert_file: "../certs/client.crt"         # (only needed if doing mTLS)
+  key_file: "../certs/client.key"          # (only needed if doing mTLS)
+
+# Podman collector config
+podman:
+  enabled: false
+  socket: "/run/user/1000/podman/podman.sock"
+
+docker:
+  enabled: true
+  socket: "/var/run/docker.sock"
+
 `
+
+// EnsureDefaultConfig checks if the default config file exists at the specified path.
+// If it does not exist, it creates the directory structure and writes the default config to the file.
 
 func EnsureDefaultConfig(path string) error {
 	if _, err := os.Stat(path); os.IsNotExist(err) {

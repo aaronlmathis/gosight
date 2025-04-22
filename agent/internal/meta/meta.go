@@ -33,6 +33,10 @@ import (
 	"github.com/shirou/gopsutil/v4/host"
 )
 
+// BuildMeta constructs the metadata for the agent, including system information and custom tags.
+// It retrieves the hostname, local IP address, and host information using the gopsutil library.
+// The metadata includes the agent ID, version, host ID, hostname, IP address, OS details,
+// and any additional tags provided in the configuration or as arguments.
 func BuildMeta(cfg *config.Config, addTags map[string]string, agentID, agentVersion string) *model.Meta {
 	hostname, err := os.Hostname()
 	if err != nil {
@@ -75,6 +79,9 @@ func BuildMeta(cfg *config.Config, addTags map[string]string, agentID, agentVers
 	return meta
 }
 
+// BuildContainerMeta builds a container-specific meta object
+// It includes additional fields relevant to containerized environments
+// such as container ID, image name, and runtime information.
 func BuildContainerMeta(cfg *config.Config, addTags map[string]string, agentID, agentVersion string) *model.Meta {
 	hostname, err := os.Hostname()
 	if err != nil {

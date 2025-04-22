@@ -42,7 +42,7 @@ func main() {
 
 	// Bootstrap config loading (flags -> env -> file)
 	cfg := bootstrap.LoadAgentConfig()
-	fmt.Printf("🔧 About to init logger with level = %s\n", cfg.Logs.LogLevel)
+	fmt.Printf("About to init logger with level = %s\n", cfg.Logs.LogLevel)
 
 	bootstrap.SetupLogging(cfg)
 	utils.Debug("debug logging is active from main.go")
@@ -71,7 +71,7 @@ func main() {
 
 	<-ctx.Done()
 
-	utils.Info("🔌 Context canceled, beginning agent shutdown...")
+	utils.Info("Context canceled, beginning agent shutdown...")
 
 	agent.Close(ctx)
 }

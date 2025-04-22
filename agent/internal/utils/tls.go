@@ -34,6 +34,9 @@ import (
 	"github.com/aaronlmathis/gosight/agent/internal/config"
 )
 
+// LoadTLSConfig loads the TLS configuration for the agent.
+// It reads the CA certificate and client certificate/key from the specified paths.
+// It returns a tls.Config object that can be used for secure communication.
 func LoadTLSConfig(cfg *config.Config) (*tls.Config, error) {
 
 	caPath := filepath.Clean(cfg.TLS.CAFile)

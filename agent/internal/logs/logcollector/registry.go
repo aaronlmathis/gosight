@@ -49,7 +49,7 @@ func NewRegistry(cfg *config.Config) *LogRegistry {
 		case "security":
 			//reg.LogCollectors["security"] = linuxcollector.NewSecurityLogCollector(cfg)
 		default:
-			utils.Warn("⚠️ Unknown collector: %s (skipping) \n", name)
+			utils.Warn("Unknown collector: %s (skipping) \n", name)
 		}
 	}
 	utils.Info("Loaded %d log collectors", len(reg.LogCollectors))
@@ -68,7 +68,7 @@ func (r *LogRegistry) Collect(ctx context.Context) ([][]model.LogEntry, error) {
 			continue
 		}
 		allBatches = append(allBatches, logBatches...)
-		//utils.Debug("✔️ LogRegistry returned %d batches", len(logBatches))
+		//utils.Debug("LogRegistry returned %d batches", len(logBatches))
 	}
 
 	return allBatches, nil

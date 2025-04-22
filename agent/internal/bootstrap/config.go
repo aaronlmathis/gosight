@@ -52,7 +52,7 @@ func LoadAgentConfig() *config.Config {
 
 	// Resolve config path
 	configPath := resolvePath(*configFlag, "GOSIGHT_AGENT_CONFIG", "config.yaml")
-	log.Printf("📄 Loaded config file from: %s", configPath)
+	log.Printf("Loaded config file from: %s", configPath)
 	if err := config.EnsureDefaultConfig(configPath); err != nil {
 		log.Fatalf("Could not create default config: %v", err)
 	}

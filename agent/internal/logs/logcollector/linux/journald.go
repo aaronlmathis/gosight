@@ -19,10 +19,12 @@ type JournaldCollector struct {
 	Config  *config.Config
 }
 
+// Name returns the name of the collector.
 func (j *JournaldCollector) Name() string {
 	return "journald"
 }
 
+// NewJournaldCollector initializes a new JournaldCollector.
 func NewJournaldCollector(cfg *config.Config) *JournaldCollector {
 	j, err := sdjournal.NewJournal()
 	if err != nil {
@@ -51,6 +53,11 @@ func NewJournaldCollector(cfg *config.Config) *JournaldCollector {
 		journal: j,
 	}
 }
+
+// Collect retrieves log entries from the journal.
+// It returns a slice of log entries, each containing a timestamp, level, message, and other metadata.
+// The method blocks until it has collected a batch of logs or the context is canceled.
+// It also handles the batching of logs based on the configured batch size and interval.
 func (j *JournaldCollector) Collect(ctx context.Context) ([][]model.LogEntry, error) {
 	var allBatches [][]model.LogEntry
 	var current []model.LogEntry
@@ -101,6 +108,10 @@ loop:
 	}
 	return allBatches, nil
 }
+
+// mapPriorityToLevel maps systemd journal priority levels to log levels.
+// It converts the priority string to a corresponding log level string.
+
 func mapPriorityToLevel(priority string) string {
 	switch priority {
 	case "0", "1", "2":
@@ -118,6 +129,11 @@ func mapPriorityToLevel(priority string) string {
 	}
 }
 
+// buildLogEntry constructs a LogEntry from a systemd journal entry.
+// It extracts the timestamp, level, message, source, and other metadata from the entry.
+// It also truncates the message if it exceeds the specified maximum size and sanitizes it to ensure valid UTF-8 encoding.
+// The function returns a LogEntry struct containing all the relevant information.
+// It also filters out unwanted fields and includes only the specified fields in the LogEntry.
 func buildLogEntry(entry *sdjournal.JournalEntry, maxSize int) model.LogEntry {
 	timestamp := time.Unix(0, int64(entry.RealtimeTimestamp)*int64(time.Microsecond))
 	msg := entry.Fields["MESSAGE"]
@@ -137,7 +153,6 @@ func buildLogEntry(entry *sdjournal.JournalEntry, maxSize int) model.LogEntry {
 		category = "unknown"
 	}
 	// Filtered fields
-	//fmt.Printf("📝 [%s] %s: %s\n", mapPriorityToLevel(entry.Fields["PRIORITY"]), source, msg)
 	wanted := []string{"_SYSTEMD_UNIT", "_EXE", "_CMDLINE", "_PID", "_UID", "MESSAGE_ID", "SYSLOG_IDENTIFIER", "CONTAINER_ID", "CONTAINER_NAME"}
 	fields := make(map[string]string)
 	for _, k := range wanted {
@@ -173,11 +188,14 @@ func buildLogEntry(entry *sdjournal.JournalEntry, maxSize int) model.LogEntry {
 		},
 	}
 }
+
+// parsePID converts a string representation of a PID to an integer.
 func parsePID(pidStr string) int {
 	pid, _ := strconv.Atoi(pidStr)
 	return pid
 }
 
+// sanitizeUTF8 ensures that the string is valid UTF-8.
 func sanitizeUTF8(s string) string {
 	if utf8.ValidString(s) {
 		return s

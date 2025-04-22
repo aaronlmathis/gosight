@@ -117,7 +117,7 @@ func (r *MetricRunner) Run(ctx context.Context) {
 
 					// Set EndpointID for meta
 					containerMeta.EndpointID = utils.GenerateEndpointID(containerMeta)
-					//utils.Debug("🔍 Container Meta Tags: %v", containerMeta.Tags)
+
 				} else {
 					// Host metrics, collect them separately
 					hostMetrics = append(hostMetrics, m)

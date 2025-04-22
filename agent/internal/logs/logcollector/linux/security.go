@@ -43,7 +43,6 @@ func (c *SecurityLogCollector) Name() string {
 }
 
 func (c *SecurityLogCollector) Collect(ctx context.Context) ([][]model.LogEntry, error) {
-	utils.Debug("🟢 SecurityLogCollector starting tail of %s", c.logPath)
 
 	file, err := os.Open(c.logPath)
 	if err != nil {
@@ -79,7 +78,7 @@ loop:
 		default:
 			if scanner.Scan() {
 				line := scanner.Text()
-				utils.Debug("🔍 Got new log line: %s", line)
+				utils.Debug("Got new log line: %s", line)
 
 				entry := c.parseLogLine(line)
 				if entry.Message == "" {
@@ -88,7 +87,7 @@ loop:
 				current = append(current, entry)
 
 				if len(current) >= c.batchSize {
-					utils.Debug("📦 Batch size reached (%d), flushing", c.batchSize)
+					utils.Debug("Batch size reached (%d), flushing", c.batchSize)
 					allBatches = append(allBatches, current)
 					current = nil
 				}

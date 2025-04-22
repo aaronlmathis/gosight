@@ -134,34 +134,6 @@ func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	return metrics, nil
 }
 
-/*
-	func sumNetRx(stats *PodmanStats) float64 {
-		var rx uint64
-		for _, net := range stats.Networks {
-			rx += net.RxBytes
-		}
-		return float64(rx)
-	}
-
-	func sumNetTx(stats *PodmanStats) float64 {
-		var tx uint64
-		for _, net := range stats.Networks {
-			tx += net.TxBytes
-		}
-		return float64(tx)
-	}
-
-	func calculateCPUPercent(stats *PodmanStats) float64 {
-		cpuDelta := float64(stats.CPUStats.CPUUsage.TotalUsage - stats.PreCPUStats.CPUUsage.TotalUsage)
-		sysDelta := float64(stats.CPUStats.SystemCPUUsage - stats.PreCPUStats.SystemCPUUsage)
-		onlineCPUs := float64(stats.CPUStats.OnlineCPUs)
-
-		if sysDelta > 0.0 && cpuDelta > 0.0 && onlineCPUs > 0.0 {
-			return (cpuDelta / sysDelta) * onlineCPUs * 100.0
-		}
-		return 0.0
-	}
-*/
 func inspectContainer(socketPath, containerID string) (*PodmanInspect, error) {
 	client := &http.Client{
 		Transport: &http.Transport{
