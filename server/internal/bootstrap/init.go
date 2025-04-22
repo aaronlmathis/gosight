@@ -28,6 +28,7 @@ import (
 	"fmt"
 
 	"github.com/aaronlmathis/gosight/server/internal/alerts"
+	"github.com/aaronlmathis/gosight/server/internal/dispatcher"
 	"github.com/aaronlmathis/gosight/server/internal/events"
 	"github.com/aaronlmathis/gosight/server/internal/rules"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
@@ -93,9 +94,18 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 	ruleStore, err := InitRuleStore(cfg)
 	utils.Must("Rule store", err)
 
-	// Initialize emitter/alert manager
+	// Initialize action store
+	actionStore, err := InitRouteStore(cfg)
+	utils.Must("Action store", err)
+
+	// Initialize emitter
 	emitter := events.NewEmitter(eventStore)
-	alertMgr := alerts.NewManager(emitter)
+
+	// Initialize dispatcher
+	dispatcher := dispatcher.NewDispatcher(actionStore.Routes)
+
+	// Initialize alert manager
+	alertMgr := alerts.NewManager(emitter, dispatcher)
 
 	// Initialize the evaluator
 	evaluator := rules.NewEvaluator(ruleStore, alertMgr)
@@ -112,7 +122,7 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 		Data:    dataStore,
 		Events:  eventStore,
 		Rules:   ruleStore,
-		//Actions: actionStore,
+		Actions: actionStore,
 	}
 
 	// Build telemetry

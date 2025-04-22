@@ -36,6 +36,8 @@ type RuleStore interface {
 	AddRule(ctx context.Context, rule model.AlertRule) error
 	UpdateRule(ctx context.Context, rule model.AlertRule) error
 	DeleteRule(ctx context.Context, id string) error
-	ListRules(ctx context.Context) ([]model.AlertRule, error)
 	GetActiveRules(ctx context.Context) ([]model.AlertRule, error)
+	GetRuleByID(ctx context.Context, id string) (model.AlertRule, error)
+	GetRuleByName(ctx context.Context, name string) (model.AlertRule, error)
+	ListRules(ctx context.Context) ([]model.AlertRule, error)
 }

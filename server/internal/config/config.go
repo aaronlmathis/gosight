@@ -106,6 +106,10 @@ type Config struct {
 		Path   string `yaml:"path"`   // optional path for JSON file
 	}
 
+	RouteStore struct {
+		Path string `yaml:"path"` // path for YAML file
+	}
+
 	Auth struct {
 		SSOEnabled bool         `yaml:"sso_enabled"`
 		MFASecret  string       `yaml:"mfa_secret_key"`

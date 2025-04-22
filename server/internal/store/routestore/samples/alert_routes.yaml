@@ -1,0 +1,20 @@
+routes:
+  - id: notify-admins
+    match:
+      level: critical
+      rule_id: high-cpu
+      tags:
+        env: prod
+        team: ops
+    actions:
+      - type: webhook
+        url: https://hooks.example.com/gosight
+        headers:
+          Authorization: "Bearer XYZ"
+
+  - id: log-to-file
+    match:
+      level: warning
+    actions:
+      - type: script
+        command: /opt/scripts/log_alert.sh

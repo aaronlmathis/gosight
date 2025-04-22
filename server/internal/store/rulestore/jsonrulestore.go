@@ -127,3 +127,27 @@ func (j *JSONRuleStore) GetActiveRules(ctx context.Context) ([]model.AlertRule, 
 	}
 	return active, nil
 }
+
+// GetRuleByID retrieves a rule by its ID from the JSON rule store.
+func (s *JSONRuleStore) GetRuleByID(ctx context.Context, id string) (model.AlertRule, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	if rule, ok := s.rules[id]; ok {
+		return rule, nil
+	}
+	return model.AlertRule{}, os.ErrNotExist
+}
+
+// GetRuleByName retrieves a rule by its Name from the JSON rule store.
+func (s *JSONRuleStore) GetRuleByName(ctx context.Context, name string) (model.AlertRule, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	for _, rule := range s.rules {
+		if rule.Name == name {
+			return rule, nil
+		}
+	}
+	return model.AlertRule{}, os.ErrNotExist
+}

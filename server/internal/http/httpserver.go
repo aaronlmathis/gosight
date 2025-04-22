@@ -76,6 +76,7 @@ func (s *HttpServer) Start() error {
 		"   DataStore:               %T\n"+
 		"   EventStore:              %T\n"+
 		"   RuleStore:               %T\n"+
+		"   RouteStore:              %T\n"+
 		"   AlertManager:            %T\n"+
 		"   Router Initialized:      %v\n"+
 		"   AuthProviders:           %v\n",
@@ -88,6 +89,7 @@ func (s *HttpServer) Start() error {
 		s.Sys.Stores.Data,
 		s.Sys.Stores.Events,
 		s.Sys.Stores.Rules,
+		s.Sys.Stores.Actions,
 		s.Sys.Tele.Alerts,
 		s.Router != nil,
 		getAuthProviderKeys(s.Sys.Auth),

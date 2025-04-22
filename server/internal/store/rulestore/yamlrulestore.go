@@ -135,3 +135,27 @@ func (s *YAMLRuleStore) GetActiveRules(ctx context.Context) ([]model.AlertRule, 
 	}
 	return filtered, nil
 }
+
+// GetRuleByID retrieves a rule by its ID.
+func (s *YAMLRuleStore) GetRuleByID(ctx context.Context, id string) (model.AlertRule, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	if rule, ok := s.rules[id]; ok {
+		return rule, nil
+	}
+	return model.AlertRule{}, os.ErrNotExist
+}
+
+// GetRuleByName retrieves a rule by its Name (case-sensitive).
+func (s *YAMLRuleStore) GetRuleByName(ctx context.Context, name string) (model.AlertRule, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	for _, rule := range s.rules {
+		if rule.Name == name {
+			return rule, nil
+		}
+	}
+	return model.AlertRule{}, os.ErrNotExist
+}

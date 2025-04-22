@@ -18,27 +18,32 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
-
-// gosight/agent/internal/bootstrap/rule_store.go
-// // Package bootstrap initializes the rule store
-
-package bootstrap
+// Package routestore provides functionality to load and manage action routes
+package routestore
 
 import (
-	"errors"
+	"os"
 
-	"github.com/aaronlmathis/gosight/server/internal/config"
-	"github.com/aaronlmathis/gosight/server/internal/store/rulestore"
+	"github.com/aaronlmathis/gosight/shared/model"
+	"gopkg.in/yaml.v3"
 )
 
-// InitRuleStore initializes the rule store based on the configuration.
-func InitRuleStore(cfg *config.Config) (rulestore.RuleStore, error) {
-	switch cfg.RuleStore.Engine {
-	case "yaml":
-		return rulestore.NewYAMLStore(cfg.RuleStore.Path)
-	case "memory":
-		return rulestore.NewMemoryStore(), nil
-	default:
-		return nil, errors.New("unsupported rule store engine: " + cfg.RuleStore.Engine)
+// RouteStore is a structure that holds a list of action routes.
+type RouteStore struct {
+	Routes []model.ActionRoute
+}
+
+// LoadRoutesFromFile loads action routes from a YAML file.
+func NewRouteStore(path string) (*RouteStore, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
 	}
+
+	var config model.ActionRouteSet
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		return nil, err
+	}
+
+	return &RouteStore{Routes: config.Routes}, nil
 }

@@ -39,6 +39,7 @@ import (
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/aaronlmathis/gosight/server/internal/store/metricindex"
 	"github.com/aaronlmathis/gosight/server/internal/store/metricstore"
+	"github.com/aaronlmathis/gosight/server/internal/store/routestore"
 	"github.com/aaronlmathis/gosight/server/internal/store/rulestore"
 	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
 )
@@ -51,7 +52,7 @@ type StoreModule struct {
 	Data    datastore.DataStore     // Hosts, endpoints, agents, etc.
 	Events  eventstore.EventStore   // Event logs, audit, alert events
 	Rules   rulestore.RuleStore     // Alert rules defined by users
-	//Actions actionstore.RouteStore  // Routes loaded from alert_routes.yaml
+	Actions *routestore.RouteStore  // Routes loaded from alert_routes.yaml
 }
 
 // TelemetryModule encapsulates telemetry-related state and processing.

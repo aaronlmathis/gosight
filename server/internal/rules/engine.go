@@ -25,8 +25,8 @@ package rules
 
 import (
 	"context"
-	"time"
 
+	"github.com/Knetic/govaluate"
 	"github.com/aaronlmathis/gosight/server/internal/alerts"
 	"github.com/aaronlmathis/gosight/server/internal/store/rulestore"
 	"github.com/aaronlmathis/gosight/shared/model"
@@ -66,72 +66,84 @@ func (e *Evaluator) Evaluate(ctx context.Context, metrics []model.Metric, meta *
 
 	activeRules, err := e.store.GetActiveRules(ctx)
 	if err != nil {
+		utils.Error("Failed to fetch active rules: %v", err)
 		return
 	}
 
 	for _, rule := range activeRules {
+		if !ruleMatchLabels(rule.Match, meta) {
+			continue
+		}
+
+		// Build map[string]interface{} for expression
+		values := make(map[string]interface{})
 		for _, m := range metrics {
-			if !ruleMatches(rule, m, meta) {
-				continue
+			// Example: "mem.used_percent" = 72.5
+			key := m.SubNamespace + "." + m.Name
+			values[key] = m.Value
+		}
+
+		// Evaluate expression
+		result, err := govaluate.NewEvaluableExpression(rule.Expression)
+		if err != nil {
+			utils.Error("Invalid rule expression (%s): %v", rule.ID, err)
+			continue
+		}
+
+		ok, err := result.Evaluate(values)
+		if err != nil {
+			utils.Error("Evaluation failed for rule (%s): %v", rule.ID, err)
+			continue
+		}
+
+		isTriggered, _ := ok.(bool)
+		key := rule.ID + "|" + meta.EndpointID
+
+		if isTriggered {
+			if !e.firing[key] {
+				e.firing[key] = true
+				e.alertMgr.HandleState(ctx, rule, meta, extractFirstValue(values), true)
 			}
-
-			// Track time window of matching metrics
-			key := rule.ID + "|" + meta.EndpointID
-			e.history[key] = append(e.history[key], m)
-
-			// Trim old metrics based on rule duration
-			dur, err := time.ParseDuration(rule.Trigger.Duration)
-			if err != nil {
-				continue
-			}
-			e.history[key] = trimOldMetrics(e.history[key], dur)
-
-			// Evaluate condition (e.g., > threshold for N seconds)
-			if len(e.history[key]) == 0 {
-				continue
-			}
-
-			triggered := true
-			for _, sample := range e.history[key] {
-				switch rule.Trigger.Operator {
-				case "gt":
-					if sample.Value <= rule.Trigger.Threshold {
-						triggered = false
-					}
-				case "lt":
-					if sample.Value >= rule.Trigger.Threshold {
-						triggered = false
-					}
-				case "eq":
-					if sample.Value != rule.Trigger.Threshold {
-						triggered = false
-					}
-				}
-				if !triggered {
-					break
-				}
-			}
-
-			if triggered {
-				if !e.firing[key] {
-					e.alertMgr.HandleState(ctx, rule, meta, m.Value, triggered)
-				}
-
-			} else {
+		} else {
+			if e.firing[key] {
 				delete(e.firing, key)
-
+				e.alertMgr.HandleState(ctx, rule, meta, extractFirstValue(values), false)
 			}
 		}
 	}
 }
 
-func trimOldMetrics(metrics []model.Metric, window time.Duration) []model.Metric {
-	cutoff := time.Now().Add(-window)
-	var trimmed []model.Metric
-	for _, m := range metrics {
-		if m.Timestamp.After(cutoff) {
-			trimmed = append(trimmed, m)
+// ruleMatchLabels checks if the rule's match labels match the given metadata labels.
+func ruleMatchLabels(match model.MatchCriteria, meta *model.Meta) bool {
+	if len(match.EndpointIDs) > 0 {
+		found := false
+		for _, id := range match.EndpointIDs {
+			if id == meta.EndpointID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
 		}
 	}
-	return trimmed
+
+	for k, v := range match.TagSelectors {
+		if meta.Tags[k] != v {
+			return false
+		}
+	}
+
+	return true
+}
+
+// extractFirstValue extracts the first float64 value from the map.
+// It returns 0.0 if no float64 value is found.
+func extractFirstValue(values map[string]interface{}) float64 {
+	for _, val := range values {
+		if f, ok := val.(float64); ok {
+			return f
+		}
+	}
+	return 0.0
 }
