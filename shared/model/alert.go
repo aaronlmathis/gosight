@@ -23,15 +23,22 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 
 package model
 
+import "time"
+
 // AlertRule represents a rule for triggering alerts based on metrics.
 type AlertRule struct {
-	ID      string           `json:"id"`
-	Name    string           `json:"name"`
-	Enabled bool             `json:"enabled"`
-	Level   string           `json:"level"` // info, warning, critical
-	Message string           `json:"message"`
-	Match   MatchCriteria    `json:"match"`
-	Trigger TriggerCondition `json:"trigger"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Enabled    bool   `json:"enabled"`
+	Level      string `json:"level"`      // info, warning, critical
+	Expression string `json:"expression"` // e.g. "mem.used_percent > 80 and swap.used_percent > 50"
+	Message    string `json:"message"`
+
+	Match    MatchCriteria `json:"match"`              // metric + label filters
+	Actions  []string      `json:"actions"`            // route IDs to trigger
+	Cooldown time.Duration `json:"cooldown,omitempty"` // suppress duplicate firing
+
+	EvalInterval time.Duration `json:"eval_interval"` // how often to check
 }
 
 // MetricSelector defines the metric to be monitored and any labels to match.
@@ -44,22 +51,19 @@ type MatchCriteria struct {
 	TagSelectors map[string]string `json:"tag_selectors,omitempty"` // match Meta.Tags
 }
 
-// TriggerCondition defines the condition under which an alert is triggered.
-type TriggerCondition struct {
-	Operator  string  `json:"operator"` // "gt", "lt", "eq"
-	Threshold float64 `json:"threshold"`
-	Duration  string  `json:"duration"` // e.g., "5m"
-}
-
 // AlertInstance represents the current state of a triggered alert.
 type AlertInstance struct {
-	RuleID     string            `json:"rule_id"`
-	EndpointID string            `json:"endpoint_id"`
-	State      string            `json:"state"`       // "firing", "resolved"
-	FirstFired string            `json:"first_fired"` // RFC3339
-	LastFired  string            `json:"last_fired"`  // RFC3339
-	LastValue  float64           `json:"last_value"`  // latest metric value
-	Labels     map[string]string `json:"labels"`      // optional: container, interface, etc.
-	Message    string            `json:"message"`     // from rule
-	Level      string            `json:"level"`       // info/warning/critical
+	RuleID     string `json:"rule_id"`
+	EndpointID string `json:"endpoint_id"`
+
+	State      string            `json:"state"`       // "ok", "firing", "resolved", "no_data"
+	Previous   string            `json:"previous"`    // previous state
+	FirstFired time.Time         `json:"first_fired"` // when it first started firing
+	LastFired  time.Time         `json:"last_fired"`  // when it last evaluated as firing
+	LastOK     time.Time         `json:"last_ok"`     // last time condition returned OK
+	LastValue  float64           `json:"last_value"`  // most recent value
+	LastLabels map[string]string `json:"labels"`      // optional: container name, interface, etc.
+	Labels     map[string]string `json:"labels"`
+	Message    string            `json:"message"` // expanded from template
+	Level      string            `json:"level"`   // from rule (info/warning/critical)
 }

@@ -30,6 +30,7 @@ func NewSender(ctx context.Context, cfg *config.Config) (*LogSender, error) {
 	// Load TLS config for agent
 	tlsCfg, err := agentutils.LoadTLSConfig(cfg)
 	if err != nil {
+		utils.Debug("Failed to load TLS config: %v", err)
 		return nil, err
 	}
 
@@ -45,6 +46,7 @@ func NewSender(ctx context.Context, cfg *config.Config) (*LogSender, error) {
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)),
 	)
 	if err != nil {
+		utils.Debug("Failed to create gRPC client: %v", err)
 		return nil, err
 	}
 	utils.Info("connecting to server at: %s", cfg.Agent.ServerURL)
@@ -56,6 +58,7 @@ func NewSender(ctx context.Context, cfg *config.Config) (*LogSender, error) {
 	//
 	stream, err := client.SubmitStream(ctx)
 	if err != nil {
+		utils.Debug("Failed to open stream: %v", err)
 		return nil, fmt.Errorf("failed to open stream: %w", err)
 	}
 

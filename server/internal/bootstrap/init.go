@@ -127,12 +127,12 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 
 	// Build telemetry
 	telemetry := &sys.TelemetryModule{
-		Index:     metricIndex,
-		Meta:      metaTracker,
-		Evaluator: evaluator,
-		Alerts:    alertMgr,
-		Emitter:   emitter,
-		//Dispatcher: dispatcher,
+		Index:      metricIndex,
+		Meta:       metaTracker,
+		Evaluator:  evaluator,
+		Alerts:     alertMgr,
+		Emitter:    emitter,
+		Dispatcher: dispatcher,
 	}
 
 	// Initialize the system context

@@ -45,6 +45,7 @@ type EventEntry struct {
 	ID         string            `json:"id"`
 	Timestamp  time.Time         `json:"timestamp"`
 	Level      string            `json:"level"`    // info, warning, critical
+	Type       string            `json:"type"`     // event type (system / alert)
 	Category   string            `json:"category"` // metric, log, system, security
 	Message    string            `json:"message"`
 	Source     string            `json:"source"` // metric name, log source, etc.

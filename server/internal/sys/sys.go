@@ -29,6 +29,7 @@ import (
 	"github.com/aaronlmathis/gosight/server/internal/alerts"
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
 	"github.com/aaronlmathis/gosight/server/internal/config"
+	"github.com/aaronlmathis/gosight/server/internal/dispatcher"
 	"github.com/aaronlmathis/gosight/server/internal/events"
 	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
 	"github.com/aaronlmathis/gosight/server/internal/rules"
@@ -57,12 +58,12 @@ type StoreModule struct {
 
 // TelemetryModule encapsulates telemetry-related state and processing.
 type TelemetryModule struct {
-	Index     *metricindex.MetricIndex // Metric name/dimension catalog
-	Meta      *metastore.MetaTracker   // Tracks source metadata (labels, tags, endpoint info)
-	Evaluator *rules.Evaluator         // Rule evaluator (metrics → match?)
-	Alerts    *alerts.Manager          // Tracks alert state per rule/endpoint
-	Emitter   *events.Emitter          // Emits events (alerts, system actions)
-	//Dispatcher *dispatcher.Dispatcher   // Routes alert events to actions
+	Index      *metricindex.MetricIndex // Metric name/dimension catalog
+	Meta       *metastore.MetaTracker   // Tracks source metadata (labels, tags, endpoint info)
+	Evaluator  *rules.Evaluator         // Rule evaluator (metrics → match?)
+	Alerts     *alerts.Manager          // Tracks alert state per rule/endpoint
+	Emitter    *events.Emitter          // Emits events (alerts, system actions)
+	Dispatcher *dispatcher.Dispatcher   // Routes alert events to actions
 }
 
 // SystemContext is passed to all subsystems, providing full access to config, state, and interfaces.
