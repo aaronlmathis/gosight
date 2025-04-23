@@ -37,11 +37,11 @@ import (
 )
 
 func InitUserStore(cfg *config.Config) (userstore.UserStore, error) {
-	userStoreType := cfg.UserStore.Type
+	userStoreEngine := cfg.UserStore.Engine
 
-	utils.Info("Initializing user store type: %s", userStoreType)
+	utils.Info("Initializing user store type: %s", userStoreEngine)
 	var userStore userstore.UserStore
-	switch cfg.UserStore.Type {
+	switch cfg.UserStore.Engine {
 	case "postgres":
 		db, err := sql.Open("postgres", cfg.UserStore.DSN)
 		if err != nil {
@@ -54,9 +54,9 @@ func InitUserStore(cfg *config.Config) (userstore.UserStore, error) {
 		userStore = pgstore.New(db)
 
 	default:
-		return nil, fmt.Errorf("unsupported userstore type: %s", cfg.UserStore.Type)
+		return nil, fmt.Errorf("unsupported userstore type: %s", cfg.UserStore.Engine)
 	}
 
-	utils.Info("User store [%s] initialized successfully", userStoreType)
+	utils.Info("User store [%s] initialized successfully", userStoreEngine)
 	return userStore, nil
 }

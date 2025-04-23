@@ -48,17 +48,17 @@ func NewAgentTracker() *AgentTracker {
 
 // Updates in memory store of Agent details
 func (t *AgentTracker) UpdateAgent(meta *model.Meta) {
-	utils.Debug("Entering UpdateAgent")
+	//utils.Debug("Entering UpdateAgent")
 	if meta.Hostname == "" || meta.ContainerID != "" {
 		return
 	}
-	utils.Debug("UpdateAgent: %s | %s | %s", meta.Hostname, meta.IPAddress, meta.AgentID)
+	//utils.Debug("UpdateAgent: %s | %s | %s", meta.Hostname, meta.IPAddress, meta.AgentID)
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	agent, exists := t.agents[meta.AgentID]
 	if !exists {
-		utils.Debug("Creating new agent: %s", meta.Hostname)
+		//utils.Debug("Creating new agent: %s", meta.Hostname)
 		agent = &model.Agent{
 			AgentID:    meta.AgentID,
 			HostID:     meta.HostID,
@@ -73,7 +73,7 @@ func (t *AgentTracker) UpdateAgent(meta *model.Meta) {
 		}
 		t.agents[meta.AgentID] = agent
 	} else {
-		utils.Debug("Updating existing agent: %s", meta.Hostname)
+		//utils.Debug("Updating existing agent: %s", meta.Hostname)
 		// Update mutable fields
 		agent.IP = meta.IPAddress
 		agent.OS = meta.OS
@@ -88,7 +88,7 @@ func (t *AgentTracker) UpdateAgent(meta *model.Meta) {
 		if startUnix, err := strconv.ParseInt(startRaw, 10, 64); err == nil {
 			if agent.StartTime.IsZero() {
 				agent.StartTime = time.Unix(startUnix, 0)
-				utils.Debug("meta.Tags[agent_start_time]: %s", meta.Tags["agent_start_time"])
+				//utils.Debug("meta.Tags[agent_start_time]: %s", meta.Tags["agent_start_time"])
 			}
 			agent.UptimeSeconds = time.Since(agent.StartTime).Seconds()
 		} else {
@@ -178,9 +178,6 @@ func (t *AgentTracker) SyncToStore(ctx context.Context, store datastore.DataStor
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	for hostname, agent := range t.agents {
-		utils.Debug("Syncing agent: %s | EndpointID: %s | IP: %s", hostname, agent.AgentID, agent.IP)
-	}
 	for _, agent := range t.agents {
 		if !agent.Updated {
 			continue

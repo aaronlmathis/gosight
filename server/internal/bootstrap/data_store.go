@@ -19,7 +19,7 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// gosight/agent/internal/bootstrap/user_store.go
+// gosight/agent/internal/bootstrap/data_store.go
 // // Package bootstrap initializes the user store
 // Package store provides an interface for storing and retrieving user / permission data
 
@@ -38,13 +38,13 @@ import (
 )
 
 func InitDataStore(cfg *config.Config) (datastore.DataStore, error) {
-	dataStoreType := cfg.UserStore.Type // TODO Fix this to be more generic
+	dataStoreType := cfg.DataStore.Engine
 
-	utils.Info("📦 Initializing user store type: %s", dataStoreType)
+	utils.Info("Initializing user store type: %s", dataStoreType)
 	var dataStore datastore.DataStore
-	switch cfg.UserStore.Type {
+	switch cfg.DataStore.Engine {
 	case "postgres":
-		db, err := sql.Open("postgres", cfg.UserStore.DSN) // TODO 	Fix this to be more generic
+		db, err := sql.Open("postgres", cfg.DataStore.DSN) // TODO 	Fix this to be more generic
 		if err != nil {
 			return nil, err
 		}

@@ -28,18 +28,24 @@ import (
 	"time"
 
 	"github.com/aaronlmathis/gosight/server/internal/store/eventstore"
+	"github.com/aaronlmathis/gosight/server/internal/websocket"
 	"github.com/aaronlmathis/gosight/shared/model"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 // Emitter is an event emitter that stores events in an event store.
 // It provides a method to emit events with various attributes such as level, category, message, source, and metadata.
 type Emitter struct {
 	Store eventstore.EventStore
+	hub   *websocket.Hub
 }
 
 // NewEmitter creates a new Emitter instance with the provided event store.
-func NewEmitter(store eventstore.EventStore) *Emitter {
-	return &Emitter{Store: store}
+func NewEmitter(store eventstore.EventStore, hub *websocket.Hub) *Emitter {
+	return &Emitter{
+		Store: store,
+		hub:   hub,
+	}
 }
 
 // Emit emits an event with the specified attributes.
@@ -50,5 +56,10 @@ func (e *Emitter) Emit(ctx context.Context, event model.EventEntry) {
 	if event.Timestamp.IsZero() {
 		event.Timestamp = time.Now().UTC()
 	}
-	e.Store.AddEvent(event)
+
+	if e.hub != nil {
+		utils.Debug("Emmitter broadcasting event: %s", event.ID)
+		e.hub.BroadcastEvent(event)
+	}
+	e.Store.AddEvent(ctx, event)
 }

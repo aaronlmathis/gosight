@@ -33,11 +33,33 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
+	"time"
 )
 
 func JSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(data)
+}
+
+// WriteJSON dumps any value to a JSON file for inspection.
+// filename is relative to current directory. Value must be JSON serializable.
+func WriteJSON(filename string, v interface{}) error {
+	fname := fmt.Sprintf("%s_%s.json", filename, time.Now().Format("2006-01-02T15-04-05"))
+	path := filepath.Join(".", fname)
+
+	data, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal error: %w", err)
+	}
+
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		return fmt.Errorf("write error: %w", err)
+	}
+
+	return nil
 }

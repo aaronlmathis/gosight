@@ -41,4 +41,5 @@ func InitRuleStore(cfg *config.Config) (rulestore.RuleStore, error) {
 	default:
 		return nil, errors.New("unsupported rule store engine: " + cfg.RuleStore.Engine)
 	}
+
 }

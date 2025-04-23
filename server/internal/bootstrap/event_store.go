@@ -24,11 +24,12 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package bootstrap
 
 import (
-	"context"
+	"database/sql"
 	"errors"
 
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/store/eventstore"
+	"github.com/aaronlmathis/gosight/server/internal/store/eventstore/pgeventstore"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
@@ -39,13 +40,29 @@ import (
 // storage mechanism.
 
 // InitEventStore initializes the event store for the GoSight server.
-func InitEventStore(ctx context.Context, cfg *config.Config) (eventstore.EventStore, error) {
+func InitEventStore(cfg *config.Config) (eventstore.EventStore, error) {
 	utils.Info("Initializing user store type: %s", cfg.EventStore.Engine)
+
 	switch cfg.EventStore.Engine {
-	case "memory":
-		return eventstore.NewMemoryStore(500)
 	case "json":
-		return eventstore.NewJSONEventStore(cfg.EventStore.Path, 500)
+		store, err := eventstore.NewJSONEventStore(cfg.EventStore.Path)
+		if err != nil {
+			return nil, err
+		}
+		return store, nil
+
+	case "postgres":
+
+		db, err := sql.Open("postgres", cfg.EventStore.DSN) // TODO 	Fix this to be more generic
+		if err != nil {
+			return nil, err
+		}
+
+		// Optionally test the connection
+		if err := db.Ping(); err != nil {
+			return nil, err
+		}
+		return pgeventstore.NewPGEventStore(db), nil
 
 	default:
 		return nil, errors.New("invalid event backend")

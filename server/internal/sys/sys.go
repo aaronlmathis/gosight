@@ -31,9 +31,9 @@ import (
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/dispatcher"
 	"github.com/aaronlmathis/gosight/server/internal/events"
-	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
 	"github.com/aaronlmathis/gosight/server/internal/rules"
 	"github.com/aaronlmathis/gosight/server/internal/store/agenttracker"
+	"github.com/aaronlmathis/gosight/server/internal/store/alertstore"
 	"github.com/aaronlmathis/gosight/server/internal/store/datastore"
 	"github.com/aaronlmathis/gosight/server/internal/store/eventstore"
 	"github.com/aaronlmathis/gosight/server/internal/store/logstore"
@@ -43,6 +43,7 @@ import (
 	"github.com/aaronlmathis/gosight/server/internal/store/routestore"
 	"github.com/aaronlmathis/gosight/server/internal/store/rulestore"
 	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
+	"github.com/aaronlmathis/gosight/server/internal/websocket"
 )
 
 // StoreModule contains all persistent or semi-persistent storage components.
@@ -54,6 +55,7 @@ type StoreModule struct {
 	Events  eventstore.EventStore   // Event logs, audit, alert events
 	Rules   rulestore.RuleStore     // Alert rules defined by users
 	Actions *routestore.RouteStore  // Routes loaded from alert_routes.yaml
+	Alerts  alertstore.AlertStore   // Alert instances (active, resolved, history)
 }
 
 // TelemetryModule encapsulates telemetry-related state and processing.

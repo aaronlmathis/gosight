@@ -80,7 +80,7 @@ func (s *HttpServer) HandleEndpointPage(w http.ResponseWriter, r *http.Request) 
 		},
 	}
 
-	err = templates.RenderTemplate(w, "dashboard/layout_endpoints", pageData)
+	err = templates.RenderTemplate(w, "layout_dashboard", "dashboard_endpoints", pageData)
 
 	if err != nil {
 		http.Error(w, "template error", 500)
@@ -128,7 +128,7 @@ func (s *HttpServer) HandleEndpointDetail(w http.ResponseWriter, r *http.Request
 		Meta: meta,
 	}
 
-	err = templates.RenderTemplate(w, "dashboard/layout_main", pageData)
+	err = templates.RenderTemplate(w, "layout_dashboard", "dashboard_endpoint_detail", pageData)
 	if err != nil {
 		utils.Error("Template error: %v", err)
 		http.Error(w, "template error", http.StatusInternalServerError)

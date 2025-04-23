@@ -93,7 +93,7 @@ func (s *HttpServer) setupIndexRoutes() {
 		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
 			gosightauth.RequirePermission("gosight:dashboard:view",
 				gosightauth.AccessLogMiddleware(
-					http.HandlerFunc(s.HandleEndpointPage),
+					http.HandlerFunc(s.HandleIndexPage),
 				),
 				s.Sys.Stores.Users,
 			),

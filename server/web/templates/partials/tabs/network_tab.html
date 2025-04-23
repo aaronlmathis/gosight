@@ -1,17 +1,17 @@
-{{ define "tabs/network_tab" }}
+{{ define "partials/tabs/network_tab" }}
 <div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="network" role="tabpanel"
     aria-labelledby="network-tab">
     <div class="space-y-6">
         <!-- Interface Selector -->
         <div class="flex justify-end items-center gap-2 mb-4">
             <label for="interface-select" class="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Interface:
+                Interface:
             </label>
             <select id="interface-select"
                 class="text-sm border rounded px-3 py-1 dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-              <!-- options populated dynamically -->
+                <!-- options populated dynamically -->
             </select>
-          </div>
+        </div>
 
         <!-- Current Bandwidth -->
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

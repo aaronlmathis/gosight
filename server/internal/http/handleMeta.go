@@ -195,13 +195,11 @@ func (s *HttpServer) HandleAPIQuery(w http.ResponseWriter, r *http.Request) {
 
 	case len(metricNames) > 0:
 		result, err = s.Sys.Stores.Metrics.QueryMultiInstant(metricNames, filters)
-
 	case len(metricNames) == 0:
 		// Power mode — return matching metrics across all known names
-		utils.Debug("📡 Metric omitted — searching all available metrics")
 
 		names := s.Sys.Tele.Index.FilterMetricNames(filters)
-		utils.Debug("🧪 Filtered metric names: %v", names)
+
 		if len(names) == 0 {
 			http.Error(w, "no metrics matched filters", http.StatusNotFound)
 			return

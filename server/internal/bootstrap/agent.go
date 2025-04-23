@@ -50,9 +50,9 @@ func InitAgentTracker(ctx context.Context, env string, dataStore datastore.DataS
 				utils.Info("Agent tracker sync loop shutting down")
 				return
 			case <-ticker.C:
-				utils.Debug("Syncing agent tracker to DB...")
+				//utils.Debug("Syncing agent tracker to DB...")
 				tracker.SyncToStore(ctx, dataStore)
-				utils.Debug("Agent tracker sync complete")
+				//utils.Debug("Agent tracker sync complete")
 			}
 		}
 	}()

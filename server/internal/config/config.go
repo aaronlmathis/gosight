@@ -91,14 +91,27 @@ type Config struct {
 	}
 
 	UserStore struct {
-		Type     string `yaml:"type"`      // e.g. "postgres", "memory", "ldap"
+		Engine   string `yaml:"engine"`    // e.g. "postgres", "memory", "ldap"
 		DSN      string `yaml:"dsn"`       // e.g. PostgreSQL connection string
 		LDAPBase string `yaml:"ldap_base"` // optional: LDAP-specific config
 	} `yaml:"userstore"`
 
+	DataStore struct {
+		Engine string `yaml:"engine"`         // "memory", "json", or "postgres"
+		Path   string `yaml:"path,omitempty"` // optional path for JSON file
+		DSN    string `yaml:"dsn,omitempty"`  // optional DSN for PostgreSQL
+	} `yaml:"datastore"`
+
+	AlertStore struct {
+		Engine string `yaml:"engine"`         // "memory", "json", or "postgres"
+		Path   string `yaml:"path,omitempty"` // optional path for JSON file
+		DSN    string `yaml:"dsn,omitempty"`  // optional DSN for PostgreSQL
+	} `yaml:"alertstore"`
+
 	EventStore struct {
-		Engine string `yaml:"engine"` // "memory", "json", or "postgres"
-		Path   string `yaml:"path"`   // optional path for JSON file
+		Engine string `yaml:"engine"`        // "memory", "json", or "postgres"
+		Path   string `yaml:"path"`          // optional path for JSON file
+		DSN    string `yaml:"dsn,omitempty"` // optional DSN for PostgreSQL
 	} `yaml:"eventstore"`
 
 	RuleStore struct {
@@ -168,7 +181,7 @@ func ApplyEnvOverrides(cfg *Config) {
 		cfg.Debug.EnableReflection = val == "true"
 	}
 	if val := os.Getenv("GOSIGHT_USERSTORE_TYPE"); val != "" {
-		cfg.UserStore.Type = val
+		cfg.UserStore.Engine = val
 	}
 	if val := os.Getenv("GOSIGHT_USERSTORE_DSN"); val != "" {
 		cfg.UserStore.DSN = val

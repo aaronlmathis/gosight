@@ -49,10 +49,25 @@ type EventEntry struct {
 	Category   string            `json:"category"` // metric, log, system, security
 	Message    string            `json:"message"`
 	Source     string            `json:"source"` // metric name, log source, etc.
+	Scope      string            `json:"scope"`  // "endpoint", "system", etc.
+	Target     string            `json:"target"` // "host-123", "gosight-core", etc.
 	EndpointID string            `json:"endpoint_id"`
 	Meta       map[string]string `json:"meta"` // additional tags/labels
 }
 
 func GenerateID() string {
 	return uuid.NewString()
+}
+
+type EventFilter struct {
+	Limit    int
+	Level    string
+	Type     string
+	Category string
+	Scope    string
+	Target   string
+	Source   string
+	Contains string
+	Start    *time.Time
+	End      *time.Time
 }

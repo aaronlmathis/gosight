@@ -61,7 +61,8 @@ func (h *MetricsHandler) SubmitStream(stream pb.MetricsService_SubmitStreamServe
 
 		// Convert payload into a model.MetricPayload.
 		converted := ConvertToModelPayload(req)
-		utils.Debug("Received metrics from %s", converted.Meta.EndpointID)
+
+		//utils.Debug("Received metrics from %s", converted.Meta.EndpointID)
 
 		// Check rules
 		h.Sys.Tele.Evaluator.Evaluate(h.Sys.Ctx, converted.Metrics, converted.Meta)

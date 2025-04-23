@@ -174,7 +174,7 @@ async function fetchGlobalContainerMetrics() {
 
 document.addEventListener("DOMContentLoaded", async () => {
   await loadHostTable();
-  await   fetchGlobalContainerMetrics(); // 👈 new function
+  await   fetchGlobalContainerMetrics();
 });
 
 function toggleContainerRow(rowID) {
@@ -401,7 +401,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       row.style.display = shouldShow ? "" : "none";
 
-      // ⬇️ Also collapse container row if hiding parent
+      // ⬇Also collapse container row if hiding parent
       const containersRow = document.getElementById(`containers-${row.id.replace(/^host-/, "")}`);
       console.log(`containers-${row.id.replace(/^host-/, "")}`);
       if (containersRow) {
@@ -422,7 +422,7 @@ document.addEventListener("DOMContentLoaded", function () {
 import { formatBytes, formatUptime } from './format.js';
 console.log("✅ endpoints.js is running");
 
-// 🌐 Filter DOM references
+// Filter DOM references
 const containerStatusFilter = document.getElementById('filter-container-status');
 const runtimeFilter = document.getElementById('filter-runtime');
 const hostFilter = document.getElementById('filter-host');
@@ -431,57 +431,57 @@ const containerTableBody = document.getElementById('container-table-body');
 const hostStatusFilter = document.getElementById('filter-host-status');
 const lastUpdated = document.getElementById('last-updated');
 
-// 📦 Data storage
+//  Data storage
 let allContainers = [];
 let allEndpoints = [];
 
-// 🧠 Timestamp updater
+// Timestamp updater
 function updateTimestamp() {
   if (lastUpdated) {
     lastUpdated.textContent = new Date().toLocaleTimeString();
   }
 }
 
-// 🔁 Fetch containers
+// Fetch containers
 async function fetchContainers() {
   try {
     const res = await fetch('/api/endpoints/containers');
     const data = await res.json();
 
     if (!Array.isArray(data)) {
-      console.warn("⚠️ /api/endpoints/containers returned unexpected format:", data);
+      console.warn(" /api/endpoints/containers returned unexpected format:", data);
       return;
     }
 
     allContainers = data;
-    console.log("📦 Container API data:", data);
+    console.log(" Container API data:", data);
     updateContainerTable();
     updateTimestamp();
   } catch (err) {
-    console.error('❌ Failed to load container data:', err);
+    console.error(' Failed to load container data:', err);
   }
 }
 
-// 🔁 Fetch host endpoints from /api/endpoints/hosts
+//  Fetch host endpoints from /api/endpoints/hosts
 async function fetchHosts() {
   try {
     const res = await fetch('/api/endpoints/hosts');
     const data = await res.json();
 
     if (!Array.isArray(data)) {
-      console.warn("⚠️ /api/endpoints/hosts returned unexpected format:", data);
+      console.warn(" /api/endpoints/hosts returned unexpected format:", data);
       return;
     }
 
     allEndpoints = data;
-    console.log("🖥️ Host endpoint API data:", data);
+    console.log(" Host endpoint API data:", data);
     filterAndRenderEndpoints();
   } catch (err) {
-    console.error("❌ Failed to load host endpoint data:", err);
+    console.error(" Failed to load host endpoint data:", err);
   }
 }
 
-// 🖨 Render container table
+//  Render container table
 function updateContainerTable() {
   if (!containerTableBody) return;
 
@@ -526,7 +526,7 @@ function updateContainerTable() {
   }).join('');
 }
 
-// 🖨 Render host endpoints
+//  Render host endpoints
 function renderHostEndpoints(endpoints) {
   const tbody = document.getElementById('endpoint-table-body');
   if (!tbody) return;
@@ -556,7 +556,7 @@ function renderHostEndpoints(endpoints) {
   }
 }
 
-// 🧠 Filter and update endpoints
+//  Filter and update endpoints
 function filterAndRenderEndpoints() {
   const hostname = document.getElementById('filter-hostname')?.value.toLowerCase() ?? '';
   const ip = document.getElementById('filter-ip')?.value.toLowerCase() ?? '';
@@ -576,7 +576,7 @@ function filterAndRenderEndpoints() {
   renderHostEndpoints(filtered);
 }
 
-// 🚀 Init
+//  Init
 async function initializePage() {
   try {
     await fetchHosts();
@@ -584,17 +584,17 @@ async function initializePage() {
     setInterval(fetchContainers, 10000);
     setInterval(fetchHosts, 15000);
   } catch (err) {
-    console.error('❌ Failed to initialize page:', err);
+    console.error(' Failed to initialize page:', err);
   }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 🔗 Container filter bindings
+  //  Container filter bindings
   [containerStatusFilter, runtimeFilter, hostFilter].forEach(el => {
     if (el) el.addEventListener('input', updateContainerTable);
   });
 
-  // 🔗 Host filter bindings
+  //  Host filter bindings
   ['filter-hostname', 'filter-ip', 'filter-os', 'filter-arch', 'filter-host-status'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', filterAndRenderEndpoints);

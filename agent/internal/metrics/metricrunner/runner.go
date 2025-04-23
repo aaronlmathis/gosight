@@ -135,7 +135,9 @@ func (r *MetricRunner) Run(ctx context.Context) {
 
 				// Set EndpointID for meta
 				hostMeta.EndpointID = utils.GenerateEndpointID(hostMeta)
-
+				for _, m := range hostMetrics {
+					fmt.Printf("🚨 %s.%s.%s subnamespace=%s\n", m.Namespace, m.SubNamespace, m.Name, m.SubNamespace)
+				}
 				payload := model.MetricPayload{
 					AgentID:    hostMeta.AgentID,
 					HostID:     hostMeta.HostID,

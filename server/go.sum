@@ -1,7 +1,7 @@
 cloud.google.com/go/compute/metadata v0.6.0 h1:A6hENjEsCDtC1k8byVsgwvVcioamEHvZ4j01OwKxG9I=
 cloud.google.com/go/compute/metadata v0.6.0/go.mod h1:FjyFAW1MW0C203CEOMDTu3Dk1FlqW3Rga40jzHL4hfg=
-github.com/Knetic/govaluate v3.0.0+incompatible h1:7o6+MAPhYTCF0+fdvoz1xDedhRb4f6s9Tn1Tt7/WTEg=
-github.com/Knetic/govaluate v3.0.0+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
+github.com/Knetic/govaluate v3.0.1-0.20250325060307-7625b7f8c03d+incompatible h1:PQkGQvISFXAw+Lkmcyd5OUGDVtdQdY1u0CIDjDbBg64=
+github.com/Knetic/govaluate v3.0.1-0.20250325060307-7625b7f8c03d+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
 github.com/aaronlmathis/gosight/shared v0.0.0-20250412222740-2bbe339c94a6 h1:sXlbLeFN4BUiJfphQ5pfRA3GvWRzAIbFx9FoXOBdH70=
 github.com/aaronlmathis/gosight/shared v0.0.0-20250412222740-2bbe339c94a6/go.mod h1:2k6QmfCyga/ruVQn2XrA64U0BST4tipiig+3AlmiBWI=
 github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc h1:biVzkmvwrH8WK8raXaxBx6fRVTlJILwEwQGL1I/ByEI=

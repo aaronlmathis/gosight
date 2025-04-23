@@ -229,10 +229,22 @@ func buildPrometheusFormat(batch []model.MetricPayload) string {
 	for _, payload := range batch {
 		ts := payload.Timestamp.UnixNano() / 1e6
 		for _, m := range payload.Metrics {
-			fullName := normalizeMetricName(m.Namespace, m.SubNamespace, m.Name) // ← Right here
+
+			fullName := normalizeMetricName(m.Namespace, m.SubNamespace, m.Name)
+			// Merge Meta.Tags + Metric.Dimensions
+			labels := make(map[string]string)
+
+			for k, v := range payload.Meta.Tags {
+				labels[k] = v
+				//utils.Debug("Metric Name: %s Meta tag %s: %s", fullName, k, v) Bad data.
+			}
+			for k, v := range m.Dimensions {
+				labels[k] = v
+			}
+			//utils.Debug("Metric %s: %v", fullName, labels)  BAD DATA
 			sb.WriteString(fmt.Sprintf("%s{%s} %f %d\n",
 				fullName,
-				formatLabels(payload.Meta),
+				formatLabelMap(labels),
 				m.Value,
 				ts,
 			))
@@ -250,7 +262,22 @@ func normalizeMetricName(ns, sub, name string) string {
 		parts = append(parts, strings.ToLower(strings.ReplaceAll(sub, "/", ".")))
 	}
 	parts = append(parts, name)
+
 	return strings.Join(parts, ".")
+}
+
+// formatLabelMap prepares potential labels for Prometheus scraping.
+// It combines payload.Meta tags and metric dimensions into a single map.
+// It converts the labels map to a string in the format: key1="value1",key2="value2",...
+// It allows Dimensions to override Meta tags if two keys are the same.
+
+func formatLabelMap(labels map[string]string) string {
+	var parts []string
+	for k, v := range labels {
+		parts = append(parts, fmt.Sprintf(`%s="%s"`, k, v))
+	}
+	sort.Strings(parts)
+	return strings.Join(parts, ",")
 }
 
 // BuildPromLabels constructs Prometheus-compatible labels from the given Meta object.

@@ -270,3 +270,41 @@ ALTER TABLE ONLY public.user_scopes
 -- PostgreSQL database dump complete
 --
 
+CREATE TABLE alerts (
+  id UUID PRIMARY KEY,
+  rule_id TEXT NOT NULL,
+  state TEXT NOT NULL,          -- 'firing', 'resolved', etc.
+  previous TEXT,
+  scope TEXT NOT NULL,          -- 'endpoint', 'user', 'cloud', etc.
+  target TEXT,                  -- host ID, user ID, IAM role, etc.
+  first_fired TIMESTAMPTZ,
+  last_fired TIMESTAMPTZ,
+  last_ok TIMESTAMPTZ,
+  resolved_at TIMESTAMPTZ,
+  last_value DOUBLE PRECISION,
+  level TEXT,
+  message TEXT,
+  labels JSONB
+);
+
+CREATE INDEX idx_alerts_rule_id ON alerts(rule_id);
+CREATE INDEX idx_alerts_state ON alerts(state);
+CREATE INDEX idx_alerts_scope_target ON alerts(scope, target);
+
+CREATE TABLE events (
+  id UUID PRIMARY KEY,
+  timestamp TIMESTAMPTZ NOT NULL,
+  level TEXT,
+  type TEXT,
+  category TEXT,
+  message TEXT,
+  source TEXT,
+  scope TEXT,
+  target TEXT,
+  endpoint_id TEXT,
+  meta JSONB
+);
+
+CREATE INDEX idx_events_time ON events(timestamp DESC);
+CREATE INDEX idx_events_target ON events(target);
+CREATE INDEX idx_events_category ON events(category);

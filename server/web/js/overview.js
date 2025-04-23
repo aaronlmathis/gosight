@@ -2,6 +2,62 @@ import { formatBytes, formatUptime } from "./format.js";
 
 const socket = new WebSocket("wss://" + location.host + "/ws/metrics?endpointID=" + encodeURIComponent(window.endpointID));
 console.log(window.endpointID)
+socket.onmessage = (event) => {
+
+    try {
+        const envelope = JSON.parse(event.data);
+
+        //console.log("WebSocket message:", envelope);
+        if (envelope.type === "logs") {
+            //console.log("Logs:\n" + JSON.stringify(envelope.data.Logs, null, 2));
+        }
+        if (envelope.type === "metrics") {
+            const payload = envelope.data;
+            if (!payload?.metrics || !payload?.meta) return;
+
+            if (payload.meta.endpoint_id?.startsWith("host-")) {
+                updateMiniCharts(payload.metrics);
+                const summary = extractHostSummary(payload.metrics, payload.meta);
+                renderOverviewSummary(summary);
+                if (window.networkMetricHandler) {
+                    window.networkMetricHandler(payload.metrics);
+                }
+                if (window.cpuMetricHandler) {
+                    window.cpuMetricHandler(payload.metrics);
+                }
+                if (window.diskMetricHandler) {
+                    window.diskMetricHandler(payload.metrics);
+                }
+            }
+
+            if (payload.meta.endpoint_id?.startsWith("ctr-")) {
+                updateContainerTable(payload);
+            }
+            
+        }
+        if (envelope.type === "event") {
+            console.log(" WebSocket message:", envelope);
+            const eventData = envelope.data;
+            if (window.eventHandler) {
+                window.eventHandler([eventData]);
+            }
+        }
+
+        if (envelope.type === "logs") {
+            const logPayload = envelope.data;
+            if (logPayload?.Logs?.length > 0) {
+                for (const log of logPayload.Logs) {
+                    appendLogLine(log);
+                    appendActivityRow(log);    // Activity tab (table)
+                }
+
+            }
+        }
+
+    } catch (err) {
+        console.error("Failed to parse WebSocket JSON:", err);
+    }
+};
 const chartAnimation = {
     tension: {
         duration: 1000,
@@ -31,52 +87,7 @@ let latestCpuPercent = 0;
 let latestSwapUsedPercent = 0;
 let latestMemUsedPercent = 0;
 
-socket.onmessage = (event) => {
-    try {
-        const envelope = JSON.parse(event.data);
-        //console.log("📦 WebSocket message:", envelope);
-        if (envelope.type === "logs") {
-            //console.log("📄 Logs:\n" + JSON.stringify(envelope.data.Logs, null, 2));
-        }
-        if (envelope.type === "metrics") {
-            const payload = envelope.data;
-            if (!payload?.metrics || !payload?.meta) return;
 
-            if (payload.meta.endpoint_id?.startsWith("host-")) {
-                updateMiniCharts(payload.metrics);
-                const summary = extractHostSummary(payload.metrics, payload.meta);
-                renderOverviewSummary(summary);
-                if (window.networkMetricHandler) {
-                    window.networkMetricHandler(payload.metrics);
-                }
-                if (window.cpuMetricHandler) {
-                    window.cpuMetricHandler(payload.metrics);
-                }
-                if (window.diskMetricHandler) {
-                    window.diskMetricHandler(payload.metrics);
-                }
-            }
-
-            if (payload.meta.endpoint_id?.startsWith("ctr-")) {
-                updateContainerTable(payload);
-            }
-        }
-
-        if (envelope.type === "logs") {
-            const logPayload = envelope.data;
-            if (logPayload?.Logs?.length > 0) {
-                for (const log of logPayload.Logs) {
-                    appendLogLine(log);
-                    appendActivityRow(log);    // Activity tab (table)
-                }
-
-            }
-        }
-
-    } catch (err) {
-        console.error("❌ Failed to parse WebSocket JSON:", err);
-    }
-};
 //
 //
 // LOG STREAMING SECTION

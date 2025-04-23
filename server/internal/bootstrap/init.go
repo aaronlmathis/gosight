@@ -45,6 +45,7 @@ import (
 // of the components fail to initialize.
 
 func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
+
 	// Initialize the GoSight server
 	fmt.Println("Initializing GoSight server...")
 
@@ -87,8 +88,12 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 	utils.Must("User store", err)
 
 	// Initialize event store
-	eventStore, err := InitEventStore(ctx, cfg)
+	eventStore, err := InitEventStore(cfg)
 	utils.Must("Event store", err)
+
+	// Initialize alert store
+	alertStore, err := InitAlertStore(cfg)
+	utils.Must("Alert store", err)
 
 	// Initialize rule store
 	ruleStore, err := InitRuleStore(cfg)
@@ -99,13 +104,13 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 	utils.Must("Action store", err)
 
 	// Initialize emitter
-	emitter := events.NewEmitter(eventStore)
+	emitter := events.NewEmitter(eventStore, wsHub)
 
 	// Initialize dispatcher
 	dispatcher := dispatcher.NewDispatcher(actionStore.Routes)
 
 	// Initialize alert manager
-	alertMgr := alerts.NewManager(emitter, dispatcher)
+	alertMgr := alerts.NewManager(emitter, dispatcher, alertStore, wsHub)
 
 	// Initialize the evaluator
 	evaluator := rules.NewEvaluator(ruleStore, alertMgr)
@@ -123,6 +128,7 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 		Events:  eventStore,
 		Rules:   ruleStore,
 		Actions: actionStore,
+		Alerts:  alertStore,
 	}
 
 	// Build telemetry

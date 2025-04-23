@@ -18,3 +18,16 @@ routes:
     actions:
       - type: script
         command: /opt/scripts/log_alert.sh
+
+
+  - id: notify-local
+    match:
+      level: warning
+      rule_id: high-mem-usage
+      tags:
+        env: test
+    actions:
+      - type: webhook
+        url: http://localhost:9999/test-alert
+        headers:
+          Authorization: "Bearer test123"        

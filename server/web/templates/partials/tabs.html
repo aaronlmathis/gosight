@@ -1,4 +1,4 @@
-{{ define "dashboard/tabs" }}
+{{ define "partials/tabs" }}
 <ul class="flex flex-wrap text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400"
     id="dashboardTabs" data-tabs-toggle="#dashboardTabContent" role="tablist">
     <li class="mr-2" role="presentation">
@@ -38,22 +38,22 @@
 </ul>
 <div id="dashboardTabContent">
     {{ if hasPermission .Permissions "metric.view.overview" }}
-    {{ template "dashboard/tabs/overview" . }}
+    {{ template "partials/tabs/overview_tab" . }}
     {{ end }}
     {{ if hasPermission .Permissions "metric.view.cpu" }}
-    {{ template "dashboard/tabs/compute" . }}
+    {{ template "partials/tabs/compute_tab" . }}
     {{ end }}
     {{ if hasPermission .Permissions "metric.view.disk" }}
-    {{ template "dashboard/tabs/disk" . }}
+    {{ template "partials/tabs/disk_tab" . }}
     {{ end }}
     {{ if hasPermission .Permissions "metric.view.net" }}
-    {{ template "dashboard/tabs/network" . }}
+    {{ template "partials/tabs/network_tab" . }}
     {{ end }}
     {{ if hasPermission .Permissions "log.view.activity" }}
-    {{ template "dashboard/tabs/activity" . }}
+    {{ template "partials/tabs/activity_tab" . }}
     {{ end }}
     {{ if hasPermission .Permissions "console.view" }}
-    {{ template "dashboard/tabs/console" . }}
+    {{ template "partials/tabs/console_tab" . }}
     {{ end }}
 </div>
 {{ end }}

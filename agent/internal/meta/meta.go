@@ -37,6 +37,7 @@ import (
 // It retrieves the hostname, local IP address, and host information using the gopsutil library.
 // The metadata includes the agent ID, version, host ID, hostname, IP address, OS details,
 // and any additional tags provided in the configuration or as arguments.
+
 func BuildMeta(cfg *config.Config, addTags map[string]string, agentID, agentVersion string) *model.Meta {
 	hostname, err := os.Hostname()
 	if err != nil {

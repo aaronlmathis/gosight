@@ -26,8 +26,41 @@ package httpserver
 
 import (
 	"net/http"
+
+	"github.com/aaronlmathis/gosight/server/internal/contextutil"
+	"github.com/aaronlmathis/gosight/server/internal/http/templates"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func (s *HttpServer) HandleIndex(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) HandleIndexPage(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 
+	if forbidden, ok := ctx.Value("forbidden").(bool); ok && forbidden {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	userID, ok := contextutil.GetUserID(ctx)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	user, err := s.Sys.Stores.Users.GetUserWithPermissions(ctx, userID)
+	if err != nil {
+		utils.Error("Failed to load user %s: %v", userID, err)
+		http.Error(w, "failed to load user", http.StatusInternalServerError)
+		return
+	}
+	pageData := templates.TemplateData{
+		Title:       "Home",
+		User:        user,
+		Breadcrumbs: []templates.Breadcrumb{},
+	}
+
+	err = templates.RenderTemplate(w, "layout_dashboard", "dashboard_home", pageData)
+
+	if err != nil {
+		http.Error(w, "template error", 500)
+	}
 }

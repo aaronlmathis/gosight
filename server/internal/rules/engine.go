@@ -25,6 +25,8 @@ package rules
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/Knetic/govaluate"
 	"github.com/aaronlmathis/gosight/server/internal/alerts"
@@ -71,32 +73,46 @@ func (e *Evaluator) Evaluate(ctx context.Context, metrics []model.Metric, meta *
 	}
 
 	for _, rule := range activeRules {
+		utils.Debug("Checking rule %s with expression %s", rule.ID, rule.Expression)
 		if !ruleMatchLabels(rule.Match, meta) {
+			//utils.Debug("Rule %s did not match endpoint %s or tags", rule.ID, meta.EndpointID)
 			continue
 		}
 
 		// Build map[string]interface{} for expression
 		values := make(map[string]interface{})
 		for _, m := range metrics {
-			// Example: "mem.used_percent" = 72.5
-			key := m.SubNamespace + "." + m.Name
+			// Example: "mem_used_percent" = 72.5
+			key := strings.ToLower(m.SubNamespace + "_" + m.Name)
 			values[key] = m.Value
+			// Dimensions
+			for k, v := range m.Dimensions {
+				values[k] = v
+			}
 		}
 
-		// Evaluate expression
-		result, err := govaluate.NewEvaluableExpression(rule.Expression)
+		// Meta tags
+		for k, v := range meta.Tags {
+			values[k] = v
+		}
+
+		//fmt.Printf("Expression to parse: '%s'\n", rule.Expression)
+		expression, err := govaluate.NewEvaluableExpression(rule.Expression)
+
 		if err != nil {
-			utils.Error("Invalid rule expression (%s): %v", rule.ID, err)
+			fmt.Printf("Expression parse failed for rule [%s]: %v", rule.ID, err)
 			continue
 		}
 
-		ok, err := result.Evaluate(values)
+		result, err := expression.Evaluate(values)
 		if err != nil {
-			utils.Error("Evaluation failed for rule (%s): %v", rule.ID, err)
+			fmt.Printf("Expression evaluate failed for rule %s: %v", rule.ID, err)
 			continue
 		}
 
-		isTriggered, _ := ok.(bool)
+		utils.Debug("→ Expression result for rule %s: %v", rule.ID, result)
+
+		isTriggered, _ := result.(bool)
 		key := rule.ID + "|" + meta.EndpointID
 
 		if isTriggered {

@@ -1,0 +1,106 @@
+{{ define "page-content" }}
+<div class="space-y-4">
+    <div class="mb-4">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Endpoints</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Hosts and their active containers across your environment
+        </p>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+        <!-- Hosts Online -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm flex items-center space-x-4">
+            <div class="text-blue-500 dark:text-blue-400">
+                <!-- Server icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 6h16M4 12h16M4 18h16M4 6v12" />
+                </svg>
+            </div>
+            <div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">Hosts Online</div>
+                <div class="text-xl font-bold text-gray-900 dark:text-white" id="summary-hosts">—</div>
+            </div>
+        </div>
+
+        <!-- Containers Running -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm flex items-center space-x-4">
+            <div class="text-green-500 dark:text-green-400">
+                <!-- Package icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 7l9 5 9-5-9-5-9 5zm0 6l9 5 9-5" />
+                </svg>
+            </div>
+            <div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">Containers Running</div>
+                <div class="text-xl font-bold text-gray-900 dark:text-white" id="summary-containers">—</div>
+            </div>
+        </div>
+
+        <!-- Runtimes Observed -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm flex items-center space-x-4">
+            <div class="text-purple-500 dark:text-purple-400">
+                <!-- Cog icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M11 17a4 4 0 100-8 4 4 0 000 8zm-7 0a9 9 0 0114-7.94M21 12a9 9 0 01-18 0" />
+                </svg>
+            </div>
+            <div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">Runtimes Observed</div>
+                <div class="text-xl font-bold text-gray-900 dark:text-white" id="summary-runtimes">—</div>
+            </div>
+        </div>
+    </div>
+
+    <div
+        class="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+        <div class="flex flex-wrap gap-4 p-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+
+            <input id="filter-by" type="text" placeholder="Filter by..."
+                class="transition focus:outline-none focus:ring-1 focus:ring-gray-100 text-sm px-3 py-2 rounded-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 " />
+
+            <select id="filter-status"
+                class="transition focus:outline-none focus:ring-1 focus:ring-gray-400 text-sm px-3 py-2 rounded-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 ">
+                <option value="">All Statuses</option>
+                <option value="online">Online</option>
+                <option value="offline">Offline</option>
+            </select>
+            <button onclick="loadHostTable()" title="Refresh"
+                class=" text-blue-600 dark:text-blue-400 hover:underline ml-auto">
+                ⟳ Refresh
+            </button>
+        </div>
+
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-700 text-xs text-gray-800 dark:text-gray-300">
+                <tr>
+                    <th class="px-3 py-2 text-left cursor-pointer group" onclick="sortTableByColumn(0)">Status</th>
+                    <th class="px-3 py-2 text-left cursor-pointer group" onclick="sortTableByColumn(1)">Hostname</th>
+                    <th class="px-3 py-2 text-left cursor-pointer group" onclick="sortTableByColumn(2)">IP</th>
+                    <th class="px-3 py-2 text-left">OS</th>
+                    <th class="px-3 py-2 text-left">Platform</th>
+                    <th class="px-3 py-2 text-left">Architecture</th>
+                    <th class="px-3 py-2 text-left">Agent ID</th>
+                    <th class="px-3 py-2 text-left">Agent Version</th>
+                    <th class="px-3 py-2 text-left">Last Seen</th>
+                    <th class="px-3 py-2 text-left">Uptime</th>
+                    <th class="px-3 py-2 text-left">Expand</th>
+                </tr>
+            </thead>
+
+            <tbody id="host-table-body" class="divide-y divide-gray-100 dark:divide-gray-800 text-sm">
+                <!-- Rows are injected via JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+
+</div>
+{{ end }}
+{{ define "page-scripts" }}
+<script src="/js/endpoints.js"></script>
+
+{{ end }}

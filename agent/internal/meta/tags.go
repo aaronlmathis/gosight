@@ -42,7 +42,7 @@ func BuildStandardTags(meta *model.Meta, m model.Metric, isContainer bool, start
 
 	// Contextual source of the metric
 	meta.Tags["namespace"] = strings.ToLower(m.Namespace)
-	meta.Tags["subnamespace"] = strings.ToLower(m.SubNamespace)
+	//meta.Tags["subnamespace"] = strings.ToLower(m.SubNamespace)
 
 	// Producer of metric becomes the "job"
 	if isContainer {

@@ -25,12 +25,13 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package templates
 
 import (
+	"fmt"
+	"html/template"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
-	"text/template"
 
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/store/metricindex"
@@ -82,39 +83,36 @@ func loadTemplates(baseDir string) error {
 	mu.Lock()
 	defer mu.Unlock()
 
-	newTmpl := template.New("").Funcs(fmap)
+	newTmpl := template.New("layout").Funcs(fmap)
 	counter := 0
 
-	err := filepath.Walk(baseDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() || !strings.HasSuffix(path, ".html") {
+	layoutDirs := []string{
+		filepath.Join(baseDir, "layouts"),
+		filepath.Join(baseDir, "partials"),
+	}
+
+	for _, dir := range layoutDirs {
+		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+			if err != nil || info.IsDir() || !strings.HasSuffix(path, ".html") {
+				return nil
+			}
+
+			_, err = newTmpl.ParseFiles(path)
+			if err != nil {
+				utils.Error("error parsing template %v: %v", path, err)
+				return err
+			}
+			counter++
 			return nil
-		}
-
-		relativePath, err := filepath.Rel(baseDir, path)
+		})
 		if err != nil {
-			utils.Error("error getting relative path %v: %v", path, err)
+			utils.Error("error walking templates in %s: %v", dir, err)
 			return err
 		}
-
-		templateName := strings.TrimSuffix(filepath.ToSlash(relativePath), ".html")
-
-		_, err = newTmpl.New(templateName).ParseFiles(path)
-		if err != nil {
-			utils.Error("error parsing template %v: %v", path, err)
-			return err
-		}
-
-		counter++
-		return nil
-	})
-
-	if err != nil {
-		utils.Error("error loading templates: %v", err)
-		return err
 	}
 
 	Tmpl = newTmpl
-	utils.Debug("Loaded %d templates from %s", counter, baseDir)
+	utils.Debug("Loaded %d base layout/partial templates from %s", counter, baseDir)
 	return nil
 }
 
@@ -150,15 +148,37 @@ func watchForChanges(baseDir string) {
 	}
 }
 
-func RenderTemplate(w http.ResponseWriter, layout string, data any) error {
-
+func RenderTemplate(w http.ResponseWriter, layout, page string, data any) error {
 	mu.RLock()
-	defer mu.RUnlock()
+	base := Tmpl
+	mu.RUnlock()
 
-	err := Tmpl.ExecuteTemplate(w, layout, data)
+	tmpl, err := base.Clone()
+	if err != nil {
+		utils.Error("Clone failed: %v", err)
+		http.Error(w, "Template error", http.StatusInternalServerError)
+		return err
+	}
+
+	pagePath := filepath.Join("web/templates/pages", page+".html") // TODO use config.
+	tmpl, err = tmpl.ParseFiles(pagePath)
+	if err != nil {
+		utils.Error("❌ ParseFiles failed for %s: %v", pagePath, err)
+		http.Error(w, "Template parse error", http.StatusInternalServerError)
+		return err
+	}
+	utils.Debug("Parsed page template: %s", pagePath)
+	for _, t := range tmpl.Templates() {
+		fmt.Println("✅ Loaded template:", t.Name())
+	}
+
+	layoutPath := "layouts/" + layout
+	err = tmpl.ExecuteTemplate(w, layoutPath, data)
 	if err != nil {
 		utils.Error("ExecuteTemplate failed: %v", err)
-		http.Error(w, "Template rendering error", http.StatusInternalServerError)
+		http.Error(w, "Render error", http.StatusInternalServerError)
+		return err
 	}
-	return err
+
+	return nil
 }

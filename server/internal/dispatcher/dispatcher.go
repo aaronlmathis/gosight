@@ -33,6 +33,7 @@ import (
 	"strings"
 
 	"github.com/aaronlmathis/gosight/shared/model"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 type Dispatcher struct {
@@ -49,6 +50,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, event model.EventEntry) {
 		if !matchRoute(route.Match, event) {
 			continue
 		}
+		utils.Debug("Dispatching event:", event.Message)
 		for _, action := range route.Actions {
 			go executeAction(action, event)
 		}
@@ -89,6 +91,7 @@ func executeAction(a model.ActionSpec, e model.EventEntry) {
 // executeWebhook sends a POST request to the specified URL with the event data as JSON.
 // It sets the content type to application/json and includes any additional headers specified in the action.
 func executeWebhook(a model.ActionSpec, e model.EventEntry) {
+	utils.Debug("🔥 Webhook triggered for: %s", a.URL)
 	payload, _ := json.Marshal(e)
 	req, _ := http.NewRequest("POST", a.URL, bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json")

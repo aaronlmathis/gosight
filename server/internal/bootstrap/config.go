@@ -33,6 +33,7 @@ import (
 	"github.com/aaronlmathis/gosight/server/internal/config"
 )
 
+// TODO Update environment variables and flags
 func LoadServerConfig() *config.Config {
 	// CLI flags
 	configFlag := flag.String("config", "", "Path to server config file")

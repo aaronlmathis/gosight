@@ -2,7 +2,6 @@ package templates
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
@@ -133,7 +132,7 @@ func BuildHostDashboardData(ctx context.Context, ms metricstore.MetricStore, met
 	utils.Debug("MetricStore concrete type: %T\n", ms)
 	// Pull all instant metrics for stat boxes
 	instantNames := GetMetricNames(HostMetrics, true)
-	fmt.Println("🧪 Querying instant metrics:", instantNames)
+
 	instantRows, err := ms.QueryMultiInstant(instantNames, labels)
 	utils.Debug("instantRows: %v", instantRows)
 	if err != nil {

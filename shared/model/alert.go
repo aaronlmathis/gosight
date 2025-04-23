@@ -38,7 +38,9 @@ type AlertRule struct {
 	Actions  []string      `json:"actions"`            // route IDs to trigger
 	Cooldown time.Duration `json:"cooldown,omitempty"` // suppress duplicate firing
 
-	EvalInterval time.Duration `json:"eval_interval"` // how often to check
+	EvalInterval    time.Duration `json:"eval_interval"`               // how often to check
+	RepeatInterval  time.Duration `json:"repeat_interval,omitempty"`   // e.g. "30m"
+	NotifyOnResolve bool          `json:"notify_on_resolve,omitempty"` // true or false
 }
 
 // MetricSelector defines the metric to be monitored and any labels to match.
@@ -53,17 +55,19 @@ type MatchCriteria struct {
 
 // AlertInstance represents the current state of a triggered alert.
 type AlertInstance struct {
-	RuleID     string `json:"rule_id"`
-	EndpointID string `json:"endpoint_id"`
-
+	ID         string            `json:"id"`
+	RuleID     string            `json:"rule_id"`
+	EndpointID string            `json:"endpoint_id,omitempty"`
 	State      string            `json:"state"`       // "ok", "firing", "resolved", "no_data"
 	Previous   string            `json:"previous"`    // previous state
+	Scope      string            `json:"scope"`       // "global", "endpoint", "agent", "user", "cloud" etc
+	Target     string            `json:"target"`      // e.g. "endpoint_id", "agent_id", "user_id"
 	FirstFired time.Time         `json:"first_fired"` // when it first started firing
 	LastFired  time.Time         `json:"last_fired"`  // when it last evaluated as firing
 	LastOK     time.Time         `json:"last_ok"`     // last time condition returned OK
 	LastValue  float64           `json:"last_value"`  // most recent value
-	LastLabels map[string]string `json:"labels"`      // optional: container name, interface, etc.
+	Level      string            `json:"level"`       // from rule (info/warning/critical)
+	Message    string            `json:"message"`     // expanded from template
 	Labels     map[string]string `json:"labels"`
-	Message    string            `json:"message"` // expanded from template
-	Level      string            `json:"level"`   // from rule (info/warning/critical)
+	ResolvedAt *time.Time        `json:"resolved_at,omitempty"` // when it was resolved
 }

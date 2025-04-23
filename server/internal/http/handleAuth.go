@@ -132,7 +132,7 @@ func (s *HttpServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	utils.Debug("Auth providers: %v", providers)
 	utils.Debug("Template Data: %v", data)
 
-	if err := templates.RenderTemplate(w, "dashboard/login", data); err != nil {
+	if err := templates.RenderTemplate(w, "layout_auth", "login", data); err != nil {
 		utils.Error("❌ Failed to execute template: %v", err)
 		http.Error(w, "template execution error", http.StatusInternalServerError)
 	}
@@ -194,7 +194,7 @@ func (s *HttpServer) HandleMFAPage(w http.ResponseWriter, r *http.Request) {
 		"Flash": flash,
 	}
 
-	if err := templates.RenderTemplate(w, "dashboard/mfa", data); err != nil {
+	if err := templates.RenderTemplate(w, "layout_auth", "mfa", data); err != nil {
 		utils.Error("❌ Failed to execute template: %v", err)
 		http.Error(w, "template execution error", http.StatusInternalServerError)
 	}

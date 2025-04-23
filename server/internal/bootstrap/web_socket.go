@@ -24,8 +24,8 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package bootstrap
 
 import (
-	"github.com/aaronlmathis/gosight/server/internal/http/websocket"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
+	"github.com/aaronlmathis/gosight/server/internal/websocket"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
