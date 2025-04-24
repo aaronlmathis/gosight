@@ -224,6 +224,7 @@ function toggleContainerRow(rowID) {
       .then(res => res.json())
       .then(json => {
         const rows = Array.isArray(json) ? json : [];
+        console.log("📊 Raw container rows from API:", rows);
         const grouped = groupContainers(rows);
         wrapper.innerHTML = `<div class="p-4">${buildContainerTable(grouped)}</div>`;
         wrapper.dataset.loaded = "true";
@@ -262,6 +263,9 @@ function groupContainers(rows) {
     }
 
     console.log("Checking row with container_id:", id, "name:", tags["__name__"]);
+    console.log("🧪 Row received:", row);
+console.log("📛 container_id:", row.tags?.container_id);
+console.log("🧩 __name__:", row.tags?.__name__);
 
     if (!id) {
       console.warn("Skipping row: missing container_id", row);

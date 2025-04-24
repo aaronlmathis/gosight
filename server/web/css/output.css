@@ -1298,6 +1298,20 @@
       rotate: 90deg;
     }
   }
+  .hover\:border-gray-200 {
+    &:hover {
+      @media (hover: hover) {
+        border-color: var(--color-gray-200);
+      }
+    }
+  }
+  .hover\:border-gray-300 {
+    &:hover {
+      @media (hover: hover) {
+        border-color: var(--color-gray-300);
+      }
+    }
+  }
   .hover\:bg-blue-700 {
     &:hover {
       @media (hover: hover) {
@@ -1846,6 +1860,15 @@
     @media (prefers-color-scheme: dark) {
       &::placeholder {
         color: var(--color-gray-500);
+      }
+    }
+  }
+  .dark\:hover\:border-gray-600 {
+    @media (prefers-color-scheme: dark) {
+      &:hover {
+        @media (hover: hover) {
+          border-color: var(--color-gray-600);
+        }
       }
     }
   }

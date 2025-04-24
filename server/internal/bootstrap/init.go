@@ -73,19 +73,11 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 	dataStore, err := InitDataStore(cfg)
 	utils.Must("Data store", err)
 
-	// Initialize agent tracker
-	agentTracker, err := InitAgentTracker(ctx, cfg.Server.Environment, dataStore)
-	utils.Must("Agent tracker", err)
-
 	// Initialize meta tracker
 	metaTracker := metastore.NewMetaTracker()
 
 	// Initialize the websocket hub
 	wsHub := InitWebSocketHub(metaTracker)
-
-	// Initialize user store
-	userStore, err := InitUserStore(cfg)
-	utils.Must("User store", err)
 
 	// Initialize event store
 	eventStore, err := InitEventStore(cfg)
@@ -115,9 +107,17 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 	// Initialize the evaluator
 	evaluator := rules.NewEvaluator(ruleStore, alertMgr)
 
+	// Initialize user store
+	userStore, err := InitUserStore(cfg)
+	utils.Must("User store", err)
+
 	// Initialize auth
 	authProviders, err := InitAuth(cfg, userStore)
 	utils.Must("Auth providers", err)
+
+	// Initialize agent tracker
+	agentTracker, err := InitAgentTracker(ctx, cfg.Server.Environment, dataStore, emitter)
+	utils.Must("Agent tracker", err)
 
 	// Build stores
 	stores := &sys.StoreModule{

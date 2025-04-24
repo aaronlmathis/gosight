@@ -34,6 +34,7 @@ import (
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
 	"github.com/aaronlmathis/gosight/server/internal/http/templates"
 	"github.com/aaronlmathis/gosight/server/internal/usermodel"
+	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
@@ -52,7 +53,7 @@ func (s *HttpServer) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	provider := r.URL.Query().Get("provider")
 
 	handler, ok := s.Sys.Auth[provider]
-	fmt.Println(handler)
+
 	if !ok {
 		http.Error(w, "invalid provider", http.StatusBadRequest)
 		return
@@ -60,6 +61,18 @@ func (s *HttpServer) HandleCallback(w http.ResponseWriter, r *http.Request) {
 
 	user, err := handler.HandleCallback(w, r)
 	if err != nil {
+		// Login failed for local user or callback failed for SSO.
+		s.Sys.Tele.Emitter.Emit(r.Context(), model.EventEntry{
+			Timestamp: time.Now(),
+			Type:      "user.login.failed",
+			Level:     "warning",
+			Category:  "auth",
+			Source:    fmt.Sprintf("auth:%s", provider),
+			Scope:     "user",
+			Target:    "",
+			Message:   fmt.Sprintf("Login failed via %s", provider),
+			Meta:      s.BuildAuthEventMeta(nil, r),
+		})
 		SetFlash(w, "Invalid username or password")
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
@@ -99,13 +112,29 @@ func (s *HttpServer) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Normal login flow
+	// Normal Login flow for SSO provider login
 	ctx := InjectUserContext(r.Context(), user)
-	utils.Debug("✅ %s user: %s", provider, user.Email)
-	utils.Debug("✅ Roles: %v", user.Roles)
-	utils.Debug("✅ Permissions: %v", gosightauth.FlattenPermissions(user.Roles))
+	utils.Debug("%s user: %s", provider, user.Email)
+	utils.Debug("Roles: %v", user.Roles)
+	utils.Debug("Permissions: %v", gosightauth.FlattenPermissions(user.Roles))
 
+	// Set final session information and redirect user.
 	s.createFinalSessionAndRedirect(w, r.WithContext(ctx), user)
+
+	// Build Auth Event Entry
+	eventEntry := model.EventEntry{
+		Timestamp: time.Now(),
+		Type:      "user.login.success",
+		Level:     "info",
+		Message:   fmt.Sprintf("User %s %s (%s) signed in", user.FirstName, user.LastName, user.Email),
+		Target:    user.ID,
+		Category:  "auth",
+		Source:    fmt.Sprintf("auth:%s", provider),
+		Scope:     "user",
+		Meta:      s.BuildAuthEventMeta(user, r),
+	}
+	// Emit the auth event
+	s.Sys.Tele.Emitter.Emit(ctx, eventEntry)
 }
 
 // HandleLogin renders the login page.
@@ -146,11 +175,12 @@ func (s *HttpServer) HandleMFA(w http.ResponseWriter, r *http.Request) {
 		s.HandleMFAPage(w, r)
 		return
 	} else {
-		utils.Debug("📦 Pending MFA for ")
+		ctx := r.Context()
+		utils.Debug("Pending MFA for ")
 		// POST - MFA verification
 		userID, err := gosightauth.LoadPendingMFA(r)
 		if err != nil || userID == "" {
-			utils.Debug("❌ No pending MFA for %s", userID)
+			utils.Debug("No pending MFA for %s", userID)
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
@@ -158,6 +188,21 @@ func (s *HttpServer) HandleMFA(w http.ResponseWriter, r *http.Request) {
 		code := r.FormValue("code")
 		user, err := s.Sys.Stores.Users.GetUserByID(r.Context(), userID)
 		if err != nil || !gosightauth.ValidateTOTP(user.TOTPSecret, code) {
+
+			// Emit MFA failure event
+			eventEntry := model.EventEntry{
+				Timestamp: time.Now(),
+				Type:      "user.mfa.failed",
+				Level:     "warning",
+				Message:   fmt.Sprintf("MFA failed for user ID %s", userID),
+				Target:    user.ID,
+				Category:  "auth",
+				Source:    "auth.local",
+				Scope:     "user",
+				Meta:      s.BuildAuthEventMeta(user, r),
+			}
+			// Emit the auth event
+			s.Sys.Tele.Emitter.Emit(ctx, eventEntry)
 			http.Error(w, "Invalid TOTP code", http.StatusUnauthorized)
 			return
 		}
@@ -169,19 +214,35 @@ func (s *HttpServer) HandleMFA(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		utils.Debug("Got perms for %v", user)
-		utils.Debug("✅ MFA passed for %s", user.ID)
+		utils.Debug("MFA passed for %s", user.ID)
 
 		if r.FormValue("remember") == "on" {
-			utils.Debug("📦 Setting remember_mfa cookie")
+			utils.Debug("Setting remember_mfa cookie")
 			gosightauth.SetRememberMFA(w, user.ID, r)
 		}
 
 		// Inject full context
-		ctx := contextutil.SetUserID(r.Context(), user.ID)
+		ctx = contextutil.SetUserID(r.Context(), user.ID)
 		ctx = contextutil.SetUserRoles(ctx, gosightauth.ExtractRoleNames(user.Roles))
 		ctx = contextutil.SetUserPermissions(ctx, gosightauth.FlattenPermissions(user.Roles))
 
 		s.createFinalSessionAndRedirect(w, r.WithContext(ctx), user)
+
+		// Emit MFA success event
+		// Build Auth Event Entry
+		eventEntry := model.EventEntry{
+			Timestamp: time.Now(),
+			Type:      "user.login.success",
+			Level:     "info",
+			Message:   fmt.Sprintf("User %s %s (%s) signed in", user.FirstName, user.LastName, user.Email),
+			Target:    user.ID,
+			Category:  "auth",
+			Source:    "auth.local",
+			Scope:     "user",
+			Meta:      s.BuildAuthEventMeta(user, r),
+		}
+		// Emit the auth event
+		s.Sys.Tele.Emitter.Emit(ctx, eventEntry)
 	}
 }
 
@@ -211,7 +272,24 @@ func (s *HttpServer) HandleLogout(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 		Secure:   false, // TODO s.Config.Server.UseHTTPS,
 	})
+	ctx := r.Context()
+	userID, _ := contextutil.GetUserID(ctx)
 
+	s.Sys.Tele.Emitter.Emit(ctx, model.EventEntry{
+		Timestamp: time.Now(),
+		Type:      "user.logout",
+		Level:     "info",
+		Category:  "auth",
+		Source:    "auth.logout",
+		Scope:     "user",
+		Target:    userID,
+		Message:   fmt.Sprintf("User %s logged out", userID),
+		Meta: map[string]string{
+			"user_id":    userID,
+			"ip":         utils.GetClientIP(r),
+			"user_agent": r.UserAgent(),
+		},
+	})
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 

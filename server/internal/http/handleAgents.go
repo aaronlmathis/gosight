@@ -30,6 +30,8 @@ import (
 	"sort"
 	"text/template"
 
+	"github.com/aaronlmathis/gosight/server/internal/contextutil"
+	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
@@ -68,14 +70,20 @@ func (s *HttpServer) HandleAgentsPage(w http.ResponseWriter, r *http.Request, te
 func (s *HttpServer) HandleAgentsAPI(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
+	userID, _ := contextutil.GetUserID(r.Context())
+	roles, _ := contextutil.GetUserRoles(r.Context())
+	perms, _ := contextutil.GetUserPermissions(r.Context())
 
+	utils.Debug("🧑‍💻 API /agents called by: %s | Roles: %v | Perms: %v", userID, roles, perms)
 	storedAgents, err := s.Sys.Stores.Data.ListAgents(ctx)
 
 	if err != nil {
 		http.Error(w, "failed to load agents", http.StatusInternalServerError)
 		return
 	}
-
+	if storedAgents == nil {
+		storedAgents = []*model.Agent{}
+	}
 	// 2. Get current in-memory live agents
 	liveMap := s.Sys.Agents.GetAgentMap()
 

@@ -24,8 +24,13 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 
 package utils
 
-import "net"
+import (
+	"net"
+	"net/http"
+	"strings"
+)
 
+// GetLocalIP retrieves the local IP address of the machine running the gosight agent.
 func GetLocalIP() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
@@ -40,4 +45,29 @@ func GetLocalIP() string {
 		}
 	}
 	return "unknown"
+}
+
+// GetClientIP retrieves the client's IP address from the request.
+// It checks the X-Forwarded-For and X-Real-IP headers first, then falls back to RemoteAddr.
+
+func GetClientIP(r *http.Request) string {
+	// Try X-Forwarded-For (may contain multiple comma-separated IPs)
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		parts := strings.Split(xff, ",")
+		if len(parts) > 0 {
+			return strings.TrimSpace(parts[0]) // first is original client
+		}
+	}
+
+	// Try X-Real-IP (usually set by nginx)
+	if xrip := r.Header.Get("X-Real-IP"); xrip != "" {
+		return strings.TrimSpace(xrip)
+	}
+
+	// Fallback to RemoteAddr
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return ip
 }

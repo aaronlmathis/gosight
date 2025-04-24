@@ -236,7 +236,7 @@ func buildPrometheusFormat(batch []model.MetricPayload) string {
 
 			for k, v := range payload.Meta.Tags {
 				labels[k] = v
-				//utils.Debug("Metric Name: %s Meta tag %s: %s", fullName, k, v) Bad data.
+
 			}
 			for k, v := range m.Dimensions {
 				labels[k] = v

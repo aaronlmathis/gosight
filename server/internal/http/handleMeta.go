@@ -33,9 +33,10 @@ import (
 	"net/url"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
+
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/gorilla/mux"
@@ -144,7 +145,7 @@ func (s *HttpServer) GetLatestValue(w http.ResponseWriter, r *http.Request) {
 
 func (s *HttpServer) HandleAPIQuery(w http.ResponseWriter, r *http.Request) {
 
-	utils.Debug("Known dimensions: %+v", s.Sys.Tele.Index.GetDimensions())
+	//utils.Debug("Known dimensions: %+v", s.Sys.Tele.Index.GetDimensions())
 
 	query := r.URL.Query()
 
@@ -194,7 +195,7 @@ func (s *HttpServer) HandleAPIQuery(w http.ResponseWriter, r *http.Request) {
 		filters[key] = vals[0]
 	}
 
-	utils.Debug(" Query Mode: metric=%q, start=%v, end=%v, filters=%+v", metricNames, start, end, filters)
+	//utils.Debug(" Query Mode: metric=%q, start=%v, end=%v, filters=%+v", metricNames, start, end, filters)
 	if len(filters) == 0 && len(metricNames) == 0 {
 		http.Error(w, "must specify at least one filter or a metric name", http.StatusBadRequest)
 		return
@@ -262,7 +263,6 @@ func applySortAndLimit(data any, sortKey string, limit int) any {
 	}
 	return rows
 }
-
 
 // parseQueryFilters parses the query parameters from the request and returns a map of filters.
 // It ignores the "start", "end", "latest", and "step" parameters.

@@ -14,16 +14,16 @@ func HasPermission(ctx context.Context, required string) bool {
 		utils.Debug("No permissions in context")
 		return false
 	}
-	utils.Debug("🔍 Checking for permission: %s", required)
-	utils.Debug("🧾 Available: %v", perms)
+	//utils.Debug(" Checking for permission: %s", required)
+	//utils.Debug("Available: %v", perms)
 
 	for _, p := range perms {
 		if p == required {
-			utils.Debug("Permission matched: %s", p)
+			//utils.Debug("Permission matched: %s", p)
 			return true
 		}
 	}
-	utils.Debug("❌ Permission missing: %s", required)
+	//utils.Debug("Permission missing: %s", required)
 	return false
 }
 

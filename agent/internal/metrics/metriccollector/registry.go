@@ -60,7 +60,7 @@ func NewRegistry(cfg *config.Config) *MetricRegistry {
 		case "docker":
 			reg.Collectors["docker"] = container.NewDockerCollectorWithSocket(cfg.Docker.Socket)
 		default:
-			utils.Warn("⚠️ Unknown collector: %s (skipping) \n", name)
+			utils.Warn(" Unknown collector: %s (skipping) \n", name)
 		}
 	}
 	utils.Info("Loaded %d metric collectors", len(reg.Collectors))
@@ -75,7 +75,7 @@ func (r *MetricRegistry) Collect(ctx context.Context) ([]model.Metric, error) {
 	for name, collector := range r.Collectors {
 		metrics, err := collector.Collect(ctx)
 		if err != nil {
-			utils.Error("❌ Error collecting %s: %v\n", name, err)
+			utils.Error(" Error collecting %s: %v\n", name, err)
 			continue
 		}
 		all = append(all, metrics...)

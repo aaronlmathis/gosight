@@ -80,12 +80,27 @@ func (s *HttpServer) setupStaticRoutes() {
 	s.Router.PathPrefix("/images/").Handler(http.StripPrefix("/images/", staticFS))
 }
 
+// setupAuthRoutes sets up the authentication routes for the HTTP server.
+// It includes routes for login, logout, MFA, and the callback from the auth provider.
+// The routes are protected by middleware that checks for injects context and trace identifiers.
+// The routes are also logged for access control.
 func (s *HttpServer) setupAuthRoutes() {
-	s.Router.HandleFunc("/callback", s.HandleCallback).Methods("GET", "POST")
-	s.Router.HandleFunc("/login/start", s.HandleLoginStart).Methods("GET")
-	s.Router.HandleFunc("/logout", s.HandleLogout).Methods("GET")
-	s.Router.HandleFunc("/login", s.HandleLogin).Methods("GET")
-	s.Router.HandleFunc("/mfa", s.HandleMFA).Methods("GET", "POST")
+	withAccessLog := gosightauth.AccessLogMiddleware
+	withAuth := gosightauth.AuthMiddleware(s.Sys.Stores.Users)
+
+	// These routes require no auth — public-facing
+	s.Router.Handle("/login", withAccessLog(http.HandlerFunc(s.HandleLogin))).Methods("GET")
+	s.Router.Handle("/login/start", withAccessLog(http.HandlerFunc(s.HandleLoginStart))).Methods("GET")
+	s.Router.Handle("/callback", withAccessLog(http.HandlerFunc(s.HandleCallback))).Methods("GET", "POST")
+	s.Router.Handle("/mfa", withAccessLog(http.HandlerFunc(s.HandleMFA))).Methods("GET", "POST")
+
+	s.Router.Handle("/logout",
+		withAccessLog(
+			withAuth(
+				http.HandlerFunc(s.HandleLogout),
+			),
+		),
+	).Methods("GET")
 }
 
 func (s *HttpServer) setupIndexRoutes() {
@@ -129,62 +144,35 @@ func (s *HttpServer) setupEndpointRoutes() {
 // It includes routes for fetching namespaces, sub-namespaces, metric names, dimensions,
 // and metric data.
 func (s *HttpServer) setupAPIRoutes() {
-
 	api := s.Router.PathPrefix("/api/v1").Subrouter()
-	api.HandleFunc("/query", s.HandleAPIQuery).Methods("GET")
-	api.HandleFunc("/exportquery", s.HandleExportQuery).Methods("GET")
 
-	api.HandleFunc("/", s.GetNamespaces).Methods("GET")
+	withAuth := gosightauth.AuthMiddleware(s.Sys.Stores.Users)
 
-	api.Handle("/agents",
-		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
-			gosightauth.RequirePermission("gosight:dashboard:view",
-				http.HandlerFunc(s.HandleAgentsAPI),
-				s.Sys.Stores.Users,
-			),
-		)).Methods("GET")
+	secure := func(permission string, handler http.HandlerFunc) http.Handler {
+		return withAuth(gosightauth.RequirePermission(permission, handler, s.Sys.Stores.Users))
+	}
+	// Agent list
+	api.Handle("/agents", secure("gosight:api:agents:view", http.HandlerFunc(s.HandleAgentsAPI))).Methods("GET")
 
-	api.Handle("/logs",
-		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
-			gosightauth.RequirePermission("gosight:logs:view",
-				http.HandlerFunc(s.HandleLogAPI), // <- pass your actual FileStore here
-				s.Sys.Stores.Users,
-			),
-		),
-	).Methods("GET")
+	// Logs
+	api.Handle("/logs", secure("gosight:api:logs:view", http.HandlerFunc(s.HandleLogAPI))).Methods("GET")
+	api.Handle("/logs/latest", secure("gosight:api:logs:view", http.HandlerFunc(s.HandleRecentLogs))).Methods("GET")
 
-	api.Handle("/logs/latest",
-		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
-			gosightauth.RequirePermission("gosight:logs:view",
-				http.HandlerFunc(s.HandleRecentLogs), // <- pass your actual FileStore here
-				s.Sys.Stores.Users,
-			),
-		),
-	).Methods("GET")
+	// Events and Alerts
+	api.Handle("/events", secure("gosight:api:events:view", http.HandlerFunc(s.HandleEventsAPI))).Methods("GET")
+	api.Handle("/alerts", secure("gosight:api:events:view", http.HandlerFunc(s.HandleAlertsAPI))).Methods("GET")
 
-	api.Handle("/events",
-		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
-			gosightauth.RequirePermission("gosight:events:view",
-				http.HandlerFunc(s.HandleEventsAPI), // <- pass your actual FileStore here
-				s.Sys.Stores.Users,
-			),
-		),
-	).Methods("GET")
+	// Metrics and queries
+	api.Handle("/query", secure("gosight:api:metrics:query", http.HandlerFunc(s.HandleAPIQuery))).Methods("GET")
+	api.Handle("/exportquery", secure("gosight:api:metrics:export", http.HandlerFunc(s.HandleExportQuery))).Methods("GET")
 
-	api.Handle("/alerts",
-		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
-			gosightauth.RequirePermission("gosight:events:view",
-				http.HandlerFunc(s.HandleAlertsAPI), // <- pass your actual FileStore here
-				s.Sys.Stores.Users,
-			),
-		),
-	).Methods("GET")
-
-	api.HandleFunc("/{namespace}/{sub}/{metric}/latest", s.GetLatestValue).Methods("GET")
-	api.HandleFunc("/{namespace}/{sub}/{metric}/data", s.GetMetricData).Methods("GET")
-	api.HandleFunc("/{namespace}/{sub}/dimensions", s.GetDimensions).Methods("GET")
-	api.HandleFunc("/{namespace}/{sub}", s.GetMetricNames).Methods("GET")
-	api.HandleFunc("/{namespace}", s.GetSubNamespaces).Methods("GET")
+	// Metadata discovery endpoints
+	api.Handle("/", secure("gosight:api:metrics:meta", http.HandlerFunc(s.GetNamespaces))).Methods("GET")
+	api.Handle("/{namespace}/{sub}/{metric}/latest", secure("gosight:api:metrics:read", http.HandlerFunc(s.GetLatestValue))).Methods("GET")
+	api.Handle("/{namespace}/{sub}/{metric}/data", secure("gosight:api:metrics:read", http.HandlerFunc(s.GetMetricData))).Methods("GET")
+	api.Handle("/{namespace}/{sub}/dimensions", secure("gosight:api:metrics:meta", http.HandlerFunc(s.GetDimensions))).Methods("GET")
+	api.Handle("/{namespace}/{sub}", secure("gosight:api:metrics:meta", http.HandlerFunc(s.GetMetricNames))).Methods("GET")
+	api.Handle("/{namespace}", secure("gosight:api:metrics:meta", http.HandlerFunc(s.GetSubNamespaces))).Methods("GET")
 
 }
 

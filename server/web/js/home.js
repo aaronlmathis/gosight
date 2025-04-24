@@ -1,257 +1,260 @@
+import { gosightFetch } from './api.js';
 //
 // AGENT CARD
 //
 export async function loadAgentCard() {
-    try {
-      const res = await fetch("/api/v1/agents");
-      const agents = await res.json();
-  
-      const online = agents.filter(a => a.status === "Online").length;
-      const total = agents.length;
-      const offline = total - online;
-  
-      // Update text
-      document.getElementById("agent-health-status").textContent = `${online} Online / ${offline} Offline`;
-  
-      // Render radial chart
-      const percent = total > 0 ? (online / total) * 100 : 0;
-      new ApexCharts(document.getElementById("radial-agents"), {
-        chart: { type: "radialBar", height: 200 },
-        series: [percent],
-        labels: ["Online %"],
-        colors: ["#10b981"],
-        plotOptions: {
-          radialBar: {
-            hollow: { size: "60%" },
-            dataLabels: {
-              name: { fontSize: "12px" },
-              value: { fontSize: "16px", fontWeight: 600, formatter: v => `${v.toFixed(0)}%` },
-            },
+  try {
+    const res = await gosightFetch("/api/v1/agents")
+      .then(res => res.json())
+      .then(data => console.log("Agents:", data));
+    const agents = await res.json();
+
+    const online = agents.filter(a => a.status === "Online").length;
+    const total = agents.length;
+    const offline = total - online;
+
+    // Update text
+    document.getElementById("agent-health-status").textContent = `${online} Online / ${offline} Offline`;
+
+    // Render radial chart
+    const percent = total > 0 ? (online / total) * 100 : 0;
+    new ApexCharts(document.getElementById("radial-agents"), {
+      chart: { type: "radialBar", height: 200 },
+      series: [percent],
+      labels: ["Online %"],
+      colors: ["#10b981"],
+      plotOptions: {
+        radialBar: {
+          hollow: { size: "60%" },
+          dataLabels: {
+            name: { fontSize: "12px" },
+            value: { fontSize: "16px", fontWeight: 600, formatter: v => `${v.toFixed(0)}%` },
           },
         },
-      }).render();
-    } catch (err) {
-      console.error("Agent summary failed:", err);
-      document.getElementById("agent-health-status").textContent = "Unavailable";
-    }
+      },
+    }).render();
+  } catch (err) {
+    console.error("Agent summary failed:", err);
+    document.getElementById("agent-health-status").textContent = "Unavailable";
   }
+}
 //
 
 //
 // ALERT RADIAL
 //
 export async function loadAlertRadial() {
-    try {
-      const res = await fetch("/api/v1/alerts");
-      const alerts = await res.json();
-      const count = Array.isArray(alerts) ? alerts.length : 0;
-  
-      new ApexCharts(document.getElementById("radial-alerts"), {
-        chart: { type: "radialBar", height: 200},
-        series: [Math.min(count * 10, 100)], // scale for visual only
-        labels: ["Alerts"],
-        colors: ["#ef4444"],
-        plotOptions: {
-          radialBar: {
-            hollow: { size: "60%" },
-            dataLabels: {
-              name: { fontSize: "12px" },
-              value: { fontSize: "16px", fontWeight: 600, formatter: v => `${count}` },
-            },
+  try {
+    const res = await gosightFetch("/api/v1/alerts");
+    const alerts = await res.json();
+    const count = Array.isArray(alerts) ? alerts.length : 0;
+
+    new ApexCharts(document.getElementById("radial-alerts"), {
+      chart: { type: "radialBar", height: 200 },
+      series: [Math.min(count * 10, 100)], // scale for visual only
+      labels: ["Alerts"],
+      colors: ["#ef4444"],
+      plotOptions: {
+        radialBar: {
+          hollow: { size: "60%" },
+          dataLabels: {
+            name: { fontSize: "12px" },
+            value: { fontSize: "16px", fontWeight: 600, formatter: v => `${count}` },
           },
         },
-      }).render();
-    } catch (err) {
-      console.error("Alert radial failed:", err);
-    }
+      },
+    }).render();
+  } catch (err) {
+    console.error("Alert radial failed:", err);
   }
+}
 
 //
 // LOAD CONTAINER RADIAL
 //
 export async function loadContainerCard() {
-    try {
-      const runtimes = ["podman", "docker"];
-      const metricNames = ["cpu_percent", "uptime_seconds"];
-      const metrics = runtimes.flatMap(rt => metricNames.map(name => `container.${rt}.${name}`));
-      const query = metrics.map(m => `metric=${m}`).join("&");
-  
-      const res = await fetch(`/api/v1/query?${query}`);
-      const rows = await res.json();
-  
-      const containers = new Map();
-  
-      for (const row of rows) {
-        const tags = row.tags || {};
-        const id = tags.container_id;
-        if (!id) continue;
-  
-        if (!containers.has(id)) {
-          containers.set(id, { id, status: tags.status || "unknown" });
-        }
+  try {
+    const runtimes = ["podman", "docker"];
+    const metricNames = ["cpu_percent", "uptime_seconds"];
+    const metrics = runtimes.flatMap(rt => metricNames.map(name => `container.${rt}.${name}`));
+    const query = metrics.map(m => `metric=${m}`).join("&");
+
+    const res = await gosightFetch(`/api/v1/query?${query}`);
+    const rows = await res.json();
+
+    const containers = new Map();
+
+    for (const row of rows) {
+      const tags = row.tags || {};
+      const id = tags.container_id;
+      if (!id) continue;
+
+      if (!containers.has(id)) {
+        containers.set(id, { id, status: tags.status || "unknown" });
       }
-  
-      const total = containers.size;
-      const running = [...containers.values()].filter(c => c.status === "running").length;
-      const percent = total > 0 ? (running / total) * 100 : 0;
-  
-      // Render radial chart
-      new ApexCharts(document.getElementById("radial-containers"), {
-        chart: { type: "radialBar", height: 200 },
-        series: [percent],
-        labels: ["Containers"],
-        colors: ["#3b82f6"],
-        plotOptions: {
-          radialBar: {
-            hollow: { size: "60%" },
-            dataLabels: {
-              name: { fontSize: "12px" },
-              value: {
-                fontSize: "16px",
-                fontWeight: 600,
-                formatter: () => `${running} / ${total}`
-              }
+    }
+
+    const total = containers.size;
+    const running = [...containers.values()].filter(c => c.status === "running").length;
+    const percent = total > 0 ? (running / total) * 100 : 0;
+
+    // Render radial chart
+    new ApexCharts(document.getElementById("radial-containers"), {
+      chart: { type: "radialBar", height: 200 },
+      series: [percent],
+      labels: ["Containers"],
+      colors: ["#3b82f6"],
+      plotOptions: {
+        radialBar: {
+          hollow: { size: "60%" },
+          dataLabels: {
+            name: { fontSize: "12px" },
+            value: {
+              fontSize: "16px",
+              fontWeight: 600,
+              formatter: () => `${running} / ${total}`
             }
           }
         }
-      }).render();
-    } catch (err) {
-      console.error("Failed to load container radial:", err);
-    }
+      }
+    }).render();
+  } catch (err) {
+    console.error("Failed to load container radial:", err);
   }
+}
 //
 // LOAD SYSTEM LOAD RADIAL
 //
 export async function loadSystemLoadRadial() {
-    const now = new Date().toISOString();
-    const start = new Date(Date.now() - 10 * 60 * 1000).toISOString(); // 10 minutes ago
-  
-    const url = `/api/v1/query?metric=system.cpu.usage_percent&scope=total&start=${encodeURIComponent(start)}&end=${encodeURIComponent(now)}`;
-    console.log(url)
-    try {
-      const rows = await fetchJson(url);
-      console.log("Raw metric rows: ", rows);
-  
-      if (!Array.isArray(rows) || rows.length === 0) throw new Error("No CPU data");
-  
-      const values = rows.map(r => r.value).filter(v => typeof v === "number");
-      const avg = values.reduce((sum, v) => sum + v, 0) / values.length;
-  
-      const chartEl = document.getElementById("radial-load");
-      if (!chartEl) throw new Error("Chart element not found");
-  
-      new ApexCharts(chartEl, {
-        chart: { type: "radialBar", height: 200},
-        series: [avg],
-        labels: ["CPU Load"],
-        colors: ["#f59e0b"],
-        plotOptions: {
-          radialBar: {
-            hollow: { size: "60%" },
-            dataLabels: {
-              name: { fontSize: "12px" },
-              value: { fontSize: "10px", fontWeight: 600, formatter: v => `${v.toFixed(1)}%` },
-            },
+  const now = new Date().toISOString();
+  const start = new Date(Date.now() - 10 * 60 * 1000).toISOString(); // 10 minutes ago
+
+  const url = `/api/v1/query?metric=system.cpu.usage_percent&scope=total&start=${encodeURIComponent(start)}&end=${encodeURIComponent(now)}`;
+  console.log(url)
+  try {
+    const rows = await fetchJson(url);
+    console.log("Raw metric rows: ", rows);
+
+    if (!Array.isArray(rows) || rows.length === 0) throw new Error("No CPU data");
+
+    const values = rows.map(r => r.value).filter(v => typeof v === "number");
+    const avg = values.reduce((sum, v) => sum + v, 0) / values.length;
+
+    const chartEl = document.getElementById("radial-load");
+    if (!chartEl) throw new Error("Chart element not found");
+
+    new ApexCharts(chartEl, {
+      chart: { type: "radialBar", height: 200 },
+      series: [avg],
+      labels: ["CPU Load"],
+      colors: ["#f59e0b"],
+      plotOptions: {
+        radialBar: {
+          hollow: { size: "60%" },
+          dataLabels: {
+            name: { fontSize: "12px" },
+            value: { fontSize: "10px", fontWeight: 600, formatter: v => `${v.toFixed(1)}%` },
           },
         },
-      }).render();
-    } catch (err) {
-      console.error("loadSystemLoadRadial failed:", err);
-    }
+      },
+    }).render();
+  } catch (err) {
+    console.error("loadSystemLoadRadial failed:", err);
   }
-  
-  //
-  // load Top Containers by CPU
-  export async function loadTopContainersByCpu() {
-    try {
-      const url = "/api/v1/query?metric=container.podman.cpu_percent&metric=container.docker.cpu_percent&sort=desc&limit=5";
-      const rows = await fetchJson(url);
-      if (!rows || !Array.isArray(rows)) return;
-  
-      const labels = rows.map(row =>
-        row.tags?.name ||
-        row.tags?.instance ||
-        row.tags?.container_id?.slice(0, 12) ||
-        "unknown"
-      );
-      const values = rows.map(row => parseFloat(row.value.toFixed(2)));
-  
-      new ApexCharts(document.getElementById("top-cpu-containers"), {
-        chart: {
-          type: "bar",
-          height: 180
-        },
-        series: [{
-          name: "CPU %",
-          data: values
-        }],
-        xaxis: {
-          categories: labels
-        },
-        plotOptions: {
-          bar: {
-            horizontal: true
-          }
-        },
-        colors: ["#f97316"]
-      }).render();
-    } catch (err) {
-      console.error("Failed to load top containers:", err);
-    }
-  }
-  // 
-  // load Top Containers by Memory
-  // 
+}
 
-  export async function loadTopContainersByMemory() {
-    try {
-      const url = "/api/v1/query?metric=container.podman.mem_usage_bytes&sort=desc&limit=5";
-      const rows = await fetchJson(url);
-      if (!rows || !Array.isArray(rows)) return;
-  
-      const labels = rows.map(row =>
-        row.tags?.name ||
-        row.tags?.instance ||
-        row.tags?.container_id?.slice(0, 12) ||
-        "unknown"
-      );
-  
-      const values = rows.map(row => (row.value / 1024 / 1024).toFixed(1)); // Convert bytes to MB
-  
-      new ApexCharts(document.getElementById("top-mem-containers"), {
-        chart: {
-          type: "bar",
-          height: 180
-        },
-        series: [{
-          name: "Memory (MB)",
-          data: values
-        }],
-        xaxis: {
-          categories: labels
-        },
-        plotOptions: {
-          bar: {
-            horizontal: true
-          }
-        },
-        colors: ["#6366f1"]
-      }).render();
-    } catch (err) {
-      console.error("Failed to load top memory containers:", err);
-    }
+//
+// load Top Containers by CPU
+export async function loadTopContainersByCpu() {
+  try {
+    const url = "/api/v1/query?metric=container.podman.cpu_percent&metric=container.docker.cpu_percent&sort=desc&limit=5";
+    const rows = await fetchJson(url);
+    if (!rows || !Array.isArray(rows)) return;
+
+    const labels = rows.map(row =>
+      row.tags?.name ||
+      row.tags?.instance ||
+      row.tags?.container_id?.slice(0, 12) ||
+      "unknown"
+    );
+    const values = rows.map(row => parseFloat(row.value.toFixed(2)));
+
+    new ApexCharts(document.getElementById("top-cpu-containers"), {
+      chart: {
+        type: "bar",
+        height: 180
+      },
+      series: [{
+        name: "CPU %",
+        data: values
+      }],
+      xaxis: {
+        categories: labels
+      },
+      plotOptions: {
+        bar: {
+          horizontal: true
+        }
+      },
+      colors: ["#f97316"]
+    }).render();
+  } catch (err) {
+    console.error("Failed to load top containers:", err);
   }
-  
+}
+// 
+// load Top Containers by Memory
+// 
+
+export async function loadTopContainersByMemory() {
+  try {
+    const url = "/api/v1/query?metric=container.podman.mem_usage_bytes&sort=desc&limit=5";
+    const rows = await fetchJson(url);
+    if (!rows || !Array.isArray(rows)) return;
+
+    const labels = rows.map(row =>
+      row.tags?.name ||
+      row.tags?.instance ||
+      row.tags?.container_id?.slice(0, 12) ||
+      "unknown"
+    );
+
+    const values = rows.map(row => (row.value / 1024 / 1024).toFixed(1)); // Convert bytes to MB
+
+    new ApexCharts(document.getElementById("top-mem-containers"), {
+      chart: {
+        type: "bar",
+        height: 180
+      },
+      series: [{
+        name: "Memory (MB)",
+        data: values
+      }],
+      xaxis: {
+        categories: labels
+      },
+      plotOptions: {
+        bar: {
+          horizontal: true
+        }
+      },
+      colors: ["#6366f1"]
+    }).render();
+  } catch (err) {
+    console.error("Failed to load top memory containers:", err);
+  }
+}
+
 
 async function fetchJson(url) {
-    try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Failed to fetch");
-        return await res.json();
-    } catch (e) {
-        console.error("Fetch error", e);
-        return null;
-    }
+  try {
+    const res = await gosightFetch(url);
+    if (!res.ok) throw new Error("Failed to fetch");
+    return await res.json();
+  } catch (e) {
+    console.error("Fetch error", e);
+    return null;
+  }
 }
 
 // 
@@ -259,56 +262,56 @@ async function fetchJson(url) {
 //
 
 export async function loadTrend(url, elId, label) {
-    const points = await fetchJson(url);
-    if (!points || !Array.isArray(points)) return;
-    const values = points.map(p => p.value);
-    new ApexCharts(document.getElementById(elId), {
-        chart: { type: "area", height: 100, sparkline: { enabled: true } },
-        series: [{ name: label, data: values }],
-        stroke: { curve: "smooth" },
-        colors: ["#3b82f6"],
-        tooltip: { enabled: true },
-    }).render();
+  const points = await fetchJson(url);
+  if (!points || !Array.isArray(points)) return;
+  const values = points.map(p => p.value);
+  new ApexCharts(document.getElementById(elId), {
+    chart: { type: "area", height: 100, sparkline: { enabled: true } },
+    series: [{ name: label, data: values }],
+    stroke: { curve: "smooth" },
+    colors: ["#3b82f6"],
+    tooltip: { enabled: true },
+  }).render();
 }
 //
 // UPDATE ALERT SUMMARY
 //
 export async function updateAlertSummary() {
-    try {
-      const res = await fetch("/api/v1/alerts");
-      const alerts = await res.json();
-      console.log("Alerts:", alerts);
-  
-      if (!Array.isArray(alerts)) {
-        console.warn("Expected array, got:", alerts);
-        document.getElementById("alert-status").textContent = "Unavailable";
-        return;
-      }
-  
-      const counts = alerts.reduce((acc, alert) => {
-        const level = alert.level || "unknown";
-        acc[level] = (acc[level] || 0) + 1;
-        return acc;
-      }, {});
-  
-      const summary = Object.entries(counts)
-        .map(([level, count]) => `${count} ${capitalize(level)}`)
-        .join(", ") || "None";
-  
-      const el = document.getElementById("alert-status");
-      if (el) el.textContent = summary;
-      else console.warn("alert-status element not found");
-  
-    } catch (err) {
-      console.error("Failed to fetch alerts:", err);
-      const el = document.getElementById("alert-status");
-      if (el) el.textContent = "Unavailable";
+  try {
+    const res = await gosightFetch("/api/v1/alerts");
+    const alerts = await res.json();
+    console.log("Alerts:", alerts);
+
+    if (!Array.isArray(alerts)) {
+      console.warn("Expected array, got:", alerts);
+      document.getElementById("alert-status").textContent = "Unavailable";
+      return;
     }
+
+    const counts = alerts.reduce((acc, alert) => {
+      const level = alert.level || "unknown";
+      acc[level] = (acc[level] || 0) + 1;
+      return acc;
+    }, {});
+
+    const summary = Object.entries(counts)
+      .map(([level, count]) => `${count} ${capitalize(level)}`)
+      .join(", ") || "None";
+
+    const el = document.getElementById("alert-status");
+    if (el) el.textContent = summary;
+    else console.warn("alert-status element not found");
+
+  } catch (err) {
+    console.error("Failed to fetch alerts:", err);
+    const el = document.getElementById("alert-status");
+    if (el) el.textContent = "Unavailable";
   }
-  
+}
+
 
 function capitalize(str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 /*
 async function loadTop(url, elId, label, unit) {
@@ -377,13 +380,13 @@ function escapeHTML(str) {
 
 
 export async function initHome() {
-    // Load core radial cards
-    await loadAgentCard();
-    await loadAlertRadial();
-    await loadContainerCard();
-    await loadSystemLoadRadial();
-    await loadTopContainersByCpu();
-    await loadTopContainersByMemory();
+  // Load core radial cards
+  await loadAgentCard();
+  await loadAlertRadial();
+  await loadContainerCard();
+  await loadSystemLoadRadial();
+  await loadTopContainersByCpu();
+  await loadTopContainersByMemory();
   /*
     // Load trend charts
     await loadTrend("/api/v1/query?metric=system.cpu.usage_percent&scope=total", "trend-cpu", "CPU %");
@@ -395,16 +398,16 @@ export async function initHome() {
     await loadTop("/api/v1/query?sort=desc&metric=system.cpu.usage_percent&scope=total&limit=5", "top-cpu-hosts", "Top CPU Hosts", "%");
     await loadTop("/api/v1/query?sort=desc&metric=container.mem.rss&limit=5", "top-mem-containers", "Top Memory Containers", "MB");
     */
-    // Load logs/events
-    const events = await fetchJson("/api/v1/events?limit=10");
-    renderEventLog(events || []);
-  
-    // Summary update (alerts count)
-    await updateAlertSummary();
+  // Load logs/events
+  const events = await fetchJson("/api/v1/events?limit=10");
+  renderEventLog(events || []);
+
+  // Summary update (alerts count)
+  await updateAlertSummary();
 
 
 
-  }
+}
 
 
-  document.addEventListener("DOMContentLoaded", initHome);
+document.addEventListener("DOMContentLoaded", initHome);

@@ -4,6 +4,7 @@ package gosightauth
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
@@ -40,8 +41,14 @@ func RequirePermission(required string, next http.Handler, userStore userstore.U
 		}
 
 		if !HasPermission(ctx, required) {
-			ctx = contextutil.SetUserPermissions(ctx, perms)
-			r = r.WithContext(ctx) // update request context
+			//utils.Debug("RequirePermission: missing %s", required)
+
+			if isAPIRequest(r) {
+				http.Error(w, "forbidden", http.StatusForbidden)
+			} else {
+				http.Redirect(w, r, "/unauthorized", http.StatusSeeOther)
+			}
+			return
 		}
 
 		next.ServeHTTP(w, r)
@@ -66,7 +73,13 @@ func RequireAnyPermissionWithStore(store userstore.UserStore, required ...string
 			}
 
 			if !HasAnyPermission(ctx, required...) {
-				http.Error(w, "forbidden", http.StatusForbidden)
+				//utils.Debug("RequireAnyPermission: missing one of %v", required)
+
+				if isAPIRequest(r) {
+					http.Error(w, "forbidden", http.StatusForbidden)
+				} else {
+					http.Redirect(w, r, "/unauthorized", http.StatusSeeOther)
+				}
 				return
 			}
 
@@ -76,24 +89,31 @@ func RequireAnyPermissionWithStore(store userstore.UserStore, required ...string
 }
 
 func AuthMiddleware(userStore userstore.UserStore) mux.MiddlewareFunc {
-	utils.Debug("AuthMiddleware: Injecting user context")
+	//utils.Debug("AuthMiddleware: Injecting user context")
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token, err := GetSessionToken(r)
 			if err != nil {
-				utils.Debug("❌ AuthMiddleWare: GetSessionToken failed: %v", err)
-				//http.Error(w, "unauthorized", http.StatusUnauthorized)
-				next.ServeHTTP(w, r)
+				//utils.Debug("AuthMiddleWare: GetSessionToken failed: %v", err)
+				if isAPIRequest(r) {
+					http.Error(w, "unauthorized", http.StatusUnauthorized)
+				} else {
+					http.Redirect(w, r, "/login", http.StatusSeeOther)
+				}
 				return
 			}
-			utils.Debug("AuthMiddleware: Token found: %s", token)
+			//utils.Debug("AuthMiddleware: Token found: %s", token)
 			claims, err := ValidateToken(token)
 			if err != nil {
-				utils.Debug("AuthMiddleWare: ValidateToken failed: %v", err)
-				next.ServeHTTP(w, r)
+				//utils.Debug("AuthMiddleWare: ValidateToken failed: %v", err)
+				if isAPIRequest(r) {
+					http.Error(w, "unauthorized", http.StatusUnauthorized)
+				} else {
+					http.Redirect(w, r, "/login", http.StatusSeeOther)
+				}
 				return
 			}
-			utils.Debug("AuthMiddleware: Token claims: %v", claims)
+			//utils.Debug("AuthMiddleware: Token claims: %v", claims)
 			userID := claims.UserID
 			traceID := claims.TraceID
 
@@ -107,12 +127,13 @@ func AuthMiddleware(userStore userstore.UserStore) mux.MiddlewareFunc {
 			if len(claims.Roles) == 0 || time.Since(refreshedAt) > rolesTTL {
 				user, err = userStore.GetUserWithPermissions(r.Context(), userID)
 				if err != nil {
-					next.ServeHTTP(w, r)
+					//utils.Debug("Failed to reload user roles: %v", err)
+					http.Error(w, "unauthorized", http.StatusUnauthorized)
 					return
 				}
 				roleNames = ExtractRoleNames(user.Roles)
 				perms = FlattenPermissions(user.Roles)
-				utils.Debug("Flattened permissions from DB: %v", perms)
+				//utils.Debug("Flattened permissions from DB: %v", perms)
 			} else {
 				// Roles are fresh, use from token
 				roleNames = claims.Roles
@@ -133,7 +154,7 @@ func AuthMiddleware(userStore userstore.UserStore) mux.MiddlewareFunc {
 			if user != nil && len(user.Roles) > 0 {
 				perms = FlattenPermissions(user.Roles)
 				ctx = contextutil.SetUserPermissions(ctx, perms)
-				utils.Debug("🔁 Revalidated user: %s, permissions: %v", user.ID, perms)
+				//utils.Debug("Revalidated user: %s, permissions: %v", user.ID, perms)
 			}
 
 			next.ServeHTTP(w, r.WithContext(ctx))
@@ -199,4 +220,9 @@ type statusRecorder struct {
 func (r *statusRecorder) WriteHeader(code int) {
 	r.status = code
 	r.ResponseWriter.WriteHeader(code)
+}
+
+// isAPIRequest checks if the request is for an API endpoint.
+func isAPIRequest(r *http.Request) bool {
+	return strings.HasPrefix(r.URL.Path, "/api/")
 }

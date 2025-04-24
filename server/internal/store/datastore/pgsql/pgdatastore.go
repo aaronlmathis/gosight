@@ -33,6 +33,7 @@ import (
 	"runtime/debug"
 
 	"github.com/aaronlmathis/gosight/shared/model"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 type PGDataStore struct {
@@ -55,26 +56,27 @@ func (s *PGDataStore) Close() error {
 // UpsertAgent inserts or updates an agent in the database
 
 func (s *PGDataStore) UpsertAgent(ctx context.Context, agent *model.Agent) error {
-
 	tags, _ := json.Marshal(agent.Labels)
 
 	_, err := s.db.ExecContext(ctx, `
-	INSERT INTO agents (
-		agent_id, host_id, hostname, ip, os, arch, version, labels, endpoint_id, last_seen
-	) VALUES (
-		$1, $2, $3, $4, $5, $6, $7, $8, $9, now()
-	)
-	ON CONFLICT (agent_id) DO UPDATE SET
-		host_id = EXCLUDED.host_id,
-		ip = EXCLUDED.ip,
-		os = EXCLUDED.os,
-		arch = EXCLUDED.arch,
-		version = EXCLUDED.version,
-		labels = EXCLUDED.labels,
-		endpoint_id = EXCLUDED.endpoint_id,
-		last_seen = now()
-	;
-`,
+		INSERT INTO agents (
+			agent_id, host_id, hostname, ip, os, arch, version, labels, endpoint_id, last_seen, status, since
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11
+		)
+		ON CONFLICT (agent_id) DO UPDATE SET
+			host_id = EXCLUDED.host_id,
+			hostname = EXCLUDED.hostname,
+			ip = EXCLUDED.ip,
+			os = EXCLUDED.os,
+			arch = EXCLUDED.arch,
+			version = EXCLUDED.version,
+			labels = EXCLUDED.labels,
+			endpoint_id = EXCLUDED.endpoint_id,
+			last_seen = now(),
+			status = EXCLUDED.status,
+			since = EXCLUDED.since
+	`,
 		agent.AgentID,
 		agent.HostID,
 		agent.Hostname,
@@ -84,20 +86,26 @@ func (s *PGDataStore) UpsertAgent(ctx context.Context, agent *model.Agent) error
 		agent.Version,
 		tags,
 		agent.EndpointID,
+		agent.Status,
+		agent.Since,
 	)
 
 	return err
 }
 
-func (s *PGDataStore) GetAgentByAgentID(ctx context.Context, agentID string) (*model.Agent, error) {
+// GetAgentByAgentID retrieves an agent by its agent_id
+// This is used for the agent to check in with the server
+func (s *PGDataStore) GetAgentByID(ctx context.Context, id string) (*model.Agent, error) {
 	row := s.db.QueryRowContext(ctx, `
-		SELECT agent_id, host_id, hostname, ip, os, arch, version, labels, last_seen, endpoint_id
+		SELECT agent_id, host_id, hostname, ip, os, arch, version, labels, last_seen, endpoint_id, status, since
 		FROM agents
 		WHERE agent_id = $1
-	`, agentID)
+	`, id)
 
 	var agent model.Agent
 	var tagsRaw []byte
+	var since sql.NullString
+	var status sql.NullString
 
 	err := row.Scan(
 		&agent.AgentID,
@@ -110,6 +118,8 @@ func (s *PGDataStore) GetAgentByAgentID(ctx context.Context, agentID string) (*m
 		&tagsRaw,
 		&agent.LastSeen,
 		&agent.EndpointID,
+		&status,
+		&since,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -118,26 +128,38 @@ func (s *PGDataStore) GetAgentByAgentID(ctx context.Context, agentID string) (*m
 		return nil, err
 	}
 
-	if err := json.Unmarshal(tagsRaw, &agent.Labels); err != nil {
-		return nil, err
+	if len(tagsRaw) > 0 {
+		if err := json.Unmarshal(tagsRaw, &agent.Labels); err != nil {
+			agent.Labels = map[string]string{}
+		}
+	}
+
+	if status.Valid {
+		agent.Status = status.String
+	}
+	if since.Valid {
+		agent.Since = since.String
 	}
 
 	return &agent, nil
 }
 
+// GetAgentByHostname retrieves an agent by its hostname
 func (s *PGDataStore) GetAgentByHostname(ctx context.Context, hostname string) (*model.Agent, error) {
 	row := s.db.QueryRowContext(ctx, `
-		SELECT agent_id, hostname, ip, os, arch, version, labels, last_seen, updated_at
+		SELECT agent_id, host_id, hostname, ip, os, arch, version, labels, last_seen, endpoint_id, status, since
 		FROM agents
 		WHERE hostname = $1
 	`, hostname)
 
 	var agent model.Agent
-
 	var tagsRaw []byte
+	var status sql.NullString
+	var since sql.NullString
 
 	err := row.Scan(
 		&agent.AgentID,
+		&agent.HostID,
 		&agent.Hostname,
 		&agent.IP,
 		&agent.OS,
@@ -145,7 +167,9 @@ func (s *PGDataStore) GetAgentByHostname(ctx context.Context, hostname string) (
 		&agent.Version,
 		&tagsRaw,
 		&agent.LastSeen,
-		&agent.Updated,
+		&agent.EndpointID,
+		&status,
+		&since,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -154,8 +178,17 @@ func (s *PGDataStore) GetAgentByHostname(ctx context.Context, hostname string) (
 		return nil, err
 	}
 
-	if err := json.Unmarshal(tagsRaw, &agent.Labels); err != nil {
-		return nil, err
+	if len(tagsRaw) > 0 {
+		if err := json.Unmarshal(tagsRaw, &agent.Labels); err != nil {
+			agent.Labels = map[string]string{}
+		}
+	}
+
+	if status.Valid {
+		agent.Status = status.String
+	}
+	if since.Valid {
+		agent.Since = since.String
 	}
 
 	return &agent, nil
@@ -163,7 +196,7 @@ func (s *PGDataStore) GetAgentByHostname(ctx context.Context, hostname string) (
 
 func (s *PGDataStore) ListAgents(ctx context.Context) ([]*model.Agent, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT agent_id, host_id, hostname, ip, os, arch, version, labels, last_seen, endpoint_id
+		SELECT agent_id, host_id, hostname, ip, os, arch, version, labels, last_seen, endpoint_id, status, since
 		FROM agents
 	`)
 	if err != nil {
@@ -184,6 +217,8 @@ func (s *PGDataStore) ListAgents(ctx context.Context) ([]*model.Agent, error) {
 		agent := &model.Agent{}
 		var tagsRaw []byte
 
+		var since sql.NullString
+
 		err := rows.Scan(
 			&agent.AgentID,
 			&agent.HostID,
@@ -195,11 +230,20 @@ func (s *PGDataStore) ListAgents(ctx context.Context) ([]*model.Agent, error) {
 			&tagsRaw,
 			&agent.LastSeen,
 			&agent.EndpointID,
+			&agent.Status,
+			&since, // 🟢 changed from &agent.Since
 		)
 		if err != nil {
-			fmt.Println("Scan error:", err)
+			utils.Warn("Scan error: %v", err)
 			continue
 		}
+
+		if since.Valid {
+			agent.Since = since.String
+		} else {
+			agent.Since = ""
+		}
+		utils.Debug("🧲 Loaded agent: %s | Status: %s", agent.Hostname, agent.Status)
 
 		if len(tagsRaw) > 0 {
 			if err := json.Unmarshal(tagsRaw, &agent.Labels); err != nil {

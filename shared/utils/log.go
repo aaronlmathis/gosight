@@ -101,6 +101,14 @@ func Info(format string, args ...any) {
 	infoLog.Printf(format, args...)
 }
 
+/*
+func Info(ctx context.Context, format string, args ...any) {
+	traceID := contextutil.GetTraceID(ctx)
+	log.Printf("[trace:%s] "+format, append([]any{traceID}, args...)...)
+}
+*/
+// TODO Inject trace id into log messages
+
 func Warn(format string, args ...any) {
 	warnLog.Printf(format, args...)
 }

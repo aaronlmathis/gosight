@@ -25,7 +25,6 @@ package rules
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/Knetic/govaluate"
@@ -37,7 +36,7 @@ import (
 
 type Evaluator struct {
 	store    rulestore.RuleStore
-	alertMgr *alerts.Manager
+	AlertMgr *alerts.Manager
 	history  map[string][]model.Metric
 	firing   map[string]bool // ruleID + endpointID
 }
@@ -51,7 +50,7 @@ type Evaluator struct {
 func NewEvaluator(store rulestore.RuleStore, alertMgr *alerts.Manager) *Evaluator {
 	return &Evaluator{
 		store:    store,
-		alertMgr: alertMgr,
+		AlertMgr: alertMgr,
 		history:  make(map[string][]model.Metric),
 		firing:   make(map[string]bool), // ruleID + endpointID
 	}
@@ -64,7 +63,7 @@ func NewEvaluator(store rulestore.RuleStore, alertMgr *alerts.Manager) *Evaluato
 // The metrics are expected to be in the format of model.Metric,
 // and the metadata is expected to be in the format of model.Meta.
 func (e *Evaluator) Evaluate(ctx context.Context, metrics []model.Metric, meta *model.Meta) {
-	utils.Debug("Evaluating metrics for rules...")
+	//utils.Debug("Evaluating metrics for rules...")
 
 	activeRules, err := e.store.GetActiveRules(ctx)
 	if err != nil {
@@ -73,7 +72,7 @@ func (e *Evaluator) Evaluate(ctx context.Context, metrics []model.Metric, meta *
 	}
 
 	for _, rule := range activeRules {
-		utils.Debug("Checking rule %s with expression %s", rule.ID, rule.Expression)
+		//utils.Debug("Checking rule %s with expression %s", rule.ID, rule.Expression)
 		if !ruleMatchLabels(rule.Match, meta) {
 			//utils.Debug("Rule %s did not match endpoint %s or tags", rule.ID, meta.EndpointID)
 			continue
@@ -100,17 +99,17 @@ func (e *Evaluator) Evaluate(ctx context.Context, metrics []model.Metric, meta *
 		expression, err := govaluate.NewEvaluableExpression(rule.Expression)
 
 		if err != nil {
-			fmt.Printf("Expression parse failed for rule [%s]: %v", rule.ID, err)
+			//fmt.Printf("Expression parse failed for rule [%s]: %v", rule.ID, err)
 			continue
 		}
 
 		result, err := expression.Evaluate(values)
 		if err != nil {
-			fmt.Printf("Expression evaluate failed for rule %s: %v", rule.ID, err)
+			//fmt.Printf("Expression evaluate failed for rule %s: %v", rule.ID, err)
 			continue
 		}
 
-		utils.Debug("→ Expression result for rule %s: %v", rule.ID, result)
+		//utils.Debug("→ Expression result for rule %s: %v", rule.ID, result)
 
 		isTriggered, _ := result.(bool)
 		key := rule.ID + "|" + meta.EndpointID
@@ -118,12 +117,12 @@ func (e *Evaluator) Evaluate(ctx context.Context, metrics []model.Metric, meta *
 		if isTriggered {
 			if !e.firing[key] {
 				e.firing[key] = true
-				e.alertMgr.HandleState(ctx, rule, meta, extractFirstValue(values), true)
+				e.AlertMgr.HandleState(ctx, rule, meta, extractFirstValue(values), true)
 			}
 		} else {
 			if e.firing[key] {
 				delete(e.firing, key)
-				e.alertMgr.HandleState(ctx, rule, meta, extractFirstValue(values), false)
+				e.AlertMgr.HandleState(ctx, rule, meta, extractFirstValue(values), false)
 			}
 		}
 	}
