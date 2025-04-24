@@ -115,11 +115,11 @@ func (v *VictoriaStore) Write(metrics []model.MetricPayload) error {
 }
 
 func (v *VictoriaStore) collectorLoop() {
-	utils.Info("🌀 collectorLoop started")
+	utils.Info("collectorLoop started")
 	ticker := time.NewTicker(v.batchTimeout)
 	defer ticker.Stop()
 
-	//utils.Info("⏱batchTimeout raw = %v\n", v.batchTimeout)
+	//utils.Info("atchTimeout raw = %v\n", v.batchTimeout)
 	//utils.Debug("collectorLoop started with timeout: %s", v.batchTimeout)
 
 	var pending []model.MetricPayload
@@ -141,7 +141,7 @@ func (v *VictoriaStore) collectorLoop() {
 			//utils.Debug(" Total metrics pending: %d", currentTotal)
 
 			if currentTotal >= v.batchSize {
-				//utils.Info("📦 Batch size reached: %d metrics, flushing now", currentTotal)
+				//utils.Info(" Batch size reached: %d metrics, flushing now", currentTotal)
 				v.enqueue(pending)
 				pending = nil
 			}
@@ -171,12 +171,12 @@ func (v *VictoriaStore) enqueue(batch []model.MetricPayload) {
 func (v *VictoriaStore) worker() {
 	defer v.wg.Done()
 	for {
-		//utils.Debug("👷 Worker waiting for batch...")
+		//utils.Debug(" Worker waiting for batch...")
 
 		select {
 
 		case batch := <-v.queue:
-			//utils.Debug("👷 Worker received batch with %d payloads / %d metrics", len(batch), totalMetricCount(batch))
+			//utils.Debug(" Worker received batch with %d payloads / %d metrics", len(batch), totalMetricCount(batch))
 			v.flush(batch)
 		case <-v.ctx.Done():
 			utils.Debug("VictoriaStore collector loop exiting")
@@ -453,8 +453,6 @@ func (v *VictoriaStore) QueryInstant(metric string, filters map[string]string) (
 	query := BuildPromQL(metric, filters)
 
 	fullURL := fmt.Sprintf("%s/api/v1/query?query=%s", v.url, url.QueryEscape(query))
-	utils.Debug("QueryInstant: metric=%s filters=%+v", metric, filters)
-	utils.Debug("📡 QueryInstant URL: %s", fullURL)
 
 	resp, err := http.Get(fullURL)
 	if err != nil {
@@ -514,7 +512,6 @@ func (v *VictoriaStore) QueryRange(metric string, start, end time.Time, filters 
 	params.Set("step", "15s")
 
 	fullURL := fmt.Sprintf("%s/api/v1/query_range?%s", v.url, params.Encode())
-	utils.Debug("📡 QueryRange URL: %s", fullURL)
 
 	resp, err := http.Get(fullURL)
 	if err != nil {

@@ -35,7 +35,7 @@ import (
 	"sort"
 	"strings"
 	"time"
-
+	"strconv"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/gorilla/mux"
@@ -172,10 +172,23 @@ func (s *HttpServer) HandleAPIQuery(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	limitStr := query.Get("limit")
+	sortOrder := query.Get("sort") // "asc" or "desc"
+
+	var limit int
+	if limitStr != "" {
+		limit, err = strconv.Atoi(limitStr)
+		if err != nil || limit <= 0 {
+			http.Error(w, "invalid 'limit' value", http.StatusBadRequest)
+			return
+		}
+	}
+
 	// Build filters
 	filters := make(map[string]string)
 	for key, vals := range query {
-		if key == "metric" || key == "start" || key == "end" || len(vals) == 0 {
+		if key == "metric" || key == "start" || key == "end" || key == "limit" || key == "sort" || len(vals) == 0 {
+
 			continue
 		}
 		filters[key] = vals[0]
@@ -218,10 +231,43 @@ func (s *HttpServer) HandleAPIQuery(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	if sortOrder != "" || limit > 0 {
+		result = applySortAndLimit(result, sortOrder, limit)
+	}
 	_ = json.NewEncoder(w).Encode(result)
 }
 
-// helper
+// applySortAndLimit sorts and limits the data based on the provided sort order and limit.
+// It assumes the data is a slice of model.MetricRow.
+// If the data is not of this type, it returns the original data.
+
+func applySortAndLimit(data any, sortKey string, limit int) any {
+	rows, ok := data.([]model.MetricRow)
+	if !ok {
+		return data
+	}
+
+	if sortKey == "asc" {
+		sort.Slice(rows, func(i, j int) bool {
+			return rows[i].Value < rows[j].Value
+		})
+	} else if sortKey == "desc" {
+		sort.Slice(rows, func(i, j int) bool {
+			return rows[i].Value > rows[j].Value
+		})
+	}
+
+	if limit > 0 && limit < len(rows) {
+		return rows[:limit]
+	}
+	return rows
+}
+
+
+// parseQueryFilters parses the query parameters from the request and returns a map of filters.
+// It ignores the "start", "end", "latest", and "step" parameters.
+// It also handles multiple values for the same key by creating a regex pattern.
+
 func parseQueryFilters(r *http.Request) map[string]string {
 	filters := make(map[string]string)
 	for key, values := range r.URL.Query() {

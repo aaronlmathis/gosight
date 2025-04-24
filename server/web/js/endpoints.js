@@ -26,8 +26,8 @@ function renderSummaryStats(endpoints, containers) {
   const summaryDiv = document.getElementById("endpoint-summary");
   if (summaryDiv) summaryDiv.innerHTML = summaryHTML;
   document.getElementById("summary-hosts").textContent = `${onlineHosts} / ${totalHosts}`;
-document.getElementById("summary-containers").textContent = `${runningContainers} / ${containerCount}`;
-document.getElementById("summary-runtimes").textContent = runtimes;
+  document.getElementById("summary-containers").textContent = `${runningContainers} / ${containerCount}`;
+  document.getElementById("summary-runtimes").textContent = runtimes;
 }
 async function loadHostTable() {
   const agentsRes = await fetch("/api/v1/agents");
@@ -111,7 +111,7 @@ async function loadHostTable() {
       if (uptimeCell) uptimeCell.textContent = "—";
     }
   }
-  renderSummaryStats(agents, []); 
+  renderSummaryStats(agents, []);
 }
 function formatLastSeen(isoTime) {
   if (!isoTime) return "—";
@@ -140,6 +140,7 @@ async function fetchGlobalContainerMetrics() {
 
   try {
     const res = await fetch(`/api/v1/query?${query}`);
+    console.log(query)
     const rows = await res.json();
 
     const containers = new Map();
@@ -174,7 +175,7 @@ async function fetchGlobalContainerMetrics() {
 
 document.addEventListener("DOMContentLoaded", async () => {
   await loadHostTable();
-  await   fetchGlobalContainerMetrics();
+  await fetchGlobalContainerMetrics();
 });
 
 function toggleContainerRow(rowID) {
@@ -218,7 +219,7 @@ function toggleContainerRow(rowID) {
       metricNames.map(name => `container.${rt}.${name}`)
     );
     const query = metrics.map(m => `metric=${m}`).join("&") + `&hostname=${encodeURIComponent(hostname)}`;
-
+    console.log("Container query:", query);
     fetch(`/api/v1/query?${query}`)
       .then(res => res.json())
       .then(json => {
@@ -228,7 +229,7 @@ function toggleContainerRow(rowID) {
         wrapper.dataset.loaded = "true";
       })
       .catch(err => {
-        console.error("❌ Failed to fetch containers:", err);
+        console.error("Failed to fetch containers:", err);
         wrapper.innerHTML = `<div class="p-4 text-sm text-red-500">Container fetch failed: ${err}</div>`;
       });
   }
@@ -245,7 +246,7 @@ function groupContainers(rows) {
     const metricName = tags["__name__"] || "";
     const parts = metricName.split(".");
     const runtime = parts.length >= 2 ? parts[1] : "unknown";
-    
+
     if (!map[id]) {
       map[id] = {
         name: tags.container_name || "—",
@@ -259,11 +260,11 @@ function groupContainers(rows) {
         runtime: runtime
       };
     }
-    
-    console.log("➡️ Checking row with container_id:", id, "name:", tags["__name__"]);
+
+    console.log("Checking row with container_id:", id, "name:", tags["__name__"]);
 
     if (!id) {
-      console.warn("❌ Skipping row: missing container_id", row);
+      console.warn("Skipping row: missing container_id", row);
       return;
     }
 
@@ -302,8 +303,8 @@ function groupContainers(rows) {
         map[id].uptime = formatUptime(value);
         break;
     }
-    
-    
+
+
   });
 
   return Object.values(map);
@@ -420,7 +421,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 /*
 import { formatBytes, formatUptime } from './format.js';
-console.log("✅ endpoints.js is running");
+console.log("endpoints.js is running");
 
 // Filter DOM references
 const containerStatusFilter = document.getElementById('filter-container-status');

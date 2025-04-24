@@ -1,105 +1,104 @@
 <!-- templates/pages/home.html -->
 {{ define "title" }}Home Dashboard{{ end }}
 {{ define "page-content" }}
+<style>
+    .apexcharts-datalabel-value {
+        font-size: 1em !important;
+    }
+</style>
 <section class="p-4 space-y-6">
-    <!-- Metric Summary Bar -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-center text-xs text-gray-500 dark:text-gray-400">
-        <div class="bg-white dark:bg-gray-900 p-2 rounded border border-gray-200 dark:border-gray-700">
-            <p class="text-xl font-bold text-blue-500">325M</p>
-            <p>Events Analyzed</p>
-        </div>
-        <div class="bg-white dark:bg-gray-900 p-2 rounded border border-gray-200 dark:border-gray-700">
-            <p class="text-xl font-bold text-yellow-500">89</p>
-            <p>Signals Investigated</p>
-        </div>
-        <div class="bg-white dark:bg-gray-900 p-2 rounded border border-gray-200 dark:border-gray-700">
-            <p class="text-xl font-bold text-red-500">59</p>
-            <p>Incidents Reported</p>
-        </div>
-        <div class="bg-white dark:bg-gray-900 p-2 rounded border border-gray-200 dark:border-gray-700">
-            <p class="text-xl font-bold text-green-500">12</p>
-            <p>Rules Firing</p>
-        </div>
-    </div>
+    <div class="mb-6">
+        <h1 class="text-2xl font-semibold text-gray-800 dark:text-white">Welcome to GoSight</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Monitoring real-time metrics, logs, and alerts across your infrastructure.</p>
+      </div>
+    <!-- Summary Row -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- LEFT: Summary Cards in 2x3 Subgrid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <!-- Alerts -->
+            <a href="/alerts" class="block hover:ring-2 hover:ring-blue-400 rounded-lg transition">
+                <div
+                    class="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm h-44 flex items-center justify-between">
+                    <div class="pl-3 flex flex-col justify-center text-sm w-full truncate">
+                        <div class="font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap">Active Alerts</div>
+                        <div id="alert-status" class="text-red-600 dark:text-red-400 mt-1 text-base font-semibold">None
+                        </div>
+                    </div>
+                    <div class="w-[220px] h-[180px]">
+                        <div id="radial-alerts" class="w-full h-full"></div>
+                    </div>
+                </div>
+            </a>
+            <!-- Agents -->
+            <a href="/endpoints" class="block hover:ring-2 hover:ring-blue-400 rounded-lg transition">
+                <div
+                    class="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm h-44 flex items-center justify-between">
+                    <div class="pl-3 flex flex-col justify-center text-sm w-full truncate">
+                        <div class="font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap">Agents</div>
+                        <div id="agent-health-status"
+                            class="text-gray-600 dark:text-gray-400 mt-1 text-base font-semibold">
+                            —</div>
+                    </div>
+                    <div class="w-[220px] h-[180px]">
+                        <div id="radial-agents" class="w-full h-full"></div>
+                    </div>
+                </div>
+            </a>
 
-    <!-- Radial Overview -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div class="bg-white dark:bg-gray-900 border rounded shadow-sm p-2 text-sm">
-            <h3 class="mb-1 font-medium text-gray-700 dark:text-gray-300">Alerts</h3>
-            <div id="radial-alerts" class="h-36 w-full"></div>
-        </div>
-        <div class="bg-white dark:bg-gray-900 border rounded shadow-sm p-2 text-sm">
-            <h3 class="mb-1 font-medium text-gray-700 dark:text-gray-300">Agents</h3>
-            <div id="radial-agents" class="h-36 w-full"></div>
-        </div>
-        <div class="bg-white dark:bg-gray-900 border rounded shadow-sm p-2 text-sm">
-            <h3 class="mb-1 font-medium text-gray-700 dark:text-gray-300">Containers</h3>
-            <div id="radial-containers" class="h-36 w-full"></div>
-        </div>
-        <div class="bg-white dark:bg-gray-900 border rounded shadow-sm p-2 text-sm">
-            <h3 class="mb-1 font-medium text-gray-700 dark:text-gray-300">System Load</h3>
-            <div id="radial-load" class="h-36 w-full"></div>
-        </div>
-    </div>
 
-    <!-- Trends -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div class="bg-white dark:bg-gray-900 border rounded shadow-sm p-2">
-            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">CPU</h4>
-            <div id="trend-cpu" class="h-28"></div>
-        </div>
-        <div class="bg-white dark:bg-gray-900 border rounded shadow-sm p-2">
-            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Memory</h4>
-            <div id="trend-mem" class="h-28"></div>
-        </div>
-        <div class="bg-white dark:bg-gray-900 border rounded shadow-sm p-2">
-            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Disk</h4>
-            <div id="trend-disk" class="h-28"></div>
-        </div>
-        <div class="bg-white dark:bg-gray-900 border rounded shadow-sm p-2">
-            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Network</h4>
-            <div id="trend-net" class="h-28"></div>
-        </div>
-    </div>
+            <!-- Containers -->
+            <a href="/endpoints#containers" class="block hover:ring-2 hover:ring-blue-400 rounded-lg transition">
+                <div
+                    class="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm h-44 flex items-center justify-between">
+                    <div class="pl-3 flex flex-col justify-center text-sm w-full truncate">
+                        <div class="font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap">Containers</div>
+                        <div class="text-gray-600 dark:text-gray-400 mt-1 text-base font-semibold">Running</div>
+                    </div>
+                    <div class="w-[220px] h-[180px]">
+                        <div id="radial-containers" class="w-full h-full"></div>
+                    </div>
+                </div>
+            </a>
 
-    <!-- Top Charts -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div class="bg-white dark:bg-gray-900 border rounded shadow-sm p-2">
-            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Top Hosts by CPU</h4>
-            <div id="top-cpu-hosts" class="h-48"></div>
-        </div>
-        <div class="bg-white dark:bg-gray-900 border rounded shadow-sm p-2">
-            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Top Containers by Memory</h4>
-            <div id="top-mem-containers" class="h-48"></div>
-        </div>
-    </div>
 
-    <!-- Events -->
-    <div class="bg-white dark:bg-gray-900 border rounded shadow-sm p-2">
-        <div class="flex justify-between items-center mb-1">
-            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400">Recent Events</h4>
-            <a href="/logs" class="text-xs text-blue-500 hover:underline">View All</a>
-        </div>
-        <div id="event-log" class="text-xs text-gray-600 dark:text-gray-400 space-y-1"></div>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div id="agent-summary"
-            class="p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
-            <div class="flex items-center justify-between">
-                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">Agent Health</h3>
-                <div class="text-sm text-gray-500 dark:text-gray-400" id="agent-health-status">Loading...</div>
+            <!-- CPU Load -->
+            <a href="/metrics" class="block hover:ring-2 hover:ring-blue-400 rounded-lg transition">
+                <div
+                    class="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm h-44 flex items-center justify-between">
+                    <div class="pl-3 flex flex-col justify-center text-sm w-full truncate">
+                        <div class="font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap">System Load</div>
+                        <div class="text-gray-600 dark:text-gray-400 mt-1 text-base font-semibold">CPU %</div>
+                    </div>
+                    <div class="w-[220px] h-[180px]">
+                        <div id="radial-load" class="w-full h-full"></div>
+                    </div>
+                </div>
+            </a>
+            <!-- top container by CPU -->
+            <div class="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm">
+                <div class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-200">Top Containers by CPU Usage</div>
+                <div id="top-cpu-containers" class="h-52"></div>
             </div>
-        </div>
-        <div id="alert-summary"
-            class="p-4 bg-white dark:bg-gray-900 border border-red-200 dark:border-red-700 rounded-lg shadow-sm">
-            <div class="flex items-center justify-between">
-                <h3 class="text-sm font-semibold text-red-600 dark:text-red-400">Active Alerts</h3>
-                <div class="text-sm text-gray-600 dark:text-gray-400" id="alert-status">Loading...</div>
+            <!-- top container by Memory -->
+            <div class="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm">
+                <div class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-200">Top Containers by Memory Usage
+                </div>
+                <div id="top-mem-containers" class="h-52"></div>
+            </div>
+        </div> <!-- end left summary cards -->
+        <!-- Recent Events -->
+        <div
+            class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm p-4 h-full">
+            <div class="font-semibold border-b border-gray-100 text-gray-800 dark:text-gray-100 mb-2">Recent Events</div>
+            <div id="event-log"
+                class="max-h-[540px] overflow-y-auto space-y-2 text-sm text-gray-800 dark:text-gray-300">
+                <!-- JS populates here -->
             </div>
         </div>
     </div>
+
 </section>
-{{ end }}
+{{ end }}200
 
 {{ define "page-scripts" }}
 <script type="module" src="/js/home.js"></script>
