@@ -34,107 +34,98 @@ os.Exit(1)
 package utils
 
 import (
-	"fmt"
 	"io"
-	"log"
 	"os"
 	"strings"
+
+	"github.com/rs/zerolog"
 )
 
 var (
-	debugEnabled = false
-
-	infoLog   *log.Logger
-	warnLog   *log.Logger
-	errorLog  *log.Logger
-	debugLog  *log.Logger
-	accessLog *log.Logger
+	logger       zerolog.Logger
+	debugEnabled bool
 )
 
 func InitLogger(appLogFile, errorLogFile, accessLogFile, logLevel string) error {
-	var errorOutput io.Writer = os.Stdout
-	var appOutput io.Writer = os.Stdout
-	var accessOutput io.Writer = os.Stdout
-
-	// Try to open file if provided
-	if errorLogFile != "" {
-		f, err := os.OpenFile(errorLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			return err
-		}
-		errorOutput = f
-	}
+	var writers []io.Writer
 
 	if appLogFile != "" {
-		f, err := os.OpenFile(appLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		appOutput, err := os.OpenFile(appLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
 		}
-		appOutput = f
+		writers = append(writers, appOutput)
+	} else {
+		writers = append(writers, os.Stdout)
+	}
+
+	if errorLogFile != "" && errorLogFile != appLogFile { // Avoid duplicate if error and app logs are the same file
+		errorOutput, err := os.OpenFile(errorLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return err
+		}
+		writers = append(writers, errorOutput)
 	}
 
 	if accessLogFile != "" {
-		f, err := os.OpenFile(accessLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		accessOutput, err := os.OpenFile(accessLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
 		}
-		accessOutput = f
+		writers = append(writers, accessOutput)
 	}
 
-	infoLog = log.New(appOutput, "[INFO] ", log.LstdFlags)
-	warnLog = log.New(errorOutput, "[WARN] ", log.LstdFlags)
-	errorLog = log.New(errorOutput, "[ERROR] ", log.LstdFlags)
-	accessLog = log.New(accessOutput, "[ACCESS] ", log.LstdFlags)
+	mw := io.MultiWriter(writers...)
 
-	multiDebugOutput := io.MultiWriter(os.Stdout, appOutput) // or appOutput if preferred
-	debugLog = log.New(multiDebugOutput, "[DEBUG] ", log.LstdFlags)
+	// For production, you would typically log to JSON instead of console output.
+	// Remove the ConsoleWriter and use the MultiWriter directly with zerolog.New().
+	consoleWriter := zerolog.ConsoleWriter{Out: mw, TimeFormat: "2006-01-02 15:04:05"}
+	logger = zerolog.New(consoleWriter).With().Timestamp().Caller().Logger()
+
+	// logger = zerolog.New(mw).With().Timestamp().Caller().Logger() // Production JSON output
 
 	// Enable debug mode if requested
 	if strings.ToLower(logLevel) == "debug" {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		debugEnabled = true
+	} else if strings.ToLower(logLevel) == "warn" {
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	} else if strings.ToLower(logLevel) == "error" {
+		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+	} else {
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
-	fmt.Printf("🧪 Log system initialized. Debug enabled: %v", debugEnabled)
+
+	logger.Info().Msgf("Log system initialized. Debug enabled: %v, Log Level: %s", debugEnabled, zerolog.GlobalLevel().String())
 	return nil
 }
 
 func Info(format string, args ...any) {
-	infoLog.Printf(format, args...)
+	logger.Info().Msgf(format, args...)
 }
-
-/*
-func Info(ctx context.Context, format string, args ...any) {
-	traceID := contextutil.GetTraceID(ctx)
-	log.Printf("[trace:%s] "+format, append([]any{traceID}, args...)...)
-}
-*/
-// TODO Inject trace id into log messages
 
 func Warn(format string, args ...any) {
-	warnLog.Printf(format, args...)
+	logger.Warn().Msgf(format, args...)
 }
 
 func Error(format string, args ...any) {
-	errorLog.Printf(format, args...)
+	logger.Error().Msgf(format, args...)
 }
 
 func Fatal(format string, args ...any) {
-	errorLog.Fatalf(format, args...)
-
+	logger.Fatal().Msgf(format, args...)
 }
 
 func Debug(format string, args ...any) {
-	if debugEnabled {
-		debugLog.Printf(format, args...)
-	}
-
+	logger.Debug().Msgf(format, args...)
 }
 
 func Access(format string, args ...any) {
-	accessLog.Printf(format, args...)
+	logger.Info().Str("level", "access").Msgf(format, args...)
 }
 
 func Must(label string, err error) {
 	if err != nil {
-		Fatal("%s init failed: %v", label, err)
+		logger.Fatal().Err(err).Msgf("%s init failed", label)
 	}
 }
