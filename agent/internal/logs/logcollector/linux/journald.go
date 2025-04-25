@@ -66,9 +66,18 @@ func (j *JournaldCollector) Collect(ctx context.Context) ([][]model.LogEntry, er
 	batchInterval := time.Duration(j.Config.Agent.Interval) * time.Millisecond
 	maxSize := j.Config.Agent.LogCollection.MessageMax
 	start := time.Now()
+	isStartup := true
+	startupDelay := 5 * time.Second // Initial delay
+	rampUpDuration := 15 * time.Second
+	initialBatchSizeFactor := 0.5 // Collect half the normal batch size initially
+	initialWaitMultiplier := 2    // Wait twice as long initially
 
-	// Wait for new logs up to 2 seconds
-	j.journal.Wait(2 * time.Second)
+	// Initial Delay
+	select {
+	case <-time.After(startupDelay):
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 
 loop:
 	for {
@@ -76,6 +85,23 @@ loop:
 		case <-ctx.Done():
 			break loop
 		default:
+			waitDuration := batchInterval
+			currentBatchSize := batchSize
+
+			if isStartup {
+				waitDuration = batchInterval * time.Duration(initialWaitMultiplier)
+				currentBatchSize = int(float64(batchSize) * initialBatchSizeFactor)
+				if currentBatchSize < 1 {
+					currentBatchSize = 1
+				}
+				if time.Since(start) > rampUpDuration {
+					isStartup = false
+				}
+			}
+
+			// Wait for new logs
+			j.journal.Wait(time.Duration(2) * time.Second) // Keep the journal wait
+
 			n, err := j.journal.Next()
 			if err != nil || n == 0 {
 				break loop
@@ -91,7 +117,7 @@ loop:
 			log := buildLogEntry(entry, maxSize)
 			current = append(current, log)
 
-			if len(current) >= batchSize || time.Since(start) >= batchInterval {
+			if len(current) >= currentBatchSize || time.Since(start) >= waitDuration {
 				allBatches = append(allBatches, current)
 				current = nil
 				start = time.Now()
