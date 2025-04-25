@@ -243,7 +243,6 @@ func (s *PGDataStore) ListAgents(ctx context.Context) ([]*model.Agent, error) {
 		} else {
 			agent.Since = ""
 		}
-		utils.Debug("🧲 Loaded agent: %s | Status: %s", agent.Hostname, agent.Status)
 
 		if len(tagsRaw) > 0 {
 			if err := json.Unmarshal(tagsRaw, &agent.Labels); err != nil {

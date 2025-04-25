@@ -61,7 +61,7 @@ func (t *AgentTracker) UpdateAgent(meta *model.Meta) {
 	if meta.Hostname == "" || meta.ContainerID != "" {
 		return
 	}
-	utils.Debug("📥 UpdateAgent: %s (agent_id=%s) at %s", meta.Hostname, meta.AgentID, time.Now().Format(time.RFC3339))
+	//utils.Debug("UpdateAgent: %s (agent_id=%s) at %s", meta.Hostname, meta.AgentID, time.Now().Format(time.RFC3339))
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -208,7 +208,7 @@ func (t *AgentTracker) GetAgentMap() map[string]model.Agent {
 
 // Syncs Agents from inmemory to persistant storage
 func (t *AgentTracker) SyncToStore(ctx context.Context, store datastore.DataStore) {
-	utils.Debug("Sync to Store called")
+
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -242,10 +242,10 @@ func (t *AgentTracker) SyncToStore(ctx context.Context, store datastore.DataStor
 }
 
 func (t *AgentTracker) CheckAgentStatusesAndEmitEvents() {
-	utils.Debug("🔁 Checking agent lifecycle statuses...")
+	//utils.Debug("Checking agent lifecycle statuses...")
 	now := time.Now()
 	storedAgents, err := t.dataStore.ListAgents(t.ctx)
-	utils.Debug("📦 Loaded %d agents from store", len(storedAgents))
+	//utils.Debug("Loaded %d agents from store", len(storedAgents))
 	if err != nil {
 		utils.Error("Agent lifecycle check: failed to list agents: %v", err)
 		return
@@ -254,11 +254,9 @@ func (t *AgentTracker) CheckAgentStatusesAndEmitEvents() {
 	for _, agent := range storedAgents {
 		isLive := t.IsLive(agent.AgentID)
 
-		utils.Debug("🧠 Agent %s | live=%v | status=%s | age=%v", agent.Hostname, isLive, agent.Status, time.Since(agent.LastSeen))
-
 		//  Agent is missing from in-memory tracker and was Online → emit Offline
 		if !isLive && agent.Status != "Offline" && time.Since(agent.LastSeen) > 2*time.Minute {
-			utils.Debug("⚠️ Agent %s marked offline (last seen %s)", agent.Hostname, agent.LastSeen.Format(time.RFC3339))
+			//utils.Debug("Agent %s marked offline (last seen %s)", agent.Hostname, agent.LastSeen.Format(time.RFC3339))
 			agent.Status = "Offline"
 			t.emitter.Emit(t.ctx, model.EventEntry{
 				ID:         uuid.NewString(),
@@ -278,7 +276,7 @@ func (t *AgentTracker) CheckAgentStatusesAndEmitEvents() {
 
 		//  Agent is back in in-memory but was marked Offline → emit Back Online
 		if isLive && agent.Status != "Online" {
-			utils.Debug("✅ Agent %s is back online", agent.Hostname)
+			//utils.Debug(" Agent %s is back online", agent.Hostname)
 			agent.Status = "Online"
 			t.emitter.Emit(t.ctx, model.EventEntry{
 				ID:         uuid.NewString(),
@@ -294,6 +292,14 @@ func (t *AgentTracker) CheckAgentStatusesAndEmitEvents() {
 				Meta:       BuildAgentEventMeta(agent),
 			})
 			agent.Updated = true
+		}
+		if agent.Updated {
+			//utils.Debug("Writing updated agent status for %s", agent.Hostname)
+			err := t.dataStore.UpsertAgent(t.ctx, agent)
+			if err != nil {
+				utils.Error("❌ Failed to upsert agent %s: %v", agent.Hostname, err)
+			}
+			agent.Updated = false
 		}
 	}
 }

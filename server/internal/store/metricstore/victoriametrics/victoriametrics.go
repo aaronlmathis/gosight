@@ -226,22 +226,27 @@ func (v *VictoriaStore) Close() error {
 
 func buildPrometheusFormat(batch []model.MetricPayload) string {
 	var sb strings.Builder
+
 	for _, payload := range batch {
 		ts := payload.Timestamp.UnixNano() / 1e6
+
+		// Core labels from Meta + Tags
+		baseLabels := BuildPromLabels(payload.Meta)
+
 		for _, m := range payload.Metrics {
-
 			fullName := normalizeMetricName(m.Namespace, m.SubNamespace, m.Name)
-			// Merge Meta.Tags + Metric.Dimensions
-			labels := make(map[string]string)
 
-			for k, v := range payload.Meta.Tags {
+			// Start with base Meta + Tags
+			labels := make(map[string]string, len(baseLabels)+len(m.Dimensions))
+			for k, v := range baseLabels {
 				labels[k] = v
-
 			}
+
+			// Apply metric-specific dimensions (override any key)
 			for k, v := range m.Dimensions {
 				labels[k] = v
 			}
-			//utils.Debug("Metric %s: %v", fullName, labels)  BAD DATA
+
 			sb.WriteString(fmt.Sprintf("%s{%s} %f %d\n",
 				fullName,
 				formatLabelMap(labels),
@@ -250,6 +255,7 @@ func buildPrometheusFormat(batch []model.MetricPayload) string {
 			))
 		}
 	}
+
 	return sb.String()
 }
 
@@ -306,6 +312,7 @@ func BuildPromLabels(meta *model.Meta) map[string]string {
 	}
 	if meta.Hostname != "" {
 		labels["hostname"] = meta.Hostname
+		utils.Debug("HOSTNAME: %s", meta.Hostname)
 	}
 	if meta.IPAddress != "" {
 		labels["ip_address"] = meta.IPAddress

@@ -4,39 +4,44 @@ import { gosightFetch } from './api.js';
 //
 export async function loadAgentCard() {
   try {
-    const res = await gosightFetch("/api/v1/agents")
-      .then(res => res.json())
-      .then(data => console.log("Agents:", data));
-    const agents = await res.json();
+  const res = await gosightFetch("/api/v1/agents");
+  const agents = await res.json();
 
-    const online = agents.filter(a => a.status === "Online").length;
-    const total = agents.length;
-    const offline = total - online;
+  console.log("Agents:", agents);
 
-    // Update text
-    document.getElementById("agent-health-status").textContent = `${online} Online / ${offline} Offline`;
+  if (!Array.isArray(agents) || agents.length === 0) {
+    console.warn("⚠️ No agent data available");
+    return;
+  }
 
-    // Render radial chart
-    const percent = total > 0 ? (online / total) * 100 : 0;
-    new ApexCharts(document.getElementById("radial-agents"), {
-      chart: { type: "radialBar", height: 200 },
-      series: [percent],
-      labels: ["Online %"],
-      colors: ["#10b981"],
-      plotOptions: {
-        radialBar: {
-          hollow: { size: "60%" },
-          dataLabels: {
-            name: { fontSize: "12px" },
-            value: { fontSize: "16px", fontWeight: 600, formatter: v => `${v.toFixed(0)}%` },
-          },
+  const online = agents.filter(a => a.status === "Online").length;
+  const total = agents.length;
+  const offline = total - online;
+
+  // Update text
+  document.getElementById("agent-health-status").textContent = `${online} Online / ${offline} Offline`;
+
+  // Render radial chart
+  const percent = total > 0 ? (online / total) * 100 : 0;
+  new ApexCharts(document.getElementById("radial-agents"), {
+    chart: { type: "radialBar", height: 200 },
+    series: [percent],
+    labels: ["Online %"],
+    colors: ["#10b981"],
+    plotOptions: {
+      radialBar: {
+        hollow: { size: "60%" },
+        dataLabels: {
+          name: { fontSize: "12px" },
+          value: { fontSize: "16px", fontWeight: 600, formatter: v => `${v.toFixed(0)}%` },
         },
       },
-    }).render();
-  } catch (err) {
-    console.error("Agent summary failed:", err);
-    document.getElementById("agent-health-status").textContent = "Unavailable";
-  }
+    },
+  }).render();
+} catch (err) {
+  console.error("Agent summary failed:", err);
+  document.getElementById("agent-health-status").textContent = "Unavailable";
+}
 }
 //
 
@@ -399,7 +404,7 @@ export async function initHome() {
     await loadTop("/api/v1/query?sort=desc&metric=container.mem.rss&limit=5", "top-mem-containers", "Top Memory Containers", "MB");
     */
   // Load logs/events
-  const events = await fetchJson("/api/v1/events?limit=10");
+  const events = await fetchJson("/api/v1/events?limit=12");
   renderEventLog(events || []);
 
   // Summary update (alerts count)

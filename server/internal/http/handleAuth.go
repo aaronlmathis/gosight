@@ -61,7 +61,6 @@ func (s *HttpServer) HandleCallback(w http.ResponseWriter, r *http.Request) {
 
 	user, err := handler.HandleCallback(w, r)
 	if err != nil {
-		// Login failed for local user or callback failed for SSO.
 		s.Sys.Tele.Emitter.Emit(r.Context(), model.EventEntry{
 			Timestamp: time.Now(),
 			Type:      "user.login.failed",
@@ -69,9 +68,15 @@ func (s *HttpServer) HandleCallback(w http.ResponseWriter, r *http.Request) {
 			Category:  "auth",
 			Source:    fmt.Sprintf("auth:%s", provider),
 			Scope:     "user",
-			Target:    "",
+			Target:    "", // no user yet
 			Message:   fmt.Sprintf("Login failed via %s", provider),
-			Meta:      s.BuildAuthEventMeta(nil, r),
+			Meta: map[string]string{
+				"provider":   provider,
+				"ip":         utils.GetClientIP(r),
+				"user_agent": r.UserAgent(),
+				"reason":     "SSO callback error",
+				"timestamp":  time.Now().Format(time.RFC3339),
+			},
 		})
 		SetFlash(w, "Invalid username or password")
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -90,6 +95,19 @@ func (s *HttpServer) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		if gosightauth.CheckRememberMFA(r, user.ID) {
 			ctx := InjectUserContext(r.Context(), user)
 			s.createFinalSessionAndRedirect(w, r.WithContext(ctx), user)
+
+			// 🔥 Always emit login success event here (centralized)
+			s.Sys.Tele.Emitter.Emit(r.Context(), model.EventEntry{
+				Timestamp: time.Now(),
+				Type:      "user.login.success",
+				Level:     "info",
+				Message:   fmt.Sprintf("User %s %s (%s) signed in", user.FirstName, user.LastName, user.Email),
+				Target:    user.ID,
+				Category:  "auth",
+				Source:    "auth.session",
+				Scope:     "user",
+				Meta:      s.BuildAuthEventMeta(user, r),
+			})
 			return
 		}
 
