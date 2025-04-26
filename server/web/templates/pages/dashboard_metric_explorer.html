@@ -12,6 +12,10 @@
         </div>
         <div class="flex flex-wrap items-center gap-2">
             <select id="time-series" class="text-sm border-gray-300 dark:border-gray-600 rounded">
+                <option value="10m">10m</option>
+                <option value="30m">30m</option>
+
+
                 <option value="1h">1h</option>
                 <option value="3h" selected>3h</option>
                 <option value="12h">12h</option>
@@ -44,16 +48,22 @@
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">From</label>
-                <input id="from-filter-input" type="text" placeholder="Filter by hostname, tag, or endpoint..."
-                    class="w-full px-3 py-2 border rounded text-sm bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500">
+                <div class="relative w-full">
+                    <input id="from-filter-input" type="text" placeholder="Filter by hostname, tag, or endpoint..."
+                        class="w-full px-3 py-2 border rounded text-sm bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500">
 
-                <div id="from-suggestions"
-                    class="hidden absolute z-50 mt-1 w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg max-h-60 overflow-y-auto">
+                    <div id="from-suggestions"
+                        class="hidden absolute z-50 mt-1 w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg max-h-60 overflow-y-auto">
+                    </div>
                 </div>
-
                 <div id="from-selected" class="flex flex-wrap gap-2 mt-2 text-sm"></div>
             </div>
-
+            <div>
+                <button id="clear-metrics-btn"
+                    class="text-sm bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded ml-2">
+                    Clear All Metrics
+                </button>
+            </div>
             <div>
                 <label class="text-xs font-semibold text-gray-500 dark:text-gray-400">Aggregate by</label>
                 <select id="aggregate" class="w-full mt-1 text-sm border rounded border-gray-300 dark:border-gray-600">
@@ -69,14 +79,14 @@
             <div>
                 <label class="text-xs font-semibold text-gray-500 dark:text-gray-400">Group by</label>
                 <select id="group-by" class="w-full mt-1 text-sm border rounded border-gray-300 dark:border-gray-600">
-                    <option value="">Auto</option>
+                    <option value="">None</option>
                     <option value="hostname">Hostname</option>
                     <option value="endpoint_id">Endpoint ID</option>
+                    <option value="platform">Platform</option>
+                    <option value="os_version">OS Version</option>
+                    <option value="interface">Interface</option>
                     <option value="container_name">Container Name</option>
-                    <option value="agent_id">Agent ID</option>
-                    <option value="instance">Instance</option>
                     <option value="job">Job</option>
-                    <option value="runtime">Runtime</option>
                 </select>
             </div>
 
@@ -96,34 +106,26 @@
                         <label class="text-xs w-1/2">Graph Type</label>
                         <select id="graph-type"
                             class="text-sm border rounded w-1/2 border-gray-300 dark:border-gray-600">
+                            <option value="area">Area</option>
+                            <option value="stacked-area">Stacked Area</option>
                             <option value="line">Line</option>
-                            <option value="area">Stacked Area</option>
                             <option value="bar">Bar</option>
-                            <option value="donut">Donut</option>
+
                         </select>
                     </div>
-                    <div class="flex justify-between gap-2">
-                        <label class="text-xs w-1/2">Legend</label>
-                        <select id="legend" class="text-sm border rounded w-1/2 border-gray-300 dark:border-gray-600">
-                            <option>Bottom</option>
-                            <option>Right</option>
-                            <option>Hidden</option>
-                        </select>
-                    </div>
-                    <div class="flex justify-between gap-2">
-                        <label class="text-xs w-1/2">Layout</label>
-                        <input id="layout-cols" type="number" value="2" min="1" max="4"
-                            class="text-sm border rounded w-1/2 border-gray-300 dark:border-gray-600" />
-                    </div>
+
+
                 </div>
             </div>
         </div>
 
         <!-- RIGHT COLUMN: Chart Grid -->
-        <div class="col-span-3">
-            <div id="metric-panels" class="grid grid-cols-2 gap-4">
 
+        <div class="col-span-3">
+            <div id="metric-panels" class="flex flex-col gap-4">
+                <!-- Slots dynamically injected here -->
             </div>
+
         </div>
     </div>
 </section>
@@ -131,4 +133,12 @@
 {{ end }}
 {{ define "page-scripts" }}
 <script type="module" src="/js/metric-explorer.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Auto-collapse sidebar only on /metrics
+        if (window.location.pathname.startsWith("/metrics")) {
+            document.body.classList.add("sidebar-collapsed");
+        }
+    });
+</script>
 {{ end }}

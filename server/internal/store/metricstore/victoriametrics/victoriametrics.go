@@ -515,14 +515,14 @@ func (v *VictoriaStore) QueryInstant(metric string, filters map[string]string) (
 }
 
 // QueryRange fetches time series data for a metric over a time range with optional label filters.
-func (v *VictoriaStore) QueryRange(metric string, start, end time.Time, filters map[string]string) ([]model.Point, error) {
+func (v *VictoriaStore) QueryRange(metric string, start, end time.Time, step string, filters map[string]string) ([]model.Point, error) {
 	query := BuildPromQL(metric, filters)
 
 	params := url.Values{}
 	params.Set("query", query)
 	params.Set("start", start.Format(time.RFC3339))
 	params.Set("end", end.Format(time.RFC3339))
-	params.Set("step", "15s")
+	params.Set("step", step)
 
 	fullURL := fmt.Sprintf("%s/api/v1/query_range?%s", v.url, params.Encode())
 
@@ -670,7 +670,7 @@ func (v *VictoriaStore) QueryMultiInstant(metricNames []string, filters map[stri
 	return rows, nil
 }
 
-func (v *VictoriaStore) QueryMultiRange(metrics []string, start, end time.Time, filters map[string]string) ([]model.MetricRow, error) {
+func (v *VictoriaStore) QueryMultiRange(metrics []string, start, end time.Time, step string, filters map[string]string) ([]model.MetricRow, error) {
 	if len(metrics) == 0 {
 		return nil, nil
 	}
@@ -681,6 +681,9 @@ func (v *VictoriaStore) QueryMultiRange(metrics []string, start, end time.Time, 
 		if len(filters) > 0 {
 			var parts []string
 			for k, v := range filters {
+				if k == "step" {
+					continue
+				}
 				parts = append(parts, fmt.Sprintf(`%s="%s"`, k, v))
 			}
 			sort.Strings(parts)
@@ -705,9 +708,15 @@ func (v *VictoriaStore) QueryMultiRange(metrics []string, start, end time.Time, 
 	params.Set("query", query)
 	params.Set("start", start.Format(time.RFC3339))
 	params.Set("end", end.Format(time.RFC3339))
-	params.Set("step", "15s") // TODO: make configurable?
+
+	secs, err := parseDurationToSeconds(step)
+	if err != nil {
+		return nil, fmt.Errorf("invalid step: %v", err)
+	}
+	params.Set("step", strconv.Itoa(secs))
 
 	fullURL := fmt.Sprintf("%s/api/v1/query_range?%s", v.url, params.Encode())
+	utils.Debug("QueryMultiRange URL: %s", fullURL)
 	resp, err := http.Get(fullURL)
 	if err != nil {
 		return nil, fmt.Errorf("VM QueryMultiRange failed: %w", err)
@@ -774,4 +783,76 @@ func BuildPromQL(metric string, filters map[string]string) string {
 
 func (v *VictoriaStore) GetAllKnownMetricNames() []string {
 	return v.MetricIndex.GetAllMetricNames()
+}
+
+func parseDurationToSeconds(step string) (int, error) {
+	d, err := time.ParseDuration(step)
+	if err != nil {
+		return 0, err
+	}
+	return int(d.Seconds()), nil
+}
+
+// FetchDimensionsForMetric queries VictoriaMetrics for a given metric and extracts dimension keys.
+func (v *VictoriaStore) FetchDimensionsForMetric(metric string) ([]string, error) {
+	queryURL := fmt.Sprintf("%s/api/v1/query?query=%s", v.url, url.QueryEscape(metric))
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(queryURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query VictoriaMetrics: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("VictoriaMetrics returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	var parsed struct {
+		Status string `json:"status"`
+		Data   struct {
+			ResultType string `json:"resultType"`
+			Result     []struct {
+				Metric map[string]string `json:"metric"`
+				Value  []interface{}     `json:"value"`
+			} `json:"result"`
+		} `json:"data"`
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return nil, fmt.Errorf("failed to decode JSON: %w", err)
+	}
+
+	if parsed.Status != "success" {
+		return nil, fmt.Errorf("VictoriaMetrics query status not success: %s", parsed.Status)
+	}
+
+	// Collect unique dimension keys
+	dimSet := make(map[string]struct{})
+
+	for _, series := range parsed.Data.Result {
+		for key := range series.Metric {
+			if key == "__name__" {
+				continue // skip Prometheus internal field
+			}
+			dimSet[key] = struct{}{}
+		}
+	}
+
+	if len(dimSet) == 0 {
+		return nil, fmt.Errorf("no dimensions found for metric %s", metric)
+	}
+
+	var dims []string
+	for k := range dimSet {
+		dims = append(dims, k)
+	}
+
+	return dims, nil
 }

@@ -38,7 +38,8 @@ type MetricStore interface {
 	Close() error
 
 	QueryInstant(metric string, filters map[string]string) ([]model.MetricRow, error)
-	QueryRange(metric string, start, end time.Time, filters map[string]string) ([]model.Point, error)
+	QueryRange(metric string, start, end time.Time, step string, filters map[string]string) ([]model.Point, error)
 	QueryMultiInstant(metricNames []string, filters map[string]string) ([]model.MetricRow, error)
-	QueryMultiRange(metrics []string, start, end time.Time, filters map[string]string) ([]model.MetricRow, error)
+	QueryMultiRange(metrics []string, start, end time.Time, step string, filters map[string]string) ([]model.MetricRow, error)
+	FetchDimensionsForMetric(metric string) ([]string, error)
 }

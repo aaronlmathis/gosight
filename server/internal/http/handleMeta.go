@@ -31,7 +31,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -71,22 +70,38 @@ func (s *HttpServer) GetDimensions(w http.ResponseWriter, r *http.Request) {
 	utils.JSON(w, http.StatusOK, s.Sys.Tele.Index.GetDimensions())
 }
 
+func (s *HttpServer) GetMetricDimensions(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	ns := strings.ToLower(vars["namespace"])
+	sub := strings.ToLower(vars["sub"])
+	metric := strings.ToLower(vars["metric"])
+
+	fullMetric := fmt.Sprintf("%s.%s.%s", ns, sub, metric)
+
+	dims, err := s.Sys.Stores.Metrics.FetchDimensionsForMetric(fullMetric)
+	if err != nil {
+		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	utils.JSON(w, http.StatusOK, dims)
+}
+
 func (s *HttpServer) GetMetricData(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	ns := strings.ToLower(vars["namespace"])
 	sub := strings.ToLower(vars["sub"])
 	metric := strings.ToLower(vars["metric"])
 
-	valid := regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
-	if !valid.MatchString(ns) || !valid.MatchString(sub) || !valid.MatchString(metric) {
-		utils.JSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid namespace, subnamespace, or metric name format"})
-		return
-	}
+	fullMetric := fmt.Sprintf("%s.%s.%s", ns, sub, metric)
 
 	startStr := r.URL.Query().Get("start")
 	endStr := r.URL.Query().Get("end")
+	stepStr := r.URL.Query().Get("step")
+
 	var start, end time.Time
 	var err error
+
 	if startStr != "" {
 		start, err = time.Parse(time.RFC3339, startStr)
 		if err != nil {
@@ -94,6 +109,7 @@ func (s *HttpServer) GetMetricData(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
 	if endStr != "" {
 		end, err = time.Parse(time.RFC3339, endStr)
 		if err != nil {
@@ -102,29 +118,29 @@ func (s *HttpServer) GetMetricData(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	filters := parseQueryFilters(r)
-	fullMetric := fmt.Sprintf("%s.%s.%s", ns, sub, metric)
-
-	if start.IsZero() && end.IsZero() {
-		start = time.Now().Add(-time.Hour)
-		end = time.Now()
+	if start.IsZero() || end.IsZero() {
+		utils.JSON(w, http.StatusBadRequest, map[string]string{"error": "start and end time must be specified"})
+		return
 	}
 
-	points, err := s.Sys.Stores.Metrics.QueryRange(fullMetric, start, end, filters)
+	filters := parseQueryFilters(r) // We'll clean this function next
+
+	points, err := s.Sys.Stores.Metrics.QueryRange(fullMetric, start, end, stepStr, filters)
 	if err != nil {
 		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to query range data: %v", err)})
 		return
 	}
+
 	utils.JSON(w, http.StatusOK, points)
 }
-
-func (s *HttpServer) GetLatestValue(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) GetMetricLatest(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	ns := strings.ToLower(vars["namespace"])
 	sub := strings.ToLower(vars["sub"])
 	metric := strings.ToLower(vars["metric"])
 
 	fullMetric := fmt.Sprintf("%s.%s.%s", ns, sub, metric)
+
 	filters := parseQueryFilters(r)
 
 	rows, err := s.Sys.Stores.Metrics.QueryInstant(fullMetric, filters)
@@ -132,6 +148,7 @@ func (s *HttpServer) GetLatestValue(w http.ResponseWriter, r *http.Request) {
 		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to query latest value: %v", err)})
 		return
 	}
+
 	if len(rows) == 0 {
 		utils.JSON(w, http.StatusOK, []model.Point{})
 		return
@@ -154,6 +171,11 @@ func (s *HttpServer) HandleAPIQuery(w http.ResponseWriter, r *http.Request) {
 	// Optional time range
 	startStr := query.Get("start")
 	endStr := query.Get("end")
+
+	stepStr := query.Get("step")
+	if stepStr == "" {
+		stepStr = "15s" // default to 15s if not provided
+	}
 
 	var start, end time.Time
 	var err error
@@ -216,7 +238,7 @@ func (s *HttpServer) HandleAPIQuery(w http.ResponseWriter, r *http.Request) {
 
 	switch {
 	case len(metricNames) > 0 && !start.IsZero() && !end.IsZero():
-		result, err = s.Sys.Stores.Metrics.QueryMultiRange(metricNames, start, end, filters)
+		result, err = s.Sys.Stores.Metrics.QueryMultiRange(metricNames, start, end, stepStr, filters)
 
 	case len(metricNames) > 0:
 		result, err = s.Sys.Stores.Metrics.QueryMultiInstant(metricNames, filters)
@@ -231,7 +253,7 @@ func (s *HttpServer) HandleAPIQuery(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !start.IsZero() && !end.IsZero() {
-			result, err = s.Sys.Stores.Metrics.QueryMultiRange(names, start, end, filters)
+			result, err = s.Sys.Stores.Metrics.QueryMultiRange(names, start, end, stepStr, filters)
 		} else {
 			result, err = s.Sys.Stores.Metrics.QueryMultiInstant(names, filters)
 		}
@@ -281,16 +303,17 @@ func applySortAndLimit(data any, sortKey string, limit int) any {
 
 func parseQueryFilters(r *http.Request) map[string]string {
 	filters := make(map[string]string)
-	for key, values := range r.URL.Query() {
-		if key == "start" || key == "end" || key == "latest" || key == "step" {
+
+	for key, vals := range r.URL.Query() {
+		if len(vals) == 0 {
 			continue
 		}
-		if len(values) == 1 {
-			filters[key] = values[0]
-		} else if len(values) > 1 {
-			filters[key] = fmt.Sprintf("~^(%s)$", strings.Join(values, "|"))
+		if strings.HasPrefix(key, "tag:") {
+			realKey := strings.TrimPrefix(key, "tag:")
+			filters[realKey] = vals[0]
 		}
 	}
+
 	return filters
 }
 

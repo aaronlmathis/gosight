@@ -27,13 +27,17 @@ func (a *APIMetricStore) QueryInstant(metric string, filters map[string]string) 
 	return a.Store.QueryInstant(metric, filters)
 }
 
-func (a *APIMetricStore) QueryRange(metric string, start, end time.Time, filters map[string]string) ([]model.Point, error) {
+func (a *APIMetricStore) QueryRange(metric string, start, end time.Time, step string, filters map[string]string) ([]model.Point, error) {
 	utils.Debug("QueryRange: %s (%s - %s)", metric, start.Format(time.RFC3339), end.Format(time.RFC3339))
-	return a.Store.QueryRange(metric, start, end, filters)
+	return a.Store.QueryRange(metric, start, end, step, filters)
 }
 func (a *APIMetricStore) QueryMultiInstant(metricNames []string, filters map[string]string) ([]model.MetricRow, error) {
 	return a.Store.QueryMultiInstant(metricNames, filters)
 }
-func (a *APIMetricStore) QueryMultiRange(metrics []string, start, end time.Time, filters map[string]string) ([]model.MetricRow, error) {
-	return a.Store.QueryMultiRange(metrics, start, end, filters)
+func (a *APIMetricStore) QueryMultiRange(metrics []string, start, end time.Time, step string, filters map[string]string) ([]model.MetricRow, error) {
+	return a.Store.QueryMultiRange(metrics, start, end, step, filters)
+}
+
+func (a *APIMetricStore) FetchDimensionsForMetric(metric string) ([]string, error) {
+	return a.Store.FetchDimensionsForMetric(metric)
 }

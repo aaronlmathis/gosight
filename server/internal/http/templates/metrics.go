@@ -145,8 +145,8 @@ func BuildHostDashboardData(ctx context.Context, ms metricstore.MetricStore, met
 	start := time.Now().Add(-10 * time.Minute)
 	end := time.Now()
 	rangeNames := GetMetricNames(HostMetrics, false)
-
-	rangeRows, err := ms.QueryMultiRange(rangeNames, start, end, labels)
+	step := "15s"
+	rangeRows, err := ms.QueryMultiRange(rangeNames, start, end, step, labels)
 	if err != nil {
 		return nil, err
 	}

@@ -27,6 +27,7 @@ package metricindex
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 
@@ -159,6 +160,23 @@ func (idx *MetricIndex) GetDimensions() map[string][]string {
 		}
 	}
 	return out
+}
+
+func (idx *MetricIndex) GetDimensionsForMetric(fullMetric string) ([]string, error) {
+	idx.mu.RLock()
+	defer idx.mu.RUnlock()
+
+	dims, ok := idx.MetricDimensions[fullMetric]
+	if !ok {
+		return nil, fmt.Errorf("metric %s not found in MetricDimensions", fullMetric)
+	}
+
+	var keys []string
+	for k := range dims {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys, nil
 }
 
 // FilterMetricNames returns all metric names that match given label filters
