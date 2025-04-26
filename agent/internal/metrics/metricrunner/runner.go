@@ -166,7 +166,7 @@ func (r *MetricRunner) Run(ctx context.Context) {
 					Metrics:    metrics,
 					Meta:       containerMetas[id],
 				}
-				utils.Info("META Payload for: %s - %s - %s - %v", payload.HostID, payload.AgentID, payload.Hostname, payload.Meta)
+				//utils.Info("META Payload for: %s - %s - %s - %v", payload.HostID, payload.AgentID, payload.Hostname, payload.Meta)
 
 				select {
 				case taskQueue <- &payload:
