@@ -36,6 +36,8 @@ func (h *LogsHandler) SubmitStream(stream pb.LogService_SubmitStreamServer) erro
 		}
 
 		payload := ConvertToModelLogPayload(pbPayload)
+		// Check rules
+		h.Sys.Tele.Evaluator.EvaluateLogs(h.Sys.Ctx, payload.Logs, payload.Meta)
 
 		h.Sys.Web.BroadcastLog(payload)
 		if err := h.Sys.Stores.Logs.Write([]model.LogPayload{payload}, stream.Context()); err != nil {

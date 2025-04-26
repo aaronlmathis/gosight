@@ -1,92 +1,228 @@
 import { formatBytes, formatUptime } from "./format.js";
-
-const socket = new WebSocket("wss://" + location.host + "/ws/metrics?endpointID=" + encodeURIComponent(window.endpointID));
-console.log(window.endpointID)
-socket.onmessage = (event) => {
-
-    try {
-        const envelope = JSON.parse(event.data);
-
-        //console.log("WebSocket message:", envelope);
-        if (envelope.type === "logs") {
-            //console.log("Logs:\n" + JSON.stringify(envelope.data.Logs, null, 2));
-        }
-        if (envelope.type === "metrics") {
-            const payload = envelope.data;
-            if (!payload?.metrics || !payload?.meta) return;
-
-            if (payload.meta.endpoint_id?.startsWith("host-")) {
-                updateMiniCharts(payload.metrics);
-                const summary = extractHostSummary(payload.metrics, payload.meta);
-                renderOverviewSummary(summary);
-                if (window.networkMetricHandler) {
-                    window.networkMetricHandler(payload.metrics);
-                }
-                if (window.cpuMetricHandler) {
-                    window.cpuMetricHandler(payload.metrics);
-                }
-                if (window.diskMetricHandler) {
-                    window.diskMetricHandler(payload.metrics);
-                }
-            }
-
-            if (payload.meta.endpoint_id?.startsWith("ctr-")) {
-                updateContainerTable(payload);
-                console.log("Container metrics:", payload);
-            }
-
-        }
-        if (envelope.type === "event") {
-            console.log(" WebSocket message:", envelope);
-            const eventData = envelope.data;
-            if (window.eventHandler) {
-                window.eventHandler([eventData]);
-            }
-        }
-
-        if (envelope.type === "logs") {
-            const logPayload = envelope.data;
-            if (logPayload?.Logs?.length > 0) {
-                for (const log of logPayload.Logs) {
-                    appendLogLine(log);
-                    appendActivityRow(log);    // Activity tab (table)
-                }
-
-            }
-        }
-
-    } catch (err) {
-        console.error("Failed to parse WebSocket JSON:", err);
-    }
-};
-const chartAnimation = {
-    tension: {
-        duration: 1000,
-        easing: "easeOutQuart",
-        from: 0.4,
-        to: 0,
-        loop: false,
-    },
-};
-
-const tooltipPlugin = {
-    enabled: true,
-    callbacks: {
-        label: function (context) {
-            return `${context.dataset.label || ""}: ${context.parsed.y}`;
-        },
-    },
-};
+import { registerTabInitializer } from "./tabs.js";
 
 const miniCharts = {
     cpu: null,
     memory: null,
-    swap: null,  // new
+    swap: null,
 };
 
 let latestCpuPercent = 0;
 let latestSwapUsedPercent = 0;
 let latestMemUsedPercent = 0;
+
+//
+// Mini Charts
+//
+
+async function renderMiniCharts() {
+    const cpuChart = createMiniApexChart("miniCpuChart", "#3b82f6", "CPU Usage %");
+    const memoryChart = createMiniApexChart("miniMemoryChart", "#10b981", "Memory Usage %");
+    const swapChart = createMiniApexChart("miniSwapChart", "#f87171", "Swap Usage %");
+
+    miniCharts.cpu = cpuChart;
+    miniCharts.memory = memoryChart;
+    miniCharts.swap = swapChart;
+
+    await Promise.all([
+        cpuChart.render(),
+        memoryChart.render(),
+        swapChart.render()
+    ]);
+}
+
+function createMiniApexChart(elementId, color, label) {
+    const options = {
+        dataLabels: {
+            enabled: false,
+        },
+
+        noData: {
+            text: "",
+        },
+        chart: {
+            type: "area",
+            height: 280,
+            zoom: { enabled: false },
+            toolbar: { show: false },
+            animations: { enabled: true, easing: "easeinout", speed: 500 },
+        },
+        series: [{ name: label, data: [] }],
+        stroke: { show: true, curve: "smooth", width: 2 },
+        fill: {
+            type: "gradient",
+            gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0, stops: [0, 90, 100] }
+        },
+        colors: [color],
+        xaxis: {
+            type: "datetime",
+            labels: { format: "HH:mm:ss" },
+            axisBorder: { show: false },
+            axisTicks: { show: false },
+        },
+        yaxis: {
+            labels: { formatter: val => `${val.toFixed(1)}%` }
+        },
+        tooltip: {
+            x: { format: "HH:mm:ss" },
+            y: { formatter: val => `${val.toFixed(1)}%` }
+        },
+        grid: { borderColor: "#e0e0e0", strokeDashArray: 4 }
+    };
+
+    const chart = new ApexCharts(document.getElementById(elementId), options);
+    return chart;
+}
+
+function appendMiniPoint(chart, timestamp, val) {
+    if (!chart || !chart.w || !chart.w.config) return;
+
+    const series = chart.w.config.series[0].data;
+    series.push({ x: timestamp, y: val });
+
+    // 🧹 Keep sliding window of 30 seconds
+    const now = Date.now();
+    const cutoff = now - 30000; // 30 seconds ago
+    while (series.length > 0 && series[0].x < cutoff) {
+        series.shift();
+    }
+
+    chart.updateSeries([{ data: series }], false); // false = NO full redraw
+}
+
+//
+// WebSocket Connection
+//
+
+function connectWebSocket() {
+    const socket = new WebSocket(`wss://${location.host}/ws/metrics?endpointID=${encodeURIComponent(window.endpointID)}`);
+    console.log("WebSocket connecting for:", window.endpointID);
+    const statusBadge = document.getElementById("ws-status-badge");
+
+    socket.addEventListener("open", () => {
+        console.log("✅ WebSocket connected");
+
+        if (statusBadge) {
+            statusBadge.classList.remove("hidden", "bg-red-500", "text-red-100");
+            statusBadge.classList.add("bg-green-500", "text-green-100");
+            statusBadge.textContent = "Connected";
+        }
+    });
+
+    socket.addEventListener("close", () => {
+        console.log("❌ WebSocket disconnected");
+
+        if (statusBadge) {
+            statusBadge.classList.remove("hidden", "bg-green-500", "text-green-100");
+            statusBadge.classList.add("bg-red-500", "text-red-100");
+            statusBadge.textContent = "Disconnected";
+        }
+    });
+
+    socket.addEventListener("error", (e) => {
+        console.error("WebSocket error:", e);
+        // Optional: show error visually too
+    });
+    socket.onmessage = (event) => {
+        try {
+            const envelope = JSON.parse(event.data);
+            if (!envelope?.type) return;
+
+            switch (envelope.type) {
+                case "metrics":
+                    handleMetricsPayload(envelope.data);
+                    break;
+                case "logs":
+                    handleLogsPayload(envelope.data);
+                    break;
+                case "event":
+                    if (window.eventHandler) window.eventHandler([envelope.data]);
+                    break;
+            }
+        } catch (err) {
+            console.error("Failed to parse WebSocket JSON:", err);
+        }
+    };
+}
+
+function handleMetricsPayload(payload) {
+    if (!payload?.metrics || !payload?.meta) return;
+
+    if (payload.meta.endpoint_id?.startsWith("host-")) {
+        updateMiniCharts(payload.metrics);
+        const summary = extractHostSummary(payload.metrics, payload.meta);
+        renderOverviewSummary(summary);
+        if (window.networkMetricHandler) window.networkMetricHandler(payload.metrics);
+        if (window.cpuMetricHandler) window.cpuMetricHandler(payload.metrics);
+        if (window.diskMetricHandler) window.diskMetricHandler(payload.metrics);
+    }
+
+    if (payload.meta.endpoint_id?.startsWith("ctr-")) {
+        updateContainerTable(payload);
+    }
+}
+
+function handleLogsPayload(logPayload) {
+    if (logPayload?.Logs?.length > 0) {
+        for (const log of logPayload.Logs) {
+            appendLogLine(log);
+            appendActivityRow(log);
+        }
+    }
+}
+
+//
+// Metric Updaters
+//
+
+function updateMiniCharts(metrics) {
+    let cpuVal = null, memVal = null, swapVal = null;
+    let metricTimestamp = null;
+
+    for (const m of metrics) {
+        if (m.namespace !== "System") continue;
+
+        // Capture timestamp of the metric
+        if (!metricTimestamp && m.timestamp) {
+            metricTimestamp = m.timestamp * 1000;
+        }
+
+        if (m.subnamespace === "CPU" && m.name === "usage_percent" && m.dimensions?.scope === "total") {
+            cpuVal = m.value;
+        }
+        if (m.subnamespace === "Memory" && m.name === "used_percent") {
+            memVal = m.value;
+        }
+        if (m.subnamespace === "Memory" && m.name === "swap_used_percent") {
+            swapVal = m.value;
+        }
+    }
+
+    // Fallback if metricTimestamp wasn't found
+    const timestamp = metricTimestamp || Date.now();
+
+    if (miniCharts.cpu) {
+        const value = cpuVal !== null ? cpuVal : 0;
+        appendMiniPoint(miniCharts.cpu, timestamp, value);
+        latestCpuPercent = value;
+        document.getElementById("cpu-percent-label").textContent = `${value.toFixed(1)}%`;
+    }
+
+    if (miniCharts.memory && memVal !== null) {
+        appendMiniPoint(miniCharts.memory, timestamp, memVal);
+        latestMemUsedPercent = memVal;
+        document.getElementById("mem-percent-label").textContent = `${memVal.toFixed(1)}%`;
+    }
+
+    if (miniCharts.swap && typeof swapVal === "number" && !isNaN(swapVal)) {
+        appendMiniPoint(miniCharts.swap, timestamp, swapVal);
+        latestSwapUsedPercent = swapVal;
+        document.getElementById("swap-percent-label").textContent = `${swapVal.toFixed(1)}%`;
+    }
+}
+
+
+
 
 
 //
@@ -264,202 +400,9 @@ function extractHostSummary(metrics, meta) {
     return summary;
 }
 
-function renderMiniCharts() {
-    miniCharts.cpu = new Chart(document.getElementById("miniCpuChart"), {
-        type: "line",
-        data: {
-            labels: [],
-            datasets: [{
-                data: [],
-                borderColor: "#3b82f6",
-                backgroundColor: "rgba(59, 130, 246, 0.1)",
-                tension: 0.4,
-                fill: true,
-                pointRadius: 0,
-            }],
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false },
-                tooltip: tooltipPlugin,
-            },
-            scales: { y: { display: true }, x: { display: false } },
-            elements: { line: { borderWidth: 2 } },
-
-        },
-    });
-
-    miniCharts.memory = new Chart(document.getElementById("miniMemoryChart"), {
-        type: "line",
-        data: {
-            labels: [],
-            datasets: [{
-                data: [],
-                borderColor: "#10b981",
-                backgroundColor: "rgba(16, 185, 129, 0.1)",
-                tension: 0.4,
-                fill: true,
-                pointRadius: 0,
-            }],
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false },
-                tooltip: tooltipPlugin,
-            },
-            scales: { y: { display: true }, x: { display: false } },
-            elements: { line: { borderWidth: 2 } },
-
-        },
-    });
-    miniCharts.swap = new Chart(document.getElementById("miniSwapChart"), {
-        type: "line",
-        data: {
-            labels: [],
-            datasets: [{
-                data: [],
-                borderColor: "#f87171", // red-400
-                backgroundColor: "rgba(248, 113, 113, 0.1)",
-                tension: 0.4,
-                fill: true,
-                pointRadius: 0,
-            }],
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false },
-                tooltip: tooltipPlugin,
-            },
-            scales: { y: { display: true }, x: { display: false } },
-            elements: { line: { borderWidth: 2 } },
-
-        },
-    });
-}
-
-function updateMiniCharts(metrics) {
-    let cpuVal = null;
-    let memVal = null;
-    let swapVal = null;
-    metrics.forEach((m) => {
-        if (m.subnamespace === "Memory" && m.dimensions?.source === "swap") {
-            //console.log("🟢 SWAP METRIC RECEIVED:", m.name, m.value);
-        }
-    });
-    let swapTotal = null;
-    let swapFree = null;
-    for (const m of metrics) {
-        if (
-            m.namespace === "System" &&
-            m.subnamespace === "CPU" &&
-            m.name === "usage_percent" &&
-            m.dimensions?.scope === "total"
-        ) {
-            cpuVal = m.value;
-        }
-
-        if (
-            m.namespace === "System" &&
-            m.subnamespace === "Memory" &&
-            m.name === "used_percent" &&
-            m.dimensions?.source === "physical"
-        ) {
-            memVal = m.value;
-        }
-        if (
-            m.namespace === "System" &&
-            m.subnamespace === "Memory" &&
-            m.name === "total" &&
-            m.dimensions?.source === "swap"
-        ) {
-            swapTotal = m.value;
-        }
-
-        if (
-            m.namespace === "System" &&
-            m.subnamespace === "Memory" &&
-            m.name === "available" &&
-            m.dimensions?.source === "swap"
-        ) {
-            swapFree = m.value;
-        }
-
-        swapVal = ((swapTotal - swapFree) / swapTotal) * 100;
-
-    }
-
-    const timestamp = new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-    });
-
-    if (miniCharts.cpu && cpuVal !== null) {
-        const d = miniCharts.cpu.data;
-        const val = Math.abs(cpuVal - latestCpuPercent) > 0.1 ? cpuVal : latestCpuPercent;
-
-        d.labels.push(timestamp);
-        d.datasets[0].data.push(val);
-
-        if (d.labels.length > 30) {
-            d.labels.shift();
-            d.datasets[0].data.shift();
-        }
-
-        miniCharts.cpu.update();
-        latestCpuPercent = val;
-
-        const label = document.getElementById("cpu-percent-label");
-        if (label) label.textContent = `${val.toFixed(1)}%`;
-    }
-
-    if (miniCharts.memory) {
-        const val = memVal !== null ? memVal : latestMemUsedPercent;
-        const d = miniCharts.memory.data;
-
-        d.labels.push(timestamp);
-        d.datasets[0].data.push(val);
-
-        if (d.labels.length > 30) {
-            d.labels.shift();
-            d.datasets[0].data.shift();
-        }
-
-        miniCharts.memory.update();
-
-        if (memVal !== null) {
-            latestMemUsedPercent = val;
-            const label = document.getElementById("mem-percent-label");
-            if (label) label.textContent = `${val.toFixed(1)}%`;
-        }
-    }
-
-    if (miniCharts.swap) {
-        const val = typeof swapVal === "number" && !isNaN(swapVal) ? swapVal : latestSwapUsedPercent;
-        const d = miniCharts.swap.data;
-
-        d.labels.push(timestamp);
-        d.datasets[0].data.push(val);
-
-        if (d.labels.length > 30) {
-            d.labels.shift();
-            d.datasets[0].data.shift();
-        }
-
-        miniCharts.swap.update();
-        //console.log("🟣 Swap Value:", swapVal, "Label exists:", !!document.getElementById("swap-percent-label"));
-        if (typeof swapVal === "number" && !isNaN(swapVal)) {
-            latestSwapUsedPercent = swapVal;
-            const label = document.getElementById("swap-percent-label");
-            if (label) label.textContent = `${val.toFixed(1)}%`;
-        }
-    }
 
 
-}
+
 function setupContainerFilters() {
     const statusFilter = document.getElementById("filter-container-status");
     const runtimeFilter = document.getElementById("filter-runtime");
@@ -514,7 +457,7 @@ function updateContainerTable(payload) {
     const metrics = payload.metrics;
     const id = meta.container_id;
     if (!id) return;
-    //console.log("📦 Incoming container metrics for:", meta.container_name);
+    //console.log(" Incoming container metrics for:", meta.container_name);
     metrics.forEach(m => {
         if (["cpu_percent", "mem_usage_bytes", "net_rx_bytes", "net_tx_bytes"].includes(m.name)) {
             //console.log(`🔧 ${m.name}:`, m.value);
@@ -590,9 +533,28 @@ function updateContainerTable(payload) {
 }
 
 
+//
+// Initialization
+//
 
+async function initOverviewTab() {
+    console.log("✅ initOverviewTab running");
 
-document.addEventListener("DOMContentLoaded", () => {
-    renderMiniCharts();
+    document.getElementById("overview-content")?.classList.remove("hidden");
+    console.log("✅ overview-content unhidden");
+
+    await renderMiniCharts();
+    console.log("✅ miniCharts rendered");
+
     setupContainerFilters();
+    connectWebSocket();
+    console.log("✅ WebSocket connected");
+
+    document.getElementById("overview-skeleton")?.classList.add("hidden");
+    console.log("✅ Skeleton hidden, dashboard fully live");
+}
+
+
+registerTabInitializer("overview", async () => {
+    await initOverviewTab();
 });

@@ -70,6 +70,7 @@ func main() {
 	}()
 
 	grpcServer, err := grpcserver.NewGRPCServer(sys)
+
 	if err != nil {
 		utils.Fatal("Failed to start gRPC server: %v", err)
 	} else {

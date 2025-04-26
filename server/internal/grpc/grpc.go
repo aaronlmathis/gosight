@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"time"
 
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/sys"
@@ -38,6 +39,7 @@ import (
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -69,8 +71,20 @@ func NewGRPCServer(sys *sys.SystemContext) (*GrpcServer, error) {
 
 	// Generate credentials from tlsCfg and start gRPC Server
 	creds := credentials.NewTLS(tlsCfg)
-	server := grpc.NewServer(grpc.Creds(creds))
 
+	server := grpc.NewServer(grpc.Creds(creds),
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+			MinTime:             1 * time.Minute, // Clients can only ping once per minute
+			PermitWithoutStream: true,
+		}),
+		grpc.KeepaliveParams(keepalive.ServerParameters{
+			Time:                  2 * time.Minute, // Server sends own pings every 2m
+			Timeout:               20 * time.Second,
+			MaxConnectionIdle:     0,
+			MaxConnectionAge:      0,
+			MaxConnectionAgeGrace: 0,
+		}),
+	)
 	// Create metric and log handlers
 	metricHandler := telemetry.NewMetricsHandler(sys)
 	proto.RegisterMetricsServiceServer(server, metricHandler)

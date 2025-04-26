@@ -161,7 +161,7 @@ func (m *Manager) emitAlertFiringEvent(ctx context.Context, rule model.AlertRule
 		Source:    rule.Match.Namespace + "." + rule.Match.SubNamespace + "." + rule.Match.Metric,
 		Scope:     scope,
 		Target:    target,
-		Meta:      meta.Tags,
+		Meta:      utils.SafeCopyTags(meta),
 	}
 	event.Meta["rule_id"] = rule.ID
 
@@ -194,4 +194,58 @@ func (m *Manager) ListActive() []model.AlertInstance {
 		list = append(list, *v)
 	}
 	return list
+}
+
+func (m *Manager) HandleLogState(
+	ctx context.Context,
+	rule model.AlertRule,
+	meta *model.Meta,
+	log model.LogEntry,
+	triggered bool,
+) {
+	k := key(rule.ID, meta.EndpointID+"|"+log.Timestamp.Format(time.RFC3339Nano))
+	now := time.Now().UTC()
+
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	if triggered {
+		inst := &model.AlertInstance{
+			ID:         uuid.NewString(),
+			RuleID:     rule.ID,
+			State:      "firing",
+			Previous:   "ok",
+			Scope:      "endpoint",
+			Target:     meta.EndpointID,
+			FirstFired: now,
+			LastFired:  now,
+			LastOK:     now,
+			LastValue:  0, // not meaningful for logs
+			Level:      rule.Level,
+			Message:    rule.Message + ": " + log.Message,
+			Labels:     meta.Tags, // inherit endpoint tags
+		}
+
+		m.active[k] = inst
+
+		_ = m.store.UpsertAlert(ctx, inst)
+		m.hub.BroadcastAlert(*inst)
+		m.emitLogAlertFiringEvent(ctx, rule, meta, log, now)
+	}
+}
+
+func (m *Manager) emitLogAlertFiringEvent(ctx context.Context, rule model.AlertRule, meta *model.Meta, log model.LogEntry, now time.Time) {
+	event := model.EventEntry{
+		Timestamp: now,
+		Level:     rule.Level,
+		Category:  "log_alert",
+		Message:   rule.Message + ": " + log.Message,
+		Source:    log.Source,
+		Scope:     "endpoint",
+		Target:    meta.EndpointID,
+		Meta:      utils.SafeCopyTags(meta),
+	}
+	event.Meta["rule_id"] = rule.ID
+	m.emitter.Emit(ctx, event)
+	m.dispatcher.Dispatch(ctx, event)
 }

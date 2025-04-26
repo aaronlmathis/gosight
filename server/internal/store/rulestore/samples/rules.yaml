@@ -22,6 +22,7 @@
   level: warning
   expression: "cpu_usage_percent > 50"
   message: "CPU usage is over 50%"
+  type: metric
   match:
     namespace: System
     subnamespace: CPU
@@ -34,3 +35,30 @@
   eval_interval: 10s
   repeat_interval: 1m
   notify_on_resolve: true
+
+
+# Log Rules
+- id: "critical-ssh-auth-failure"
+  name: "Critical SSH Authentication Failure"
+  enabled: true
+  type: "log"
+  level: "critical"
+  expression: 'level == "error" && source == "sshd" && contains(message, "Failed password")'
+  message: "SSH authentication failed"
+  match:
+    labels:
+      environment: "production"
+  actions:
+  - "local-slacktest"
+
+- id: "sudo-auth-failure"
+  name: "Sudo Authentication Failure"
+  enabled: true
+  type: "log"
+  level: "error"
+  expression: 'level == "error" && source == "sudo" && contains(message, "incorrect password")'
+  message: "Sudo authentication failure"
+  match: {}
+  actions:
+    - "local-slacktest"
+

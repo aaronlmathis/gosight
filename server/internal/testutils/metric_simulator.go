@@ -30,5 +30,5 @@ func TriggerTestAlert(sys *sys.SystemContext) {
 		},
 	}
 
-	sys.Tele.Evaluator.Evaluate(context.Background(), metrics, meta)
+	sys.Tele.Evaluator.EvaluateMetric(context.Background(), metrics, meta)
 }

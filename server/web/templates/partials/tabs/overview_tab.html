@@ -1,6 +1,8 @@
 {{ define "partials/tabs/overview_tab" }}
 <!-- dashboard/tabs/overview.html -->
 <div class="p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+
+
   <!-- Metrics Row: CPU, Memory, Disk (1 row of 3) -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
     <div
@@ -19,7 +21,7 @@
       </p>
       <p class="text-xs text-gray-400 dark:text-gray-500">percent</p>
       <div class="mt-2">
-        <canvas id="miniCpuChart" class="w-full h-20"></canvas>
+        <div id="miniCpuChart" class="w-full h-20"></div>
       </div>
     </div>
 
@@ -40,7 +42,7 @@
       </p>
       <p class="text-xs text-gray-400 dark:text-gray-500">GB</p>
       <div class="mt-2">
-        <canvas id="miniMemoryChart" class="w-full h-20"></canvas>
+        <div id="miniMemoryChart" class="w-full h-[200px]"></div>
       </div>
     </div>
 
@@ -60,7 +62,7 @@
       </p>
       <p class="text-xs text-gray-400 dark:text-gray-500">GB</p>
       <div class="mt-2">
-        <canvas id="miniSwapChart" class="w-full h-20"></canvas>
+        <div id="miniSwapChart" class="w-full h-[200px]"></div>
       </div>
     </div>
   </div>

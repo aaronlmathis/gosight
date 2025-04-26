@@ -19,7 +19,6 @@ routes:
       - type: script
         command: /opt/scripts/log_alert.sh
 
-
   - id: notify-local
     match:
       level: warning
@@ -30,4 +29,11 @@ routes:
       - type: webhook
         url: http://localhost:9999/test-alert
         headers:
-          Authorization: "Bearer test123"        
+          Authorization: "Bearer test123"
+
+  - id: local-slacktest
+    match:
+      level: warning
+    actions:
+      - type: webhook
+        url: http://localhost:8080

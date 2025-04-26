@@ -33,6 +33,7 @@ type AlertRule struct {
 	Level      string `json:"level"`      // info, warning, critical
 	Expression string `json:"expression"` // e.g. "mem.used_percent > 80 and swap.used_percent > 50"
 	Message    string `json:"message"`
+	Type       string `json:"type"` // "metric" or "log"
 
 	Match    MatchCriteria `json:"match"`              // metric + label filters
 	Actions  []string      `json:"actions"`            // route IDs to trigger

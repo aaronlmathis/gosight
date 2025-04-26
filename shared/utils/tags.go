@@ -21,6 +21,8 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 
 package utils
 
+import "github.com/aaronlmathis/gosight/shared/model"
+
 // MatchAllTags returns true if all required tags exist in actualTags and match.
 func MatchAllTags(required map[string]string, actual map[string]string) bool {
 	for k, v := range required {
@@ -29,4 +31,16 @@ func MatchAllTags(required map[string]string, actual map[string]string) bool {
 		}
 	}
 	return true
+}
+
+// SafeCopyTags ensures that meta.Tags is never nil.
+// It returns a non-nil map[string]string for tags, even if it was nil originally.
+func SafeCopyTags(meta *model.Meta) map[string]string {
+	if meta == nil {
+		return make(map[string]string)
+	}
+	if meta.Tags == nil {
+		meta.Tags = make(map[string]string)
+	}
+	return meta.Tags
 }

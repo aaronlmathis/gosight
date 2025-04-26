@@ -29,7 +29,7 @@ function initSlots(count) {
     for (let i = 0; i < count; i++) {
         const slot = document.createElement("div");
         slot.id = `chart-slot-${i}`;
-        slot.className = "rounded border-2 border-dashed border-gray-300 dark:border-gray-700 p-4 bg-white dark:bg-gray-900 text-gray-400 cursor-pointer flex items-center justify-center h-[250px]";
+        slot.className = "rounded border-2 border-dashed border-gray-100 dark:border-gray-700 p-4 bg-white dark:bg-gray-900 text-gray-400 cursor-pointer flex items-center justify-center h-[250px]";
         slot.innerHTML = `<span class="text-sm">➕ New Chart</span>`;
         slot.addEventListener("click", () => setActiveSlot(slot.id));
         metricPanelsEl.appendChild(slot);
@@ -43,7 +43,8 @@ function initSlots(count) {
             graphType: "area",
             groupBy: "",
             aggregate: "",
-            chart: null
+            chart: null,
+            shouldReset: false
         });
 
 
@@ -56,11 +57,11 @@ function setActiveSlot(slotId) {
     activeSlotId = slotId;
     document.querySelectorAll("#metric-panels > div").forEach(div => {
         div.classList.remove("border-blue-400");
-        div.classList.add("border-gray-300", "dark:border-gray-700");
+        div.classList.add("border-gray-200", "dark:border-gray-700");
     });
     const activeSlot = document.getElementById(slotId);
     if (activeSlot) {
-        activeSlot.classList.remove("border-gray-300", "dark:border-gray-700");
+        activeSlot.classList.remove("border-gray-200", "dark:border-gray-700");
         activeSlot.classList.add("border-blue-400");
     }
     renderSelectedMetrics();
@@ -130,10 +131,15 @@ function setupMetricSearch() {
             item.className = "cursor-pointer px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded";
             item.textContent = metric.label;
             item.addEventListener("click", () => {
-                addSelectedMetric(metric);
-                metricInput.value = "";
-                suggestionsEl.classList.add("hidden");
+                if (metric.label === "system.memory.used_percent") {
+                    showMemoryTypePicker(metric, e);
+                } else {
+                    addSelectedMetric(metric);
+                    metricInput.value = "";
+                    suggestionsEl.classList.add("hidden");
+                }
             });
+
             suggestionsEl.appendChild(item);
         }
         suggestionsEl.classList.remove("hidden");
@@ -191,7 +197,12 @@ function renderSelectedMetrics() {
     selectedEl.innerHTML = "";
     const panel = chartSlots.find(s => s.id === activeSlotId);
     if (!panel) return;
+    if (panel.metrics.length === 0) {
+        resetSlot(panel);
 
+        renderSelectedFilters();
+        return;
+    }
     for (const metric of panel.metrics) {
         const pill = document.createElement("span");
         pill.className = "inline-flex items-center bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-1 rounded-full text-xs mr-1 mb-1";
@@ -202,10 +213,17 @@ function renderSelectedMetrics() {
         remove.innerHTML = "&times;";
         remove.addEventListener("click", () => {
             panel.metrics = panel.metrics.filter(m => m.label !== metric.label);
-            renderSelectedMetrics();
+
+            renderSelectedMetrics(); // <--- always re-render pills FIRST
+            renderSelectedFilters(); // optional: if filters changed
+
+            if (panel.metrics.length === 0) {
+                resetSlot(panel);
+                return; // no need to loadData
+            }
+
             loadData();
         });
-
         pill.appendChild(remove);
         selectedEl.appendChild(pill);
     }
@@ -293,16 +311,14 @@ function renderSelectedFilters() {
 // Load metrics and render charts
 async function loadData() {
     for (const panel of chartSlots) {
+
         const slotEl = document.getElementById(panel.id);
         if (!slotEl) continue;
-
-        if (panel.metrics.length === 0) {
-            if (panel.chart) {
-                panel.chart.destroy();
-                panel.chart = null;
-            }
+        if (panel.shouldReset || panel.metrics.length === 0) {
+            resetSlot(panel);
             continue;
         }
+
 
         // Destroy old chart before reload
         if (panel.chart) {
@@ -349,7 +365,7 @@ async function loadData() {
 
             const url = `/api/v1/query?metric=${encodeURIComponent(metric.label)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&step=${encodeURIComponent(step)}` +
                 (tagFilter ? `&tags=${encodeURIComponent(tagFilter)}` : "");
-
+            console.log(`[DEBUG] Querying metric: ${metric.label} with step: ${step} using url: ${url}`);
             const res = await gosightFetch(url);
             const data = await res.json();
             if (!data || !Array.isArray(data)) continue;
@@ -379,25 +395,16 @@ async function loadData() {
 
 // Fetch data and render chart
 async function fetchAndRenderSingleChart(url, panelEl, metric, panel) {
+
+
     try {
+
         const res = await gosightFetch(url);
         const data = await res.json();
         if (!data || !Array.isArray(data)) return;
-        console.log(`📦 Raw API Data for metric ${metric.label}:`, data);
 
-        // Merge tag suggestions from live metric data
-        for (const point of data) {
-            if (!point.tags) continue;
-            for (const [key, value] of Object.entries(point.tags)) {
-                const k = key.toLowerCase();
-                if (!value) continue;
-                if (!tagSuggestions[k]) tagSuggestions[k] = new Set();
-                tagSuggestions[k].add(value);
-            }
-        }
-        console.log("Updated tag suggestions:", tagSuggestions);
 
-        // Use passed-in panel settings to build series
+
         const series = buildSeries(data, panel);
 
         if (!panelEl.chart) {
@@ -405,11 +412,11 @@ async function fetchAndRenderSingleChart(url, panelEl, metric, panel) {
         } else {
             panelEl.chart.updateSeries(series);
         }
-
     } catch (err) {
         console.error("Failed to load metric", metric.label, err);
     }
 }
+
 // Build chart series
 function buildSeries(dataArray, panel) {
     if (!panel) return [];
@@ -430,7 +437,11 @@ function buildSeries(dataArray, panel) {
         if (!groups[id]) groups[id] = [];
         groups[id].push([d.timestamp, d.value]);
     }
-
+    let totalPoints = 0;
+    for (const points of Object.values(groups)) {
+        totalPoints += points.length;
+    }
+    console.log(`[DEBUG] Total points for this panel: ${totalPoints}`);
     console.log(`Grouping by: ${groupKey || "(default endpoint_id)"}`);
     for (const [key, points] of Object.entries(groups)) {
         console.log(`Group: ${key} → ${points.length} points`);
@@ -442,11 +453,32 @@ function buildSeries(dataArray, panel) {
 // Render chart
 function renderChartPanel(panelEl, series, title, graphType) {
     panelEl.innerHTML = "";
-    panelEl.className = "rounded border p-2 bg-white dark:bg-gray-900";
+    panelEl.className = "relative rounded border p-2 bg-white dark:bg-gray-900"; // <-- add relative positioning for badge
+
+    const manySeries = series.length > 5;
+    const manyPoints = series.reduce((sum, s) => sum + s.data.length, 0) > 500;
+    const optimized = manySeries || manyPoints; // 
+
+    // If in optimized mode, add a badge
+    if (optimized) {
+        const badge = document.createElement("div");
+        badge.className = "absolute top-2 right-[180px] text-[10px] px-2 py-1 rounded bg-yellow-400 text-black font-semibold shadow";
+        badge.textContent = "⚡ Optimized View";
+        panelEl.appendChild(badge);
+    }
+
+    //  Handle stacked-area correctly
+    let chartType = graphType;
+    let stacked = false;
+
+    if (graphType === "stacked-area") {
+        chartType = "area";
+        stacked = true;
+    }
 
     const baseChartOptions = {
         chart: {
-            type: graphType || "line",
+            type: chartType || "area",
             height: 250,
             zoom: {
                 type: "x",
@@ -456,14 +488,23 @@ function renderChartPanel(panelEl, series, title, graphType) {
             toolbar: {
                 autoSelected: "zoom"
             },
-            stacked: false // Default not stacked
+            stacked: stacked,
+            animations: {
+                enabled: !optimized
+            }
         },
         stroke: {
-            curve: "smooth",
+            curve: manySeries ? "straight" : "smooth",
             width: 2
         },
         fill: {
-            type: "solid", // default: no gradient unless overridden
+            type: (chartType === "area") ? "gradient" : "solid",
+            gradient: (chartType === "area") ? {
+                shadeIntensity: 1,
+                opacityFrom: 0.4,
+                opacityTo: 0,
+                stops: [0, 90, 100]
+            } : undefined
         },
         dataLabels: {
             enabled: false
@@ -508,33 +549,10 @@ function renderChartPanel(panelEl, series, title, graphType) {
         series: series
     };
 
-    //  Dynamic overrides based on chart type
-    if (graphType === "area") {
-        baseChartOptions.fill = {
-            type: "gradient",
-            gradient: {
-                shadeIntensity: 1,
-                opacityFrom: 0.4,
-                opacityTo: 0,
-                stops: [0, 90, 100]
-            }
-        };
-    } else if (graphType === "stacked-area") {
-        baseChartOptions.chart.type = "area";
-        baseChartOptions.chart.stacked = true;
-        baseChartOptions.fill = {
-            type: "gradient",
-            gradient: {
-                shadeIntensity: 1,
-                opacityFrom: 0.4,
-                opacityTo: 0,
-                stops: [0, 90, 100]
-            }
-        };
-    } else if (graphType === "bar") {
+    if (graphType === "bar") {
         baseChartOptions.chart.type = "bar";
-        baseChartOptions.stroke = { width: 0 }; //  No lines for bar
-        baseChartOptions.fill = { type: "solid" }; // No gradient on bar
+        baseChartOptions.stroke = { width: 0 };
+        baseChartOptions.fill = { type: "solid" };
         baseChartOptions.plotOptions = {
             bar: {
                 horizontal: false,
@@ -542,15 +560,14 @@ function renderChartPanel(panelEl, series, title, graphType) {
                 endingShape: "rounded"
             }
         };
-    } else if (graphType === "line") {
-        baseChartOptions.stroke = { curve: "smooth", width: 2 };
-        baseChartOptions.fill = { type: "solid" }; // No gradient for pure line
     }
 
     const chart = new ApexCharts(panelEl, baseChartOptions);
     chart.render();
     panelEl.chart = chart;
 }
+
+
 
 // Load endpoint tags
 async function loadEndpointTagSuggestions() {
@@ -612,4 +629,77 @@ function setupControls() {
             loadData();
         }
     });
+}
+function resetSlot(panel) {
+    if (!panel) return;
+
+    const slotEl = document.getElementById(panel.id);
+    if (panel.chart) {
+        try {
+            panel.chart.destroy();
+        } catch (err) {
+            console.warn("Chart destroy failed", err);
+        }
+        panel.chart = null;
+    }
+
+    if (slotEl) {
+        // Remove the entire slot element
+        slotEl.remove();
+    }
+
+    // Now recreate the slot
+    const newSlot = document.createElement("div");
+    newSlot.id = panel.id;
+    newSlot.className = "rounded border-2 border-dashed border-gray-100 dark:border-gray-700 p-4 bg-white dark:bg-gray-900 text-gray-400 cursor-pointer flex items-center justify-center h-[250px]";
+    newSlot.innerHTML = `<span class="text-sm">➕ New Chart</span>`;
+    newSlot.addEventListener("click", () => setActiveSlot(panel.id));
+
+    // Reinsert into the grid
+    metricPanelsEl.appendChild(newSlot);
+
+    panel.metrics = [];
+    panel.filters = {};
+    panel.availableDimensions = [];
+    panel.period = "5m";
+    panel.graphType = "area";
+    panel.groupBy = "";
+    panel.aggregate = "";
+    panel.shouldReset = false;
+}
+
+function showMemoryTypePicker(metric, event) {
+    const picker = document.createElement("div");
+    picker.className = "absolute z-50 bg-white dark:bg-gray-800 border rounded p-4 shadow-lg space-y-2";
+
+    // 🔥 Position it based on click location
+    picker.style.top = `${event.clientY + 10}px`;
+    picker.style.left = `${event.clientX}px`;
+
+    const types = [
+        { label: "Physical Memory", tag: "scope:physical" },
+        { label: "Swap Memory", tag: "scope:swap" },
+        { label: "Container Memory (Cgroup)", tag: "scope:cgroup" }
+    ];
+
+    types.forEach(type => {
+        const btn = document.createElement("button");
+        btn.className = "block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm";
+        btn.textContent = type.label;
+        btn.addEventListener("click", () => {
+            addSelectedMetric(metric);
+            const panel = chartSlots.find(s => s.id === activeSlotId);
+            if (panel) {
+                panel.filters[type.tag] = true;
+                renderSelectedFilters();
+                loadData();
+            }
+            document.body.removeChild(picker);
+            metricInput.value = "";
+            suggestionsEl.classList.add("hidden");
+        });
+        picker.appendChild(btn);
+    });
+
+    document.body.appendChild(picker);
 }

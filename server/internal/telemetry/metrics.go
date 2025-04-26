@@ -65,7 +65,7 @@ func (h *MetricsHandler) SubmitStream(stream pb.MetricsService_SubmitStreamServe
 		//utils.Debug("Received metrics from %s", converted.Meta.EndpointID)
 
 		// Check rules
-		h.Sys.Tele.Evaluator.Evaluate(h.Sys.Ctx, converted.Metrics, converted.Meta)
+		h.Sys.Tele.Evaluator.EvaluateMetric(h.Sys.Ctx, converted.Metrics, converted.Meta)
 
 		// Update Agent Tracker
 		h.Sys.Tracker.UpdateAgent(converted.Meta)
