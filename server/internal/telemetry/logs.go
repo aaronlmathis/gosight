@@ -22,29 +22,26 @@ func NewLogsHandler(sys *sys.SystemContext) *LogsHandler {
 }
 
 func (h *LogsHandler) SubmitStream(stream pb.LogService_SubmitStreamServer) error {
+	utils.Info("Log SubmitStream started...")
+
 	for {
 		pbPayload, err := stream.Recv()
 		if err == io.EOF {
-			return stream.SendAndClose(&pb.LogResponse{
-				Status:     "ok",
-				StatusCode: 0,
-			})
+			utils.Info("Log stream closed cleanly by client.")
+			return nil
 		}
 		if err != nil {
 			utils.Error("Log stream receive error: %v", err)
 			return err
 		}
 
-		// Convert payload into a model.LogPayload.
 		payload := ConvertToModelLogPayload(pbPayload)
 
-		// Websocket broadcast
 		h.Sys.Web.BroadcastLog(payload)
-		err = h.Sys.Stores.Logs.Write([]model.LogPayload{payload}, stream.Context())
-		if err != nil {
+		if err := h.Sys.Stores.Logs.Write([]model.LogPayload{payload}, stream.Context()); err != nil {
 			utils.Error("Failed to store logs from host %s: %v", payload.EndpointID, err)
 		} else {
-			utils.Info("Stored %d logs from host: %s at %s", len(payload.Logs), payload.EndpointID, payload.Timestamp)
+			utils.Debug("Stored %d logs from host: %s at %s", len(payload.Logs), payload.EndpointID, payload.Timestamp)
 		}
 	}
 }

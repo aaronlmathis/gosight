@@ -74,7 +74,9 @@ func NewGRPCServer(sys *sys.SystemContext) (*GrpcServer, error) {
 	// Create metric and log handlers
 	metricHandler := telemetry.NewMetricsHandler(sys)
 	proto.RegisterMetricsServiceServer(server, metricHandler)
+
 	logHandler := telemetry.NewLogsHandler(sys)
+	proto.RegisterLogServiceServer(server, logHandler)
 
 	if sys.Cfg.Debug.EnableReflection {
 		utils.Info("Enabling gRPC reflection")

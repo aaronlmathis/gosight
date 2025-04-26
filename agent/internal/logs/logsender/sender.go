@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/aaronlmathis/gosight/agent/internal/config"
 	"github.com/aaronlmathis/gosight/agent/internal/protohelper"
@@ -12,7 +13,11 @@ import (
 	"github.com/aaronlmathis/gosight/shared/proto"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/status"
+	goproto "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -41,9 +46,14 @@ func NewSender(ctx context.Context, cfg *config.Config) (*LogSender, error) {
 		utils.Info("Using TLS only (no client certificate)")
 	}
 
-	// Establish gRPC connection
-	clientConn, err := grpc.NewClient(cfg.Agent.ServerURL,
+	clientConn, err := grpc.Dial(
+		cfg.Agent.ServerURL,
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)),
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:                30 * time.Second, // Ping every 30s even if no traffic
+			Timeout:             10 * time.Second, // Wait 10s for ack
+			PermitWithoutStream: true,             // Allow keepalive even if no active RPC
+		}),
 	)
 	if err != nil {
 		utils.Debug("Failed to create gRPC client: %v", err)
@@ -115,12 +125,62 @@ func (s *LogSender) SendLogs(payload *model.LogPayload) error {
 		Logs:       pbLogs,
 		Meta:       convertedMeta,
 	}
+	// Marshal manually to check for proto errors
+	b, err := goproto.Marshal(req)
+	if err != nil {
+		utils.Error("Failed to marshal proto.LogPayload: %v", err)
+		return err
+	}
+	utils.Debug("Marshaled LogPayload size = %d bytes", len(b))
 
 	if err := s.stream.Send(req); err != nil {
 		return fmt.Errorf("log stream send failed: %w", err)
-	} else {
-		utils.Debug("Streamed %d logs", len(pbLogs))
 	}
 
+	utils.Debug("Streamed %d logs", len(pbLogs))
+	// Try sending
+	err = s.stream.Send(req)
+	if err != nil {
+		utils.Warn("Log stream send failed: %v", err)
+
+		// Check if it's retryable
+		if stat, ok := status.FromError(err); ok {
+			if stat.Code() == codes.Unavailable || stat.Code() == codes.Canceled || stat.Code() == codes.DeadlineExceeded {
+				utils.Warn("Stream error %v detected, reconnecting...", stat.Code())
+
+				if reconnectErr := s.reconnectStream(context.Background()); reconnectErr != nil {
+					return reconnectErr
+				}
+
+				// After reconnecting, retry sending once
+				utils.Debug("Retrying after reconnect...")
+				return s.stream.Send(req)
+			}
+		}
+
+		// Other types of errors: return immediately
+		return err
+	}
+
+	utils.Debug("Streamed %d logs", len(pbLogs))
+	return nil
+}
+func (s *LogSender) reconnectStream(ctx context.Context) error {
+	utils.Warn("Attempting to reconnect log stream...")
+
+	// Close existing stream
+	if s.stream != nil {
+		s.stream.CloseSend() // best effort
+	}
+
+	// Open a new stream
+	newStream, err := s.client.SubmitStream(ctx)
+	if err != nil {
+		utils.Error("Failed to reconnect log stream: %v", err)
+		return err
+	}
+
+	s.stream = newStream
+	utils.Info("Reconnected log stream successfully")
 	return nil
 }
