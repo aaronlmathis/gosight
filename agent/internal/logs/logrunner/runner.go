@@ -3,6 +3,7 @@ package logrunner
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/aaronlmathis/gosight/agent/internal/config"
@@ -19,13 +20,21 @@ type LogRunner struct {
 	LogRegistry  *logcollector.LogRegistry
 	AgentID      string
 	AgentVersion string
+	runWg        sync.WaitGroup
 }
 
 func NewRunner(ctx context.Context, cfg *config.Config, agentID, agentVersion string) (*LogRunner, error) {
 
-	logRegistry := logcollector.NewRegistry(cfg)
+	logRegistry := logcollector.NewRegistry(cfg) // Assuming NewRegistry initializes collectors like SecurityLogCollector
+
+	// Register collectors - This might happen inside NewRegistry
+	// Example: securityCollector := linuxcollector.NewSecurityLogCollector(cfg)
+	// logRegistry.Register(securityCollector)
+
 	logSender, err := logsender.NewSender(ctx, cfg)
 	if err != nil {
+		// Clean up registry if sender fails?
+		logRegistry.Close() // Add a Close method to LogRegistry
 		return nil, fmt.Errorf("failed to create sender: %v", err)
 	}
 
@@ -39,74 +48,111 @@ func NewRunner(ctx context.Context, cfg *config.Config, agentID, agentVersion st
 }
 
 func (r *LogRunner) Close() {
-	if r.LogSender != nil {
-		_ = r.LogSender.Close()
+	utils.Info("Closing Log Runner...")
+
+	// Close collectors first to stop feeding new logs
+	if r.LogRegistry != nil {
+		r.LogRegistry.Close() // Ensure LogRegistry has a Close method that calls Close on all collectors
 	}
+
+	// Close the sender (which should handle its worker pool shutdown)
+	if r.LogSender != nil {
+		if err := r.LogSender.Close(); err != nil {
+			utils.Error("Error closing log sender: %v", err)
+		}
+	}
+
+	// Wait for sender pool goroutines to finish (if Close doesn't block)
+	// Or manage worker shutdown signalling more explicitly if needed.
+	// The LogSender's Close method should ideally handle this wait.
+	utils.Info("Log Runner closed.")
+
 }
 
 func (r *LogRunner) Run(ctx context.Context) {
 
-	defer r.LogSender.Close()
+	defer r.Close() // Ensure cleanup on exit
+
 	utils.Debug("Initializing LogRunner...")
-	taskQueue := make(chan *model.LogPayload, 500)
-	go r.LogSender.StartWorkerPool(ctx, taskQueue, 10)
+	taskQueue := make(chan *model.LogPayload, r.Config.Agent.LogCollection.BufferSize) // Consider making buffer size configurable
+
+	// Start sender worker pool
+	// Make sure StartWorkerPool handles context cancellation gracefully
+	r.runWg.Add(1)
+	go func() {
+		defer r.runWg.Done()
+		r.LogSender.StartWorkerPool(ctx, taskQueue, r.Config.Agent.LogCollection.Workers) // 10 = num workers, make configurable
+		utils.Debug("Log sender worker pool stopped.")
+	}()
 
 	ticker := time.NewTicker(r.Config.Agent.Interval)
 	defer ticker.Stop()
 
-	utils.Info("Log Runner started. Sending logs every %v", r.Config.Agent.Interval)
+	utils.Info("Log Runner started. Collecting logs every %v", r.Config.Agent.Interval)
 
-	startTime := time.Now()
+	// No need for the startTime throttling anymore unless specifically desired
+	// startTime := time.Now()
 
 	for {
 		select {
 		case <-ctx.Done():
-			utils.Warn("agent shutting down...")
-			return
+			utils.Warn("Log runner context cancelled, shutting down...")
+			return // Exit Run, defer Close() will be called
 		case <-ticker.C:
-			logBatches, err := r.LogRegistry.Collect(ctx)
+			// Collect logs from *all* registered collectors via the registry
+			logBatches, err := r.LogRegistry.Collect(ctx) // Assuming Collect iterates through collectors
 			if err != nil {
-				fmt.Printf("log collection failed: %v", err)
+				// Log collection errors, but continue running
+				utils.Error("Log collection failed: %v", err)
 				continue
 			}
-			// Build standard host meta first, to GenerateEndpointID.
-			meta := meta.BuildMeta(r.Config, nil, r.AgentID, r.AgentVersion)
 
-			// Generate EndpointID
+			// If no logs collected, continue to next tick
+			if len(logBatches) == 0 {
+				continue
+			}
+
+			// Build host meta once per collection cycle
+			// It's okay if this is slightly delayed from the actual log timestamp
+			meta := meta.BuildMeta(r.Config, nil, r.AgentID, r.AgentVersion)
 			endpointID := utils.GenerateEndpointID(meta)
-			// Set Meta EndpointID Field.
 			meta.EndpointID = endpointID
 
-			// Loop through batches of logs... process each batch.
-			// Processing involes attaching all logEntries in the batch to one LogPayload
-			// Attaching model.Meta once per payload.
+			utils.Debug("Processing %d log batches for sending.", len(logBatches))
 
+			// Loop through batches collected (potentially from multiple sources)
 			for _, batch := range logBatches {
-				for i := range batch {
-					if batch[i].Meta == nil {
-						batch[i].Meta = &model.LogMeta{AppName: "unknown"}
-					}
-
+				if len(batch) == 0 {
+					continue // Skip empty batches
 				}
 
+				// Attach metadata (LogRunner is responsible for the payload structure)
 				payload := &model.LogPayload{
 					AgentID:    r.AgentID,
 					HostID:     meta.HostID,
 					Hostname:   meta.Hostname,
 					EndpointID: meta.EndpointID,
-					Timestamp:  time.Now(),
-					Logs:       batch,
-					Meta:       meta,
+					Timestamp:  time.Now(), // Payload timestamp is collection time
+					Logs:       batch,      // The batch collected from a specific source
+					Meta:       meta,       // Agent/Host metadata
 				}
-				if time.Since(startTime) < 30*time.Second { // Extend the throttling period
-					time.Sleep(100 * time.Millisecond) // Increase the delay
-				}
-				utils.Debug("Log Payload: %d entries", len(batch))
 
+				// No need for the artificial sleep throttling unless rate limiting is required
+				// if time.Since(startTime) < 30*time.Second {
+				//     time.Sleep(100 * time.Millisecond)
+				// }
+				utils.Debug("Queuing log payload with %d entries from host %s", len(batch), meta.Hostname)
+
+				// Send payload to the worker pool queue
 				select {
 				case taskQueue <- payload:
+					// Successfully queued
+				case <-ctx.Done():
+					utils.Warn("Context cancelled while trying to queue log payload. Shutting down.")
+					return // Exit if context cancelled during queuing attempt
 				default:
-					utils.Warn("Log task queue full! Dropping log batch from host %s", meta.Hostname)
+					// Queue is full, drop the batch
+					utils.Warn("Log task queue full! Dropping log batch (%d entries) from host %s", len(batch), meta.Hostname)
 				}
 			}
 		}

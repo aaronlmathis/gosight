@@ -26,6 +26,9 @@ package logcollector
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"strings"
 
 	"github.com/aaronlmathis/gosight/agent/internal/config"
 	linuxcollector "github.com/aaronlmathis/gosight/agent/internal/logs/logcollector/linux"
@@ -72,4 +75,31 @@ func (r *LogRegistry) Collect(ctx context.Context) ([][]model.LogEntry, error) {
 	}
 
 	return allBatches, nil
+}
+
+func (r *LogRegistry) Close() error {
+	utils.Info("Closing log registry and collectors...")
+	var errs []string // Collect errors non-blockingly
+
+	for name, collector := range r.LogCollectors {
+		// Check if the collector implements io.Closer
+		if closer, ok := collector.(io.Closer); ok {
+			utils.Debug("Closing collector: %s", name)
+			if err := closer.Close(); err != nil {
+				errMsg := fmt.Sprintf("Error closing collector %s: %v", name, err)
+				utils.Error(errMsg)
+				errs = append(errs, errMsg)
+			}
+		} else {
+			utils.Debug("Collector %s does not implement io.Closer, skipping Close() call.", name)
+		}
+	}
+
+	if len(errs) > 0 {
+		// Return an aggregated error
+		return fmt.Errorf("encountered errors closing collectors: %s", strings.Join(errs, "; "))
+	}
+
+	utils.Info("All closable collectors closed.")
+	return nil
 }

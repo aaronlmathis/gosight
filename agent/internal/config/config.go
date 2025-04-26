@@ -33,6 +33,8 @@ type LogCollectionConfig struct {
 	Sources    []string `yaml:"sources"`
 	Services   []string `yaml:"services"`
 	BatchSize  int      `yaml:"batch_size"`
+	BufferSize int      `yaml:"buffer_size"`
+	Workers    int      `yaml:"workers"`
 	MessageMax int      `yaml:"message_max"`
 	CursorFile string   `yaml:"cursor_file"`
 	LastCursor string   `yaml:"-"` // this field is set dynamically, not from YAML
