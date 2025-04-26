@@ -50,8 +50,8 @@ func NewSender(ctx context.Context, cfg *config.Config) (*LogSender, error) {
 		cfg.Agent.ServerURL,
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                30 * time.Second, // Ping every 30s even if no traffic
-			Timeout:             10 * time.Second, // Wait 10s for ack
+			Time:                2 * time.Minute,  // Ping every 2m even if no traffic
+			Timeout:             20 * time.Second, // Wait 20s for ack
 			PermitWithoutStream: true,             // Allow keepalive even if no active RPC
 		}),
 	)
