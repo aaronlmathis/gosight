@@ -134,6 +134,9 @@ go build -o gosight-server ./server/cmd
 ---
 ## Dashboard (in current form)
 
+### Gosight Metric Explorer (live data)
+![Gosight Metric Explorer](images/gosight-dev-live-Metric-Explorer.png)
+
 ### Gosight Home Dashboard (live data / Responsive)
 ![GoSight Home Dashboard (live data / Responsive)](images/goSight-dev-live-dashboard-home.png)
 ### Endpoint Detail Page (Disk tab / live data)
