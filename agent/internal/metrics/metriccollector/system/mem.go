@@ -85,10 +85,10 @@ func (c *MEMCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 		}
 
 		metrics = append(metrics,
-			agentutils.Metric("System", "Memory", "total", swap.Total, "gauge", "bytes", dims, now),
-			agentutils.Metric("System", "Memory", "used", swap.Used, "gauge", "bytes", dims, now),
-			agentutils.Metric("System", "Memory", "available", swap.Free, "gauge", "bytes", dims, now),
-			agentutils.Metric("System", "Memory", "used_percent", usedPercent, "gauge", "percent", dims, now),
+			agentutils.Metric("System", "Memory", "swap_total", swap.Total, "gauge", "bytes", dims, now),
+			agentutils.Metric("System", "Memory", "swap_used", swap.Used, "gauge", "bytes", dims, now),
+			agentutils.Metric("System", "Memory", "swap_free", swap.Free, "gauge", "bytes", dims, now),
+			agentutils.Metric("System", "Memory", "swap_used_percent", usedPercent, "gauge", "percent", dims, now),
 		)
 
 	}

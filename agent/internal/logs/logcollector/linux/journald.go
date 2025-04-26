@@ -19,14 +19,15 @@ import (
 type JournaldCollector struct {
 	Config *config.Config
 
-	journal *sdjournal.Journal
-	lines   chan model.LogEntry // Internal channel for collected lines
-	stop    chan struct{}       // Channel to signal background goroutine stop
-	wg      sync.WaitGroup      // WaitGroup to ensure clean shutdown
-	mu      sync.Mutex          // Mutex to protect access during shutdown
-
-	batchSize int
-	maxSize   int
+	journal    *sdjournal.Journal
+	lines      chan model.LogEntry // Internal channel for collected lines
+	stop       chan struct{}       // Channel to signal background goroutine stop
+	wg         sync.WaitGroup      // WaitGroup to ensure clean shutdown
+	mu         sync.Mutex          // Mutex to protect access during shutdown
+	once       sync.Once           // Add this field
+	cleanupErr error
+	batchSize  int
+	maxSize    int
 }
 
 // Name returns the name of the collector.
@@ -258,24 +259,27 @@ collectLoop:
 // Close stops the background reader and closes the journal handle.
 // Implements io.Closer.
 func (j *JournaldCollector) Close() error {
-	j.mu.Lock()
-	if j.journal == nil {
-		j.mu.Unlock()
-		utils.Debug("Journald collector already closed or was never started.")
-		return nil // Already closed or disabled
-	}
-	utils.Info("Closing journald collector...")
-	// Signal the runReader goroutine to stop
-	close(j.stop)
-	// The journal handle itself is closed in the runReader's defer func
-	// just before wg.Done()
-	j.mu.Unlock() // Unlock before waiting
+	j.once.Do(func() {
+		j.mu.Lock()
+		if j.journal == nil {
+			j.mu.Unlock()
+			utils.Debug("Journald collector already closed or was never started.")
+			return
 
-	// Wait for the runReader goroutine to finish cleanly
-	j.wg.Wait()
+		}
+		utils.Info("Closing journald collector...")
+		// Signal the runReader goroutine to stop
+		close(j.stop)
+		// The journal handle itself is closed in the runReader's defer func
+		// just before wg.Done()
+		j.mu.Unlock() // Unlock before waiting
 
-	utils.Info("Journald collector closed.")
-	return nil // Assume cleanup was successful if Wait() returns
+		// Wait for the runReader goroutine to finish cleanly
+		j.wg.Wait()
+
+		utils.Info("Journald collector closed.")
+	})
+	return j.cleanupErr
 }
 
 // --- Helper functions (kept mostly as is) ---
