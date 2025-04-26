@@ -47,26 +47,28 @@ type Meta struct {
 	Namespace            string                 `protobuf:"bytes,22,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	ClusterName          string                 `protobuf:"bytes,23,opt,name=cluster_name,json=clusterName,proto3" json:"cluster_name,omitempty"`
 	NodeName             string                 `protobuf:"bytes,24,opt,name=node_name,json=nodeName,proto3" json:"node_name,omitempty"`
-	Application          string                 `protobuf:"bytes,25,opt,name=application,proto3" json:"application,omitempty"`
-	Environment          string                 `protobuf:"bytes,26,opt,name=environment,proto3" json:"environment,omitempty"`
-	Service              string                 `protobuf:"bytes,27,opt,name=service,proto3" json:"service,omitempty"`
-	Version              string                 `protobuf:"bytes,28,opt,name=version,proto3" json:"version,omitempty"`
-	DeploymentId         string                 `protobuf:"bytes,29,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	PublicIp             string                 `protobuf:"bytes,30,opt,name=public_ip,json=publicIp,proto3" json:"public_ip,omitempty"`
-	PrivateIp            string                 `protobuf:"bytes,31,opt,name=private_ip,json=privateIp,proto3" json:"private_ip,omitempty"`
-	MacAddress           string                 `protobuf:"bytes,32,opt,name=mac_address,json=macAddress,proto3" json:"mac_address,omitempty"`
-	NetworkInterface     string                 `protobuf:"bytes,33,opt,name=network_interface,json=networkInterface,proto3" json:"network_interface,omitempty"`
-	Tags                 map[string]string      `protobuf:"bytes,34,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	EndpointId           string                 `protobuf:"bytes,35,opt,name=endpoint_id,json=endpointId,proto3" json:"endpoint_id,omitempty"`
-	Platform             string                 `protobuf:"bytes,36,opt,name=platform,proto3" json:"platform,omitempty"`
-	PlatformFamily       string                 `protobuf:"bytes,37,opt,name=platform_family,json=platformFamily,proto3" json:"platform_family,omitempty"`
-	PlatformVersion      string                 `protobuf:"bytes,38,opt,name=platform_version,json=platformVersion,proto3" json:"platform_version,omitempty"`
-	KernelArchitecture   string                 `protobuf:"bytes,39,opt,name=kernel_architecture,json=kernelArchitecture,proto3" json:"kernel_architecture,omitempty"`
-	VirtualizationSystem string                 `protobuf:"bytes,40,opt,name=virtualization_system,json=virtualizationSystem,proto3" json:"virtualization_system,omitempty"`
-	VirtualizationRole   string                 `protobuf:"bytes,41,opt,name=virtualization_role,json=virtualizationRole,proto3" json:"virtualization_role,omitempty"`
-	HostId               string                 `protobuf:"bytes,42,opt,name=host_id,json=hostId,proto3" json:"host_id,omitempty"`
-	AgentVersion         string                 `protobuf:"bytes,43,opt,name=agent_version,json=agentVersion,proto3" json:"agent_version,omitempty"`
-	AgentId              string                 `protobuf:"bytes,44,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	ContainerImageName   string                 `protobuf:"bytes,25,opt,name=container_image_name,json=containerImageName,proto3" json:"container_image_name,omitempty"`
+	ContainerImageId     string                 `protobuf:"bytes,26,opt,name=container_image_id,json=containerImageId,proto3" json:"container_image_id,omitempty"`
+	Application          string                 `protobuf:"bytes,27,opt,name=application,proto3" json:"application,omitempty"`
+	Environment          string                 `protobuf:"bytes,28,opt,name=environment,proto3" json:"environment,omitempty"`
+	Service              string                 `protobuf:"bytes,29,opt,name=service,proto3" json:"service,omitempty"`
+	Version              string                 `protobuf:"bytes,30,opt,name=version,proto3" json:"version,omitempty"`
+	DeploymentId         string                 `protobuf:"bytes,31,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	PublicIp             string                 `protobuf:"bytes,32,opt,name=public_ip,json=publicIp,proto3" json:"public_ip,omitempty"`
+	PrivateIp            string                 `protobuf:"bytes,33,opt,name=private_ip,json=privateIp,proto3" json:"private_ip,omitempty"`
+	MacAddress           string                 `protobuf:"bytes,34,opt,name=mac_address,json=macAddress,proto3" json:"mac_address,omitempty"`
+	NetworkInterface     string                 `protobuf:"bytes,35,opt,name=network_interface,json=networkInterface,proto3" json:"network_interface,omitempty"`
+	Tags                 map[string]string      `protobuf:"bytes,36,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	EndpointId           string                 `protobuf:"bytes,37,opt,name=endpoint_id,json=endpointId,proto3" json:"endpoint_id,omitempty"`
+	Platform             string                 `protobuf:"bytes,38,opt,name=platform,proto3" json:"platform,omitempty"`
+	PlatformFamily       string                 `protobuf:"bytes,39,opt,name=platform_family,json=platformFamily,proto3" json:"platform_family,omitempty"`
+	PlatformVersion      string                 `protobuf:"bytes,40,opt,name=platform_version,json=platformVersion,proto3" json:"platform_version,omitempty"`
+	KernelArchitecture   string                 `protobuf:"bytes,41,opt,name=kernel_architecture,json=kernelArchitecture,proto3" json:"kernel_architecture,omitempty"`
+	VirtualizationSystem string                 `protobuf:"bytes,42,opt,name=virtualization_system,json=virtualizationSystem,proto3" json:"virtualization_system,omitempty"`
+	VirtualizationRole   string                 `protobuf:"bytes,43,opt,name=virtualization_role,json=virtualizationRole,proto3" json:"virtualization_role,omitempty"`
+	HostId               string                 `protobuf:"bytes,44,opt,name=host_id,json=hostId,proto3" json:"host_id,omitempty"`
+	AgentVersion         string                 `protobuf:"bytes,45,opt,name=agent_version,json=agentVersion,proto3" json:"agent_version,omitempty"`
+	AgentId              string                 `protobuf:"bytes,46,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -269,6 +271,20 @@ func (x *Meta) GetNodeName() string {
 	return ""
 }
 
+func (x *Meta) GetContainerImageName() string {
+	if x != nil {
+		return x.ContainerImageName
+	}
+	return ""
+}
+
+func (x *Meta) GetContainerImageId() string {
+	if x != nil {
+		return x.ContainerImageId
+	}
+	return ""
+}
+
 func (x *Meta) GetApplication() string {
 	if x != nil {
 		return x.Application
@@ -414,7 +430,7 @@ var File_meta_proto protoreflect.FileDescriptor
 const file_meta_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"meta.proto\x12\x05proto\"\x8f\f\n" +
+	"meta.proto\x12\x05proto\"\xef\f\n" +
 	"\x04Meta\x12\x1a\n" +
 	"\bhostname\x18\x01 \x01(\tR\bhostname\x12\x1d\n" +
 	"\n" +
@@ -446,30 +462,32 @@ const file_meta_proto_rawDesc = "" +
 	"\bpod_name\x18\x15 \x01(\tR\apodName\x12\x1c\n" +
 	"\tnamespace\x18\x16 \x01(\tR\tnamespace\x12!\n" +
 	"\fcluster_name\x18\x17 \x01(\tR\vclusterName\x12\x1b\n" +
-	"\tnode_name\x18\x18 \x01(\tR\bnodeName\x12 \n" +
-	"\vapplication\x18\x19 \x01(\tR\vapplication\x12 \n" +
-	"\venvironment\x18\x1a \x01(\tR\venvironment\x12\x18\n" +
-	"\aservice\x18\x1b \x01(\tR\aservice\x12\x18\n" +
-	"\aversion\x18\x1c \x01(\tR\aversion\x12#\n" +
-	"\rdeployment_id\x18\x1d \x01(\tR\fdeploymentId\x12\x1b\n" +
-	"\tpublic_ip\x18\x1e \x01(\tR\bpublicIp\x12\x1d\n" +
+	"\tnode_name\x18\x18 \x01(\tR\bnodeName\x120\n" +
+	"\x14container_image_name\x18\x19 \x01(\tR\x12containerImageName\x12,\n" +
+	"\x12container_image_id\x18\x1a \x01(\tR\x10containerImageId\x12 \n" +
+	"\vapplication\x18\x1b \x01(\tR\vapplication\x12 \n" +
+	"\venvironment\x18\x1c \x01(\tR\venvironment\x12\x18\n" +
+	"\aservice\x18\x1d \x01(\tR\aservice\x12\x18\n" +
+	"\aversion\x18\x1e \x01(\tR\aversion\x12#\n" +
+	"\rdeployment_id\x18\x1f \x01(\tR\fdeploymentId\x12\x1b\n" +
+	"\tpublic_ip\x18  \x01(\tR\bpublicIp\x12\x1d\n" +
 	"\n" +
-	"private_ip\x18\x1f \x01(\tR\tprivateIp\x12\x1f\n" +
-	"\vmac_address\x18  \x01(\tR\n" +
+	"private_ip\x18! \x01(\tR\tprivateIp\x12\x1f\n" +
+	"\vmac_address\x18\" \x01(\tR\n" +
 	"macAddress\x12+\n" +
-	"\x11network_interface\x18! \x01(\tR\x10networkInterface\x12)\n" +
-	"\x04tags\x18\" \x03(\v2\x15.proto.Meta.TagsEntryR\x04tags\x12\x1f\n" +
-	"\vendpoint_id\x18# \x01(\tR\n" +
+	"\x11network_interface\x18# \x01(\tR\x10networkInterface\x12)\n" +
+	"\x04tags\x18$ \x03(\v2\x15.proto.Meta.TagsEntryR\x04tags\x12\x1f\n" +
+	"\vendpoint_id\x18% \x01(\tR\n" +
 	"endpointId\x12\x1a\n" +
-	"\bplatform\x18$ \x01(\tR\bplatform\x12'\n" +
-	"\x0fplatform_family\x18% \x01(\tR\x0eplatformFamily\x12)\n" +
-	"\x10platform_version\x18& \x01(\tR\x0fplatformVersion\x12/\n" +
-	"\x13kernel_architecture\x18' \x01(\tR\x12kernelArchitecture\x123\n" +
-	"\x15virtualization_system\x18( \x01(\tR\x14virtualizationSystem\x12/\n" +
-	"\x13virtualization_role\x18) \x01(\tR\x12virtualizationRole\x12\x17\n" +
-	"\ahost_id\x18* \x01(\tR\x06hostId\x12#\n" +
-	"\ragent_version\x18+ \x01(\tR\fagentVersion\x12\x19\n" +
-	"\bagent_id\x18, \x01(\tR\aagentId\x1a7\n" +
+	"\bplatform\x18& \x01(\tR\bplatform\x12'\n" +
+	"\x0fplatform_family\x18' \x01(\tR\x0eplatformFamily\x12)\n" +
+	"\x10platform_version\x18( \x01(\tR\x0fplatformVersion\x12/\n" +
+	"\x13kernel_architecture\x18) \x01(\tR\x12kernelArchitecture\x123\n" +
+	"\x15virtualization_system\x18* \x01(\tR\x14virtualizationSystem\x12/\n" +
+	"\x13virtualization_role\x18+ \x01(\tR\x12virtualizationRole\x12\x17\n" +
+	"\ahost_id\x18, \x01(\tR\x06hostId\x12#\n" +
+	"\ragent_version\x18- \x01(\tR\fagentVersion\x12\x19\n" +
+	"\bagent_id\x18. \x01(\tR\aagentId\x1a7\n" +
 	"\tTagsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B.Z,github.com/aaronlmathis/gosight/shared/protob\x06proto3"

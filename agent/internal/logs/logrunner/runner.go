@@ -47,7 +47,7 @@ func (r *LogRunner) Close() {
 func (r *LogRunner) Run(ctx context.Context) {
 
 	defer r.LogSender.Close()
-	utils.Debug("LogRunner started, but queue not so much")
+	utils.Debug("Initializing LogRunner...")
 	taskQueue := make(chan *model.LogPayload, 500)
 	go r.LogSender.StartWorkerPool(ctx, taskQueue, 10)
 
@@ -55,6 +55,8 @@ func (r *LogRunner) Run(ctx context.Context) {
 	defer ticker.Stop()
 
 	utils.Info("Log Runner started. Sending logs every %v", r.Config.Agent.Interval)
+
+	startTime := time.Now()
 
 	for {
 		select {
@@ -96,7 +98,9 @@ func (r *LogRunner) Run(ctx context.Context) {
 					Logs:       batch,
 					Meta:       meta,
 				}
-
+				if time.Since(startTime) < 30*time.Second { // Extend the throttling period
+					time.Sleep(100 * time.Millisecond) // Increase the delay
+				}
 				utils.Debug("Log Payload: %d entries", len(batch))
 
 				select {

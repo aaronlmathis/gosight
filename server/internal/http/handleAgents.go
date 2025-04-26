@@ -74,7 +74,7 @@ func (s *HttpServer) HandleAgentsAPI(w http.ResponseWriter, r *http.Request) {
 	roles, _ := contextutil.GetUserRoles(r.Context())
 	perms, _ := contextutil.GetUserPermissions(r.Context())
 
-	utils.Debug("🧑‍💻 API /agents called by: %s | Roles: %v | Perms: %v", userID, roles, perms)
+	utils.Debug("🧑API /agents called by: %s | Roles: %v | Perms: %v", userID, roles, perms)
 	storedAgents, err := s.Sys.Stores.Data.ListAgents(ctx)
 
 	if err != nil {
@@ -85,7 +85,7 @@ func (s *HttpServer) HandleAgentsAPI(w http.ResponseWriter, r *http.Request) {
 		storedAgents = []*model.Agent{}
 	}
 	// 2. Get current in-memory live agents
-	liveMap := s.Sys.Agents.GetAgentMap()
+	liveMap := s.Sys.Tracker.GetAgentMap()
 
 	// 3. Merge: overwrite stored fields with live status if found
 	for i := range storedAgents {

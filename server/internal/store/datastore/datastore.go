@@ -31,9 +31,17 @@ import (
 )
 
 type DataStore interface {
+	// Agent methods
 	UpsertAgent(ctx context.Context, agent *model.Agent) error
 	GetAgentByHostname(ctx context.Context, hostname string) (*model.Agent, error)
 	GetAgentByID(ctx context.Context, id string) (*model.Agent, error)
 	ListAgents(ctx context.Context) ([]*model.Agent, error)
+
+	// Container methods
+	UpsertContainer(ctx context.Context, container *model.Container) error
+	GetContainerByID(ctx context.Context, id string) (*model.Container, error)
+	ListContainers(ctx context.Context) ([]*model.Container, error)
+
+	// Lifecycle
 	Close() error
 }

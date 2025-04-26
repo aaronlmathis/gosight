@@ -99,8 +99,10 @@ func (r *MetricRunner) Run(ctx context.Context) {
 							containerMeta.ContainerID = v
 						case "name", "container_name":
 							containerMeta.ContainerName = v
+						case "image_id":
+							containerMeta.ContainerImageID = v
 						case "image":
-							containerMeta.ImageID = v
+							containerMeta.ContainerImageName = v
 						}
 					}
 
@@ -164,7 +166,7 @@ func (r *MetricRunner) Run(ctx context.Context) {
 					Metrics:    metrics,
 					Meta:       containerMetas[id],
 				}
-				//utils.Info("META Payload for: %s - %v", payload.Host, payload.Meta)
+				utils.Info("META Payload for: %s - %s - %s - %v", payload.HostID, payload.AgentID, payload.Hostname, payload.Meta)
 
 				select {
 				case taskQueue <- &payload:

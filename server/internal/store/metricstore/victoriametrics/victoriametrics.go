@@ -312,7 +312,6 @@ func BuildPromLabels(meta *model.Meta) map[string]string {
 	}
 	if meta.Hostname != "" {
 		labels["hostname"] = meta.Hostname
-		utils.Debug("HOSTNAME: %s", meta.Hostname)
 	}
 	if meta.IPAddress != "" {
 		labels["ip_address"] = meta.IPAddress
@@ -398,6 +397,13 @@ func BuildPromLabels(meta *model.Meta) map[string]string {
 	if meta.NodeName != "" {
 		labels["node_name"] = meta.NodeName
 	}
+	if meta.ContainerImageID != "" {
+		labels["container_image_id"] = meta.ContainerImageID
+	}
+	if meta.ContainerImageName != "" {
+		labels["container_image_name"] = meta.ContainerImageName
+	}
+
 	if meta.Application != "" {
 		labels["application"] = meta.Application
 	}
@@ -578,20 +584,31 @@ func (v *VictoriaStore) QueryMultiInstant(metricNames []string, filters map[stri
 		//utils.Debug("No metric names provided, using all known metric names: %v", metricNames)
 	}
 
-	// Build metric regex selector
-	nameSelector := fmt.Sprintf(`__name__=~"%s"`, strings.Join(metricNames, "|"))
-
-	// Combine all label filters
-	var labelSelectors []string
-	labelSelectors = append(labelSelectors, nameSelector)
-	for k, val := range filters {
-		// URL-encode the label value to handle special characters
-		escapedVal := url.QueryEscape(val)
-		labelSelectors = append(labelSelectors, fmt.Sprintf(`%s="%s"`, k, escapedVal))
+	var query string
+	if len(metricNames) == 1 {
+		// Single metric → clean style: metric{label="value"}
+		base := metricNames[0]
+		if len(filters) > 0 {
+			var parts []string
+			for k, v := range filters {
+				parts = append(parts, fmt.Sprintf(`%s="%s"`, k, v))
+			}
+			sort.Strings(parts)
+			query = fmt.Sprintf(`%s{%s}`, base, strings.Join(parts, ","))
+		} else {
+			query = base
+		}
+	} else {
+		// Multiple metrics → regex match on __name__
+		nameSelector := fmt.Sprintf(`__name__=~"%s"`, strings.Join(metricNames, "|"))
+		var parts []string
+		parts = append(parts, nameSelector)
+		for k, v := range filters {
+			parts = append(parts, fmt.Sprintf(`%s="%s"`, k, v))
+		}
+		sort.Strings(parts)
+		query = fmt.Sprintf("{%s}", strings.Join(parts, ","))
 	}
-
-	// Construct final query string
-	query := fmt.Sprintf("{%s}", strings.Join(labelSelectors, ", "))
 
 	// Build full URL
 	reqURL := fmt.Sprintf("%s/api/v1/query?query=%s", v.url, url.QueryEscape(query))
@@ -657,16 +674,31 @@ func (v *VictoriaStore) QueryMultiRange(metrics []string, start, end time.Time, 
 	if len(metrics) == 0 {
 		return nil, nil
 	}
-
-	// Build PromQL selector
-	nameSelector := fmt.Sprintf(`__name__=~"%s"`, strings.Join(metrics, "|"))
-
-	var labelSelectors []string
-	labelSelectors = append(labelSelectors, nameSelector)
-	for k, val := range filters {
-		labelSelectors = append(labelSelectors, fmt.Sprintf(`%s="%s"`, k, val))
+	var query string
+	if len(metrics) == 1 {
+		// Single metric → clean form
+		base := metrics[0]
+		if len(filters) > 0 {
+			var parts []string
+			for k, v := range filters {
+				parts = append(parts, fmt.Sprintf(`%s="%s"`, k, v))
+			}
+			sort.Strings(parts)
+			query = fmt.Sprintf(`%s{%s}`, base, strings.Join(parts, ","))
+		} else {
+			query = base
+		}
+	} else {
+		// Multi-metric → __name__=~ form
+		nameSelector := fmt.Sprintf(`__name__=~"%s"`, strings.Join(metrics, "|"))
+		var parts []string
+		parts = append(parts, nameSelector)
+		for k, v := range filters {
+			parts = append(parts, fmt.Sprintf(`%s="%s"`, k, v))
+		}
+		sort.Strings(parts)
+		query = fmt.Sprintf("{%s}", strings.Join(parts, ","))
 	}
-	query := fmt.Sprintf("{%s}", strings.Join(labelSelectors, ", "))
 
 	// Build URL
 	params := url.Values{}

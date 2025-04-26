@@ -20,3 +20,15 @@ export function formatUptime(seconds) {
   const m = Math.floor((seconds % 3600) / 60);
   return `${d}d ${h}h ${m}m`;
 }
+
+export function escapeHTML(str) {
+  return str.replace(/[&<>"']/g, function (m) {
+    return ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    })[m];
+  });
+}

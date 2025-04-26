@@ -158,6 +158,8 @@ func convertProtoMetaToModelMeta(pbMeta *proto.Meta) *model.Meta {
 		Namespace:            pbMeta.Namespace,
 		ClusterName:          pbMeta.ClusterName,
 		NodeName:             pbMeta.NodeName,
+		ContainerImageID:     pbMeta.ContainerImageId,
+		ContainerImageName:   pbMeta.ContainerImageName,
 		Application:          pbMeta.Application,
 		Environment:          pbMeta.Environment,
 		Service:              pbMeta.Service,

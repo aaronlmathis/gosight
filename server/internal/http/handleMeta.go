@@ -185,14 +185,25 @@ func (s *HttpServer) HandleAPIQuery(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Build filters
 	filters := make(map[string]string)
 	for key, vals := range query {
-		if key == "metric" || key == "start" || key == "end" || key == "limit" || key == "sort" || len(vals) == 0 {
-
+		if len(vals) == 0 {
 			continue
 		}
-		filters[key] = vals[0]
+		switch key {
+		case "metric", "start", "end", "limit", "sort":
+			continue
+		case "tags":
+			tagParts := strings.Split(vals[0], ",")
+			for _, part := range tagParts {
+				kv := strings.SplitN(part, "=", 2)
+				if len(kv) == 2 {
+					filters[kv[0]] = kv[1]
+				}
+			}
+		default:
+			filters[key] = vals[0]
+		}
 	}
 
 	//utils.Debug(" Query Mode: metric=%q, start=%v, end=%v, filters=%+v", metricNames, start, end, filters)

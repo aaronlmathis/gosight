@@ -53,7 +53,7 @@ func InitDataStore(cfg *config.Config) (datastore.DataStore, error) {
 		if err := db.Ping(); err != nil {
 			return nil, err
 		}
-		dataStore = pgstore.New(db)
+		dataStore = pgstore.NewPGDataStore(db)
 
 	default:
 		return nil, fmt.Errorf("unsupported datastore type: %s", dataStoreType)

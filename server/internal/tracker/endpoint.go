@@ -21,7 +21,8 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 
 // Store agent details/heartbeats
 // server/internal/store/agent_tracker.go
-package agenttracker
+
+package tracker
 
 import (
 	"context"
@@ -37,26 +38,31 @@ import (
 	"github.com/google/uuid"
 )
 
-type AgentTracker struct {
-	mu        sync.RWMutex
-	agents    map[string]*model.Agent
-	emitter   *events.Emitter
-	ctx       context.Context
-	dataStore datastore.DataStore
+type EndpointTracker struct {
+	mu         sync.RWMutex
+	agents     map[string]*model.Agent
+	containers map[string]*model.Container
+	emitter    *events.Emitter
+	ctx        context.Context
+	dataStore  datastore.DataStore
 }
 
-// Create a new tracker
-func NewAgentTracker(ctx context.Context, emitter *events.Emitter, dataStore datastore.DataStore) *AgentTracker {
-	return &AgentTracker{
-		agents:    make(map[string]*model.Agent),
-		emitter:   emitter,
-		ctx:       ctx,
-		dataStore: dataStore,
+// NewEndpointTracker creates a new EndpointTracker instance.
+// It initializes the in-memory store for agent and container details and sets up the event emitter.
+// The EndpointTracker is responsible for tracking agent and container heartbeats and updating their status.
+// It also interacts with the datastore to persist agent and container information.
+func NewEndpointTracker(ctx context.Context, emitter *events.Emitter, dataStore datastore.DataStore) *EndpointTracker {
+	return &EndpointTracker{
+		agents:     make(map[string]*model.Agent),
+		containers: make(map[string]*model.Container),
+		emitter:    emitter,
+		ctx:        ctx,
+		dataStore:  dataStore,
 	}
 }
 
 // Updates in memory store of Agent details
-func (t *AgentTracker) UpdateAgent(meta *model.Meta) {
+func (t *EndpointTracker) UpdateAgent(meta *model.Meta) {
 	//utils.Debug("Entering UpdateAgent")
 	if meta.Hostname == "" || meta.ContainerID != "" {
 		return
@@ -130,8 +136,100 @@ func (t *AgentTracker) UpdateAgent(meta *model.Meta) {
 	agent.LastSeen = time.Now()
 }
 
-// GetAll returns all agents from  MEMORY (only online agents)
-func (t *AgentTracker) GetAgents() []model.Agent {
+// UpdateContainer updates the container details in the in-memory store.
+func (t *EndpointTracker) UpdateContainer(meta *model.Meta) {
+	if meta.ContainerID == "" {
+		return
+	}
+
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	c, exists := t.containers[meta.ContainerID]
+	now := time.Now()
+
+	newStatus := meta.Tags["status"]
+	newStart := meta.Tags["agent_start_time"]
+
+	if !exists {
+		// New container observed
+		c = &model.Container{
+			ContainerID: meta.ContainerID,
+			Name:        meta.ContainerName,
+			ImageName:   meta.ContainerImageName,
+			ImageID:     meta.ContainerImageID,
+			Runtime:     meta.Tags["job"],
+			Status:      newStatus,
+			HostID:      meta.HostID,
+			EndpointID:  meta.EndpointID,
+			LastSeen:    now,
+			Labels:      meta.Tags,
+			Updated:     true,
+		}
+		t.containers[meta.ContainerID] = c
+
+		t.emitter.Emit(t.ctx, model.EventEntry{
+			ID:         uuid.NewString(),
+			Timestamp:  now,
+			Type:       "event",
+			Level:      "info",
+			Category:   "container",
+			Message:    fmt.Sprintf("Container %s started", c.Name),
+			Source:     "container.lifecycle",
+			Scope:      "container",
+			Target:     c.ContainerID,
+			EndpointID: c.EndpointID,
+			Meta:       BuildContainerEventMeta(c),
+		})
+		return
+	}
+
+	// Detect restart
+	prevStart := c.Labels["agent_start_time"]
+	if newStart != "" && prevStart != "" && newStart != prevStart {
+		t.emitter.Emit(t.ctx, model.EventEntry{
+			ID:         uuid.NewString(),
+			Timestamp:  now,
+			Type:       "event",
+			Level:      "info",
+			Category:   "container",
+			Message:    fmt.Sprintf("Container %s restarted", c.Name),
+			Source:     "container.lifecycle",
+			Scope:      "container",
+			Target:     c.ContainerID,
+			EndpointID: c.EndpointID,
+			Meta:       BuildContainerEventMeta(c),
+		})
+	}
+
+	// Auto-resolve if it was marked inactive
+	if c.Status == "inactive" && newStatus != "inactive" {
+		t.emitter.Emit(t.ctx, model.EventEntry{
+			ID:         uuid.NewString(),
+			Timestamp:  now,
+			Type:       "event",
+			Level:      "info",
+			Category:   "container",
+			Message:    fmt.Sprintf("Container %s is back online", c.Name),
+			Source:     "container.lifecycle",
+			Scope:      "container",
+			Target:     c.ContainerID,
+			EndpointID: c.EndpointID,
+			Meta:       BuildContainerEventMeta(c),
+		})
+	}
+
+	// Update current state
+	c.LastSeen = now
+	c.Status = newStatus
+	c.Labels = meta.Tags
+	c.EndpointID = meta.EndpointID
+	c.HostID = meta.HostID
+	c.Updated = true
+}
+
+// GetAgents returns all agents from  MEMORY (only online agents)
+func (t *EndpointTracker) GetAgents() []model.Agent {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
@@ -165,7 +263,10 @@ func (t *AgentTracker) GetAgents() []model.Agent {
 	return list
 }
 
-func (t *AgentTracker) GetAgentMap() map[string]model.Agent {
+// GetAgentMap returns a map of agent details, including their status and uptime.
+// The map is keyed by agent ID and contains information such as hostname, IP address,
+// OS, architecture, version, labels, endpoint ID, last seen time, status, and uptime in seconds.
+func (t *EndpointTracker) GetAgentMap() map[string]model.Agent {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
@@ -206,12 +307,12 @@ func (t *AgentTracker) GetAgentMap() map[string]model.Agent {
 	return result
 }
 
-// Syncs Agents from inmemory to persistant storage
-func (t *AgentTracker) SyncToStore(ctx context.Context, store datastore.DataStore) {
-
+// SyncToStore writes all updated agents and containers to persistent storage.
+func (t *EndpointTracker) SyncToStore(ctx context.Context, store datastore.DataStore) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
+	// --- Sync Agents ---
 	for _, agent := range t.agents {
 		elapsed := time.Since(agent.LastSeen)
 
@@ -230,18 +331,35 @@ func (t *AgentTracker) SyncToStore(ctx context.Context, store datastore.DataStor
 		if !agent.Updated {
 			continue
 		}
-		utils.Debug("Syncing agent %s to store: %s", agent.Hostname, status)
-		err := store.UpsertAgent(ctx, agent)
-		if err != nil {
-			utils.Error("Agent sync failed for %s: %v", agent.Hostname, err)
+
+		utils.Debug("Syncing agent %s to store: %s", agent.Hostname, agent.Status)
+		if err := t.dataStore.UpsertAgent(ctx, agent); err != nil {
+			utils.Error("❌ Agent sync failed for %s: %v", agent.Hostname, err)
+			continue
+		}
+		agent.Updated = false
+	}
+
+	// --- Sync Containers ---
+	for _, ctr := range t.containers {
+		if !ctr.Updated {
 			continue
 		}
 
-		agent.Updated = false
+		utils.Debug("Syncing container %s to t.dataStore: %s", ctr.Name, ctr.Status)
+		if err := t.dataStore.UpsertContainer(ctx, ctr); err != nil {
+			utils.Error("❌ Container sync failed for %s: %v", ctr.Name, err)
+			continue
+		}
+		ctr.Updated = false
 	}
 }
 
-func (t *AgentTracker) CheckAgentStatusesAndEmitEvents() {
+// CheckAgentStatusesAndEmitEvents checks the status of agents and emits events
+// for agents that have gone offline or come back online.
+// It updates the agent status in the datastore and emits lifecycle events.
+// This function is called periodically to ensure the agent statuses are up to date.
+func (t *EndpointTracker) CheckAgentStatusesAndEmitEvents() {
 	//utils.Debug("Checking agent lifecycle statuses...")
 	now := time.Now()
 	storedAgents, err := t.dataStore.ListAgents(t.ctx)
@@ -303,7 +421,10 @@ func (t *AgentTracker) CheckAgentStatusesAndEmitEvents() {
 		}
 	}
 }
-func (t *AgentTracker) IsLive(agentID string) bool {
+
+// IsLive checks if an agent is live based on its last seen time.
+// It returns true if the agent was seen within the last 10 seconds, otherwise false.
+func (t *EndpointTracker) IsLive(agentID string) bool {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
@@ -311,4 +432,48 @@ func (t *AgentTracker) IsLive(agentID string) bool {
 		return time.Since(a.LastSeen) <= 10*time.Second
 	}
 	return false
+}
+
+// CheckContainerStatusesAndEmit checks the status of containers and emits events
+// for containers that have gone offline.
+// It updates the container status in the datastore and emits lifecycle events.
+// This function is called periodically to ensure the container statuses are up to date.
+func (t *EndpointTracker) CheckContainerStatusesAndEmit() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	now := time.Now()
+
+	// Step 1: Pull known containers from store
+	storedContainers, err := t.dataStore.ListContainers(t.ctx)
+	if err != nil {
+		utils.Error("Failed to list containers for lifecycle check: %v", err)
+		return
+	}
+
+	for _, stored := range storedContainers {
+		c, exists := t.containers[stored.ContainerID]
+
+		if !exists || time.Since(c.LastSeen) > 2*time.Minute {
+			// If it’s not in memory OR stale
+			if stored.Status != "inactive" {
+				stored.Status = "inactive"
+				stored.Updated = true
+
+				t.emitter.Emit(t.ctx, model.EventEntry{
+					ID:         uuid.NewString(),
+					Timestamp:  now,
+					Type:       "event",
+					Level:      "warning",
+					Category:   "container",
+					Message:    fmt.Sprintf("Container %s is no longer reporting (last known: %s)", stored.Name, stored.Status),
+					Source:     "container.lifecycle",
+					Scope:      "container",
+					Target:     stored.ContainerID,
+					EndpointID: stored.EndpointID,
+					Meta:       BuildContainerEventMeta(stored),
+				})
+			}
+		}
+	}
 }

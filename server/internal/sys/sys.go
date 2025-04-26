@@ -32,7 +32,6 @@ import (
 	"github.com/aaronlmathis/gosight/server/internal/dispatcher"
 	"github.com/aaronlmathis/gosight/server/internal/events"
 	"github.com/aaronlmathis/gosight/server/internal/rules"
-	"github.com/aaronlmathis/gosight/server/internal/store/agenttracker"
 	"github.com/aaronlmathis/gosight/server/internal/store/alertstore"
 	"github.com/aaronlmathis/gosight/server/internal/store/datastore"
 	"github.com/aaronlmathis/gosight/server/internal/store/eventstore"
@@ -43,6 +42,7 @@ import (
 	"github.com/aaronlmathis/gosight/server/internal/store/routestore"
 	"github.com/aaronlmathis/gosight/server/internal/store/rulestore"
 	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
+	"github.com/aaronlmathis/gosight/server/internal/tracker"
 	"github.com/aaronlmathis/gosight/server/internal/websocket"
 )
 
@@ -70,11 +70,11 @@ type TelemetryModule struct {
 
 // SystemContext is passed to all subsystems, providing full access to config, state, and interfaces.
 type SystemContext struct {
-	Ctx    context.Context
-	Cfg    *config.Config
-	Agents *agenttracker.AgentTracker // Tracks agent state, uptime, heartbeat
-	Web    *websocket.Hub             // WebSocket hub for live streaming to UI
-	Auth   map[string]gosightauth.AuthProvider
-	Stores *StoreModule
-	Tele   *TelemetryModule
+	Ctx     context.Context
+	Cfg     *config.Config
+	Tracker *tracker.EndpointTracker // Tracks endpoint state, uptime, heartbeat
+	Web     *websocket.Hub           // WebSocket hub for live streaming to UI
+	Auth    map[string]gosightauth.AuthProvider
+	Stores  *StoreModule
+	Tele    *TelemetryModule
 }

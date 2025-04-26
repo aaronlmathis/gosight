@@ -22,7 +22,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 // Store agent details/heartbeats
 // server/internal/store/helpers.go
 
-package agenttracker
+package tracker
 
 import (
 	"fmt"
@@ -55,4 +55,22 @@ func BuildAgentEventMeta(agent *model.Agent) map[string]string {
 		"uptime_secs": fmt.Sprintf("%.0f", agent.UptimeSeconds),
 	}
 	return meta
+}
+
+// BuildContainerEventMeta builds a map of container metadata for event tracking.
+// This is used to track container events such as creation, updates, and deletions.
+// The metadata includes various attributes of the container such as container ID,
+// name, image, runtime, status, endpoint ID, and host ID. The function takes a
+// container object as input and returns a map of strings representing the metadata.
+func BuildContainerEventMeta(c *model.Container) map[string]string {
+	return map[string]string{
+		"container_id": c.ContainerID,
+		"name":         c.Name,
+		"image":        c.ImageName,
+		"image_id":     c.ImageID,
+		"runtime":      c.Runtime,
+		"status":       c.Status,
+		"endpoint_id":  c.EndpointID,
+		"host_id":      c.HostID,
+	}
 }

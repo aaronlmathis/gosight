@@ -47,6 +47,8 @@ var (
 )
 
 func InitLogger(appLogFile, errorLogFile, accessLogFile, logLevel string) error {
+
+	// Set up the logger with the specified log files and log level
 	var writers []io.Writer
 
 	if appLogFile != "" {

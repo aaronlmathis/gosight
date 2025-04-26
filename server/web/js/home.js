@@ -1,47 +1,49 @@
+
+import { escapeHTML } from "./format.js";
 import { gosightFetch } from './api.js';
 //
 // AGENT CARD
 //
 export async function loadAgentCard() {
   try {
-  const res = await gosightFetch("/api/v1/agents");
-  const agents = await res.json();
+    const res = await gosightFetch("/api/v1/endpoints/hosts");
+    const agents = await res.json();
 
-  console.log("Agents:", agents);
+    console.log("Agents:", agents);
 
-  if (!Array.isArray(agents) || agents.length === 0) {
-    console.warn("⚠️ No agent data available");
-    return;
-  }
+    if (!Array.isArray(agents) || agents.length === 0) {
+      console.warn("⚠️ No agent data available");
+      return;
+    }
 
-  const online = agents.filter(a => a.status === "Online").length;
-  const total = agents.length;
-  const offline = total - online;
+    const online = agents.filter(a => a.status === "Online").length;
+    const total = agents.length;
+    const offline = total - online;
 
-  // Update text
-  document.getElementById("agent-health-status").textContent = `${online} Online / ${offline} Offline`;
+    // Update text
+    document.getElementById("agent-health-status").textContent = `${online} Online / ${offline} Offline`;
 
-  // Render radial chart
-  const percent = total > 0 ? (online / total) * 100 : 0;
-  new ApexCharts(document.getElementById("radial-agents"), {
-    chart: { type: "radialBar", height: 200 },
-    series: [percent],
-    labels: ["Online %"],
-    colors: ["#10b981"],
-    plotOptions: {
-      radialBar: {
-        hollow: { size: "60%" },
-        dataLabels: {
-          name: { fontSize: "12px" },
-          value: { fontSize: "16px", fontWeight: 600, formatter: v => `${v.toFixed(0)}%` },
+    // Render radial chart
+    const percent = total > 0 ? (online / total) * 100 : 0;
+    new ApexCharts(document.getElementById("radial-agents"), {
+      chart: { type: "radialBar", height: 200 },
+      series: [percent],
+      labels: ["Online %"],
+      colors: ["#10b981"],
+      plotOptions: {
+        radialBar: {
+          hollow: { size: "60%" },
+          dataLabels: {
+            name: { fontSize: "12px" },
+            value: { fontSize: "16px", fontWeight: 600, formatter: v => `${v.toFixed(0)}%` },
+          },
         },
       },
-    },
-  }).render();
-} catch (err) {
-  console.error("Agent summary failed:", err);
-  document.getElementById("agent-health-status").textContent = "Unavailable";
-}
+    }).render();
+  } catch (err) {
+    console.error("Agent summary failed:", err);
+    document.getElementById("agent-health-status").textContent = "Unavailable";
+  }
 }
 //
 
@@ -343,6 +345,21 @@ function renderEventLog(events) {
   events.forEach((e, idx) => {
     const level = (e.level || "info").toLowerCase();
     const levelLabel = level.charAt(0).toUpperCase() + level.slice(1);
+    const scope = e.scope || "unknown";
+    const timestamp = new Date(e.timestamp).toLocaleTimeString();
+    const message = e.message || e.summary || "—";
+    const id = e.id || "";
+
+    // Context badge based on scope
+    const contextHint = (() => {
+      switch (scope) {
+        case "agent": return e.meta?.hostname;
+        case "container": return e.meta?.name || e.meta?.image;
+        case "user": return e.meta?.email || e.meta?.user_id;
+        case "rule": return e.meta?.rule_id || e.meta?.metric_name;
+        default: return "";
+      }
+    })();
 
     const levelClass = {
       info: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -350,37 +367,34 @@ function renderEventLog(events) {
       error: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
     }[level] || "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
 
+    const scopeClass = {
+      agent: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+      container: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+      user: "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200",
+      rule: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200",
+      system: "bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100",
+    }[scope] || "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
+
     const rowShade = idx % 2 === 0
       ? "bg-gray-50 dark:bg-gray-800"
       : "bg-white dark:bg-gray-900";
-
-    const timestamp = new Date(e.timestamp).toLocaleTimeString();
-    const message = e.message || e.summary || "—";
-    const id = e.id || "";
 
     el.innerHTML += `
       <a href="/events/${id}" class="block px-4 py-3 ${rowShade} hover:bg-gray-100 dark:hover:bg-gray-700 transition" title="${escapeHTML(message)}">
         <div class="flex items-center gap-3 text-sm text-gray-800 dark:text-gray-200">
           <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold ${levelClass}">${levelLabel}</span>
+          <span class="inline-block px-2 py-0.5 rounded text-xs font-medium ${scopeClass}">${escapeHTML(scope)}</span>
           <span class="text-xs text-gray-500 dark:text-gray-400">${timestamp}</span>
           <span class="truncate flex-1">${escapeHTML(message)}</span>
+          ${contextHint ? `<span class="text-xs italic text-gray-400 dark:text-gray-500 ml-2">${escapeHTML(contextHint)}</span>` : ""}
         </div>
       </a>
     `;
   });
 }
 
-function escapeHTML(str) {
-  return str.replace(/[&<>"']/g, function (m) {
-    return ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;"
-    })[m];
-  });
-}
+
+
 
 
 

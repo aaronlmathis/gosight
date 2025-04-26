@@ -29,29 +29,31 @@ message Meta {
   string namespace = 22;
   string cluster_name = 23;
   string node_name = 24;
+  string container_image_name = 25;       
+  string container_image_id = 26;
 
-  string application = 25;
-  string environment = 26;
-  string service = 27;
-  string version = 28;
-  string deployment_id = 29;
+  string application = 27;
+  string environment = 28;
+  string service = 29;
+  string version = 30;
+  string deployment_id = 31;
 
-  string public_ip = 30;
-  string private_ip = 31;
-  string mac_address = 32;
-  string network_interface = 33;
+  string public_ip = 32;
+  string private_ip = 33;
+  string mac_address = 34;
+  string network_interface = 35;
 
-  map<string, string> tags = 34;
+  map<string, string> tags = 36;
 
-  string endpoint_id = 35;
-  string platform = 36;
-  string platform_family = 37;
-  string platform_version = 38;
-  string kernel_architecture = 39;
-  string virtualization_system = 40;
-  string virtualization_role = 41;
-  string host_id = 42;
+  string endpoint_id = 37;
+  string platform = 38;
+  string platform_family = 39;
+  string platform_version = 40;
+  string kernel_architecture = 41;
+  string virtualization_system = 42;
+  string virtualization_role = 43;
+  string host_id = 44;
 
-  string agent_version = 43;
-  string agent_id = 44;
+  string agent_version = 45;
+  string agent_id = 46;
 }

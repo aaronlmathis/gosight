@@ -30,7 +30,7 @@ function renderSummaryStats(endpoints, containers) {
   document.getElementById("summary-runtimes").textContent = runtimes;
 }
 async function loadHostTable() {
-  const agentsRes = await fetch("/api/v1/agents");
+  const agentsRes = await fetch("/api/v1/endpoints/hosts");
   const agents = await agentsRes.json();
 
   const tbody = document.getElementById("host-table-body");
@@ -264,8 +264,8 @@ function groupContainers(rows) {
 
     console.log("Checking row with container_id:", id, "name:", tags["__name__"]);
     console.log("🧪 Row received:", row);
-console.log("📛 container_id:", row.tags?.container_id);
-console.log("🧩 __name__:", row.tags?.__name__);
+    console.log("📛 container_id:", row.tags?.container_id);
+    console.log("🧩 __name__:", row.tags?.__name__);
 
     if (!id) {
       console.warn("Skipping row: missing container_id", row);

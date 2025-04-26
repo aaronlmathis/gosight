@@ -71,7 +71,7 @@ func (s *HttpServer) Start() error {
 		"   MetricStore:             %T\n"+
 		"   MetricIndex:             %T\n"+
 		"   MetaTracker:             %T\n"+
-		"   AgentTracker:            %T\n"+
+		"   Tracker:            %T\n"+
 		"   UserStore:               %T\n"+
 		"   DataStore:               %T\n"+
 		"   EventStore:              %T\n"+
@@ -84,7 +84,7 @@ func (s *HttpServer) Start() error {
 		s.Sys.Stores.Metrics,
 		s.Sys.Tele.Index,
 		s.Sys.Tele.Meta,
-		s.Sys.Agents,
+		s.Sys.Tracker,
 		s.Sys.Stores.Users,
 		s.Sys.Stores.Data,
 		s.Sys.Stores.Events,
@@ -144,6 +144,13 @@ func (s *HttpServer) templateFuncs() template.FuncMap {
 				return 0
 			}
 			return a / b
+		},
+		"seq": func(from, to int) []int {
+			s := make([]int, to-from+1)
+			for i := range s {
+				s[i] = from + i
+			}
+			return s
 		},
 	}
 }

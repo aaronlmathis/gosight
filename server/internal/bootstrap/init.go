@@ -52,10 +52,14 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 	// Load the configuration
 	// Bootstrap config loading (flags -> env -> file)
 	cfg := LoadServerConfig()
+
 	fmt.Printf("About to init logger with level = %s\n", cfg.Logs.LogLevel)
 
 	// Initialize logging
-	SetupLogging(cfg)
+	if err := utils.InitLogger(cfg.Logs.AppLogFile, cfg.Logs.ErrorLogFile, cfg.Logs.AccessLogFile, cfg.Logs.LogLevel); err != nil {
+		fmt.Printf("Failed to initialize logger: %v\n", err)
+		return nil, fmt.Errorf("failed to initialize logger: %w", err)
+	}
 
 	// Initialize metric index
 	metricIndex, err := InitMetricIndex()
@@ -116,7 +120,7 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 	utils.Must("Auth providers", err)
 
 	// Initialize agent tracker
-	agentTracker, err := InitAgentTracker(ctx, cfg.Server.Environment, dataStore, emitter)
+	tracker := InitTracker(ctx, dataStore, emitter)
 	utils.Must("Agent tracker", err)
 
 	// Build stores
@@ -145,13 +149,13 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 	// The system context holds all the components of the GoSight server
 	// and provides a way to access them throughout the application.
 	sys := &sys.SystemContext{
-		Ctx:    context.Background(),
-		Cfg:    cfg,
-		Agents: agentTracker,
-		Web:    wsHub,
-		Auth:   authProviders,
-		Stores: stores,
-		Tele:   telemetry,
+		Ctx:     context.Background(),
+		Cfg:     cfg,
+		Tracker: tracker,
+		Web:     wsHub,
+		Auth:    authProviders,
+		Stores:  stores,
+		Tele:    telemetry,
 	}
 
 	return sys, nil

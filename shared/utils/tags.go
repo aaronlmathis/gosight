@@ -19,22 +19,14 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// server/internal/bootstrap/logger.go
-// Initializes logger.
-package bootstrap
+package utils
 
-import (
-	"fmt"
-	"os"
-
-	"github.com/aaronlmathis/gosight/server/internal/config"
-	"github.com/aaronlmathis/gosight/shared/utils"
-)
-
-func SetupLogging(cfg *config.Config) {
-	if err := utils.InitLogger(cfg.Logs.AppLogFile, cfg.Logs.ErrorLogFile, cfg.Logs.AccessLogFile, cfg.Logs.LogLevel); err != nil {
-		fmt.Printf("Failed to initialize logger: %v\n", err)
-		os.Exit(1)
+// MatchAllTags returns true if all required tags exist in actualTags and match.
+func MatchAllTags(required map[string]string, actual map[string]string) bool {
+	for k, v := range required {
+		if actualVal, ok := actual[k]; !ok || actualVal != v {
+			return false
+		}
 	}
-
+	return true
 }

@@ -68,10 +68,14 @@ func (h *MetricsHandler) SubmitStream(stream pb.MetricsService_SubmitStreamServe
 		h.Sys.Tele.Evaluator.Evaluate(h.Sys.Ctx, converted.Metrics, converted.Meta)
 
 		// Update Agent Tracker
-		h.Sys.Agents.UpdateAgent(converted.Meta)
-
+		h.Sys.Tracker.UpdateAgent(converted.Meta)
+		if converted.Meta.ContainerID != "" {
+			h.Sys.Tracker.UpdateContainer(converted.Meta)
+		}
 		// Broadcast to WebSocket clients
 		h.Sys.Web.BroadcastMetric(converted)
+
+		//utils.Debug("Received metrics: %v", converted)
 
 		// Enqueue metrics for storage
 		if err := h.Sys.Stores.Metrics.Write([]model.MetricPayload{converted}); err != nil {

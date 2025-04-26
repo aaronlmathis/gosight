@@ -32,8 +32,9 @@ socket.onmessage = (event) => {
 
             if (payload.meta.endpoint_id?.startsWith("ctr-")) {
                 updateContainerTable(payload);
+                console.log("Container metrics:", payload);
             }
-            
+
         }
         if (envelope.type === "event") {
             console.log(" WebSocket message:", envelope);

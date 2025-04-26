@@ -1,0 +1,134 @@
+<!-- templates/pages/metrics-explorer.html -->
+{{ define "title" }}Metric Explorer{{ end }}
+{{ define "page-content" }}
+
+<section class="p-4 space-y-6">
+    <!-- Header -->
+    <div class="flex flex-wrap items-center justify-between mb-4">
+        <div>
+            <h1 class="text-2xl font-semibold text-gray-800 dark:text-white">📊 Metric Explorer</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Explore and compare metrics with full control over
+                aggregation, filters, and visualization.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <select id="time-series" class="text-sm border-gray-300 dark:border-gray-600 rounded">
+                <option value="1h">1h</option>
+                <option value="3h" selected>3h</option>
+                <option value="12h">12h</option>
+                <option value="1d">1d</option>
+                <option value="3d">3d</option>
+                <option value="1w">1w</option>
+                <option value="custom">Custom</option>
+            </select>
+            <button
+                class="text-sm text-gray-700 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-600">UTC</button>
+            <button id="refresh-btn" class="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600">↻
+                Refresh</button>
+            <button class="bg-orange-600 text-white px-3 py-1.5 text-sm rounded hover:bg-orange-700">+ Add to
+                Dashboard</button>
+        </div>
+    </div>
+
+    <!-- Grid Layout -->
+    <div class="grid grid-cols-4 gap-4">
+        <!-- LEFT COLUMN: Control Panel -->
+        <div
+            class="col-span-1 bg-white dark:bg-gray-900 rounded-lg p-4 shadow border border-gray-100 dark:border-gray-800 space-y-4 overflow-y-auto max-h-[80vh]">
+            <div>
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400">Metrics</label>
+                <input id="metric-search" type="text" placeholder="Search metrics..."
+                    class="mt-1 w-full text-sm px-2 py-1 border rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800" />
+                <div id="metric-suggestions" class="mt-2 space-y-1 max-h-40 overflow-y-auto text-sm"></div>
+                <div id="selected-metrics" class="mt-2 flex flex-wrap gap-1"></div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">From</label>
+                <input id="from-filter-input" type="text" placeholder="Filter by hostname, tag, or endpoint..."
+                    class="w-full px-3 py-2 border rounded text-sm bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500">
+
+                <div id="from-suggestions"
+                    class="hidden absolute z-50 mt-1 w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg max-h-60 overflow-y-auto">
+                </div>
+
+                <div id="from-selected" class="flex flex-wrap gap-2 mt-2 text-sm"></div>
+            </div>
+
+            <div>
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400">Aggregate by</label>
+                <select id="aggregate" class="w-full mt-1 text-sm border rounded border-gray-300 dark:border-gray-600">
+                    <option value="">None</option>
+                    <option value="sum">Sum</option>
+                    <option value="avg">Average</option>
+                    <option value="min">Minimum</option>
+                    <option value="max">Maximum</option>
+                    <option value="stddev">Std Deviation</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400">Group by</label>
+                <select id="group-by" class="w-full mt-1 text-sm border rounded border-gray-300 dark:border-gray-600">
+                    <option value="">Auto</option>
+                    <option value="hostname">Hostname</option>
+                    <option value="endpoint_id">Endpoint ID</option>
+                    <option value="container_name">Container Name</option>
+                    <option value="agent_id">Agent ID</option>
+                    <option value="instance">Instance</option>
+                    <option value="job">Job</option>
+                    <option value="runtime">Runtime</option>
+                </select>
+            </div>
+
+            <div class="border-t pt-3">
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400">Graph Options</label>
+                <div class="mt-1 space-y-2">
+                    <div class="flex justify-between gap-2">
+                        <label class="text-xs w-1/2">Period</label>
+                        <select id="period" class="text-sm border rounded w-1/2 border-gray-300 dark:border-gray-600">
+                            <option>5m</option>
+                            <option>10m</option>
+                            <option>30m</option>
+                            <option>1h</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-between gap-2">
+                        <label class="text-xs w-1/2">Graph Type</label>
+                        <select id="graph-type"
+                            class="text-sm border rounded w-1/2 border-gray-300 dark:border-gray-600">
+                            <option value="line">Line</option>
+                            <option value="area">Stacked Area</option>
+                            <option value="bar">Bar</option>
+                            <option value="donut">Donut</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-between gap-2">
+                        <label class="text-xs w-1/2">Legend</label>
+                        <select id="legend" class="text-sm border rounded w-1/2 border-gray-300 dark:border-gray-600">
+                            <option>Bottom</option>
+                            <option>Right</option>
+                            <option>Hidden</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-between gap-2">
+                        <label class="text-xs w-1/2">Layout</label>
+                        <input id="layout-cols" type="number" value="2" min="1" max="4"
+                            class="text-sm border rounded w-1/2 border-gray-300 dark:border-gray-600" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Chart Grid -->
+        <div class="col-span-3">
+            <div id="metric-panels" class="grid grid-cols-2 gap-4">
+
+            </div>
+        </div>
+    </div>
+</section>
+
+{{ end }}
+{{ define "page-scripts" }}
+<script type="module" src="/js/metric-explorer.js"></script>
+{{ end }}

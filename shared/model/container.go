@@ -27,11 +27,12 @@ import "time"
 type Container struct {
 	ContainerID string
 	Name        string
-	Image       string
+	ImageName   string
+	ImageID     string
 	Runtime     string
 	Status      string
 	EndpointID  string
-	HostID      string // ✅ Add this
+	HostID      string
 	LastSeen    time.Time
 	Labels      map[string]string
 	Updated     bool

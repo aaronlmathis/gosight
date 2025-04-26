@@ -60,12 +60,14 @@ type Meta struct {
 	ServiceID        string `json:"service_id,omitempty"`     // if a managed service is the source
 
 	// Containerization/Orchestration
-	ContainerID   string `json:"container_id,omitempty"`
-	ContainerName string `json:"container_name,omitempty"`
-	PodName       string `json:"pod_name,omitempty"`
-	Namespace     string `json:"namespace,omitempty"` // K8s namespace
-	ClusterName   string `json:"cluster_name,omitempty"`
-	NodeName      string `json:"node_name,omitempty"`
+	ContainerID        string `json:"container_id,omitempty"`
+	ContainerName      string `json:"container_name,omitempty"`
+	PodName            string `json:"pod_name,omitempty"`
+	Namespace          string `json:"namespace,omitempty"` // K8s namespace
+	ClusterName        string `json:"cluster_name,omitempty"`
+	NodeName           string `json:"node_name,omitempty"`
+	ContainerImageID   string `json:"image_id,omitempty"`   // Docker image ID
+	ContainerImageName string `json:"image_name,omitempty"` // Docker image name
 
 	// Application Specific
 	Application  string `json:"application,omitempty"`

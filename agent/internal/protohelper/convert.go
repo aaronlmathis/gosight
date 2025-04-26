@@ -127,6 +127,8 @@ func ConvertMetaToProtoMeta(m *model.Meta) *proto.Meta {
 		ContainerName:        m.ContainerName,
 		PodName:              m.PodName,
 		Namespace:            m.Namespace,
+		ContainerImageName:   m.ContainerImageName,
+		ContainerImageId:     m.ContainerImageID,
 		ClusterName:          m.ClusterName,
 		NodeName:             m.NodeName,
 		Application:          m.Application,

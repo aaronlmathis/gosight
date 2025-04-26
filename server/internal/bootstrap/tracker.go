@@ -29,18 +29,17 @@ import (
 	"time"
 
 	"github.com/aaronlmathis/gosight/server/internal/events"
-	"github.com/aaronlmathis/gosight/server/internal/store/agenttracker"
 	"github.com/aaronlmathis/gosight/server/internal/store/datastore"
+	"github.com/aaronlmathis/gosight/server/internal/tracker"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-// InitAgentTracker initializes the agent tracker for the GoSight agent.
-// The agent tracker is responsible for tracking the state of agents and
-// their associated metrics and logs.
-func InitAgentTracker(ctx context.Context, env string, dataStore datastore.DataStore, emitter *events.Emitter) (*agenttracker.AgentTracker, error) {
-	tracker := agenttracker.NewAgentTracker(ctx, emitter, dataStore)
+// InitEndpointTracker initializes the unified endpoint tracker.
+// Tracks both agents and containers, and emits lifecycle events.
+func InitTracker(ctx context.Context, dataStore datastore.DataStore, emitter *events.Emitter) *tracker.EndpointTracker {
+	t := tracker.NewEndpointTracker(ctx, emitter, dataStore)
 
-	//  Start sync loop to periodically push in-memory AgentTracker data into persistant store.
+	// Sync to DB every 60s
 	go func() {
 		ticker := time.NewTicker(1 * time.Minute)
 		defer ticker.Stop()
@@ -48,17 +47,15 @@ func InitAgentTracker(ctx context.Context, env string, dataStore datastore.DataS
 		for {
 			select {
 			case <-ctx.Done():
-				utils.Info("Agent tracker sync loop shutting down")
+				utils.Info("EndpointTracker sync loop shutting down")
 				return
 			case <-ticker.C:
-				//utils.Debug("Syncing agent tracker to DB...")
-				tracker.SyncToStore(ctx, dataStore)
-				//utils.Debug("Agent tracker sync complete")
+				t.SyncToStore(ctx, dataStore)
 			}
 		}
 	}()
-	// Start a loop to check agent statuses and emit events
-	// This loop will run every 30 seconds and check the status of all agents
+
+	// Emit lifecycle events every 30s
 	go func() {
 		ticker := time.NewTicker(30 * time.Second)
 		defer ticker.Stop()
@@ -66,12 +63,14 @@ func InitAgentTracker(ctx context.Context, env string, dataStore datastore.DataS
 		for {
 			select {
 			case <-ctx.Done():
-				utils.Info("Agent tracker status check loop shutting down")
+				utils.Info("EndpointTracker status check loop shutting down")
 				return
 			case <-ticker.C:
-				tracker.CheckAgentStatusesAndEmitEvents()
+				t.CheckAgentStatusesAndEmitEvents()
+				t.CheckContainerStatusesAndEmit()
 			}
 		}
 	}()
-	return tracker, nil
+
+	return t
 }
