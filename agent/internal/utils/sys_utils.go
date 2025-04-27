@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 func Metric(ns, sub, name string, value interface{}, typ, unit string, dims map[string]string, ts time.Time) model.Metric {
@@ -59,6 +60,7 @@ func ToFloat64(v interface{}) float64 {
 	case int32:
 		return float64(n)
 	default:
+		utils.Warn("⚠️ ToFloat64: unknown type %T, defaulting to 0", v)
 		return 0
 	}
 }

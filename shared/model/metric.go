@@ -43,8 +43,8 @@ type Metric struct {
 	Namespace         string            `json:"namespace,omitempty"`
 	SubNamespace      string            `json:"subnamespace,omitempty"`
 	Name              string            `json:"name"`
-	Timestamp         time.Time         `json:"timestamp,omitempty"`
-	Value             float64           `json:"value,omitempty"`
+	Timestamp         time.Time         `json:"timestamp"`
+	Value             float64           `json:"value"`
 	StatisticValues   *StatisticValues  `json:"stats,omitempty"`
 	Unit              string            `json:"unit,omitempty"`
 	Dimensions        map[string]string `json:"dimensions,omitempty"`
