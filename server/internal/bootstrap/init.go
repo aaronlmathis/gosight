@@ -81,7 +81,7 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 	metaTracker := metastore.NewMetaTracker()
 
 	// Initialize the websocket hub
-	wsHub := InitWebSocketHub(metaTracker)
+	wsHub := InitWebSocketHub(ctx, metaTracker)
 
 	// Initialize event store
 	eventStore, err := InitEventStore(cfg)
@@ -100,13 +100,13 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 	utils.Must("Action store", err)
 
 	// Initialize emitter
-	emitter := events.NewEmitter(eventStore, wsHub)
+	emitter := events.NewEmitter(eventStore, wsHub.Events)
 
 	// Initialize dispatcher
 	dispatcher := dispatcher.NewDispatcher(actionStore.Routes)
 
 	// Initialize alert manager
-	alertMgr := alerts.NewManager(emitter, dispatcher, alertStore, wsHub)
+	alertMgr := alerts.NewManager(emitter, dispatcher, alertStore, wsHub.Alerts)
 
 	// Initialize the evaluator
 	evaluator := rules.NewEvaluator(ruleStore, alertMgr)
@@ -124,39 +124,39 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 	utils.Must("Agent tracker", err)
 
 	// Build stores
-	stores := &sys.StoreModule{
-		Metrics: metricStore,
-		Logs:    logStore,
-		Users:   userStore,
-		Data:    dataStore,
-		Events:  eventStore,
-		Rules:   ruleStore,
-		Actions: actionStore,
-		Alerts:  alertStore,
-	}
+	stores := sys.NewStoreModule(
+		metricStore,
+		logStore,
+		userStore,
+		dataStore,
+		eventStore,
+		ruleStore,
+		actionStore,
+		alertStore,
+	)
 
 	// Build telemetry
-	telemetry := &sys.TelemetryModule{
-		Index:      metricIndex,
-		Meta:       metaTracker,
-		Evaluator:  evaluator,
-		Alerts:     alertMgr,
-		Emitter:    emitter,
-		Dispatcher: dispatcher,
-	}
+	telemetry := sys.NewTelemetryModule(
+		metricIndex,
+		metaTracker,
+		evaluator,
+		alertMgr,
+		emitter,
+		dispatcher,
+	)
 
 	// Initialize the system context
 	// The system context holds all the components of the GoSight server
 	// and provides a way to access them throughout the application.
-	sys := &sys.SystemContext{
-		Ctx:     context.Background(),
-		Cfg:     cfg,
-		Tracker: tracker,
-		Web:     wsHub,
-		Auth:    authProviders,
-		Stores:  stores,
-		Tele:    telemetry,
-	}
+	sys := sys.NewSystemContext(
+		ctx,
+		cfg,
+		tracker,
+		wsHub,
+		authProviders,
+		stores,
+		telemetry,
+	)
 
 	return sys, nil
 

@@ -72,18 +72,16 @@ func (c *MEMCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 		utils.Warn("Error getting swap memory info: %v", err)
 	} else if swap != nil && swap.Total > 0 {
 		dims := map[string]string{"source": "swap"}
-		utils.Debug("🧠 swap.Total = %d, swap.Free = %d", swap.Total, swap.Free)
+
 		usedPercent := swap.UsedPercent
 		if usedPercent <= 0 {
 			usedPercent = float64(swap.Total-swap.Free) / float64(swap.Total) * 100
 		}
 
 		if math.IsNaN(usedPercent) || math.IsInf(usedPercent, 0) {
-			utils.Warn("🚨 Swap used_percent computed invalid value: %v", usedPercent)
+
 			usedPercent = 0
 		}
-
-		utils.Debug("🧠 swap_used_percent = %.2f", usedPercent)
 
 		metrics = append(metrics,
 			agentutils.Metric("System", "Memory", "swap_total", swap.Total, "gauge", "bytes", dims, now),
@@ -92,7 +90,7 @@ func (c *MEMCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 			agentutils.Metric("System", "Memory", "swap_used_percent", usedPercent, "gauge", "percent", dims, now),
 		)
 	} else {
-		utils.Debug("🚫 Swap metrics skipped — no swap memory available.")
+		utils.Debug("Swap metrics skipped — no swap memory available.")
 	}
 
 	return metrics, nil

@@ -9,8 +9,9 @@
 <section class="p-4 space-y-6">
     <div class="mb-6">
         <h1 class="text-2xl font-semibold text-gray-800 dark:text-white">Welcome to GoSight</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Monitoring real-time metrics, logs, and alerts across your infrastructure.</p>
-      </div>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Monitoring real-time metrics, logs, and alerts across
+            your infrastructure.</p>
+    </div>
     <!-- Summary Row -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- LEFT: Summary Cards in 2x3 Subgrid -->
@@ -18,7 +19,7 @@
             <!-- Alerts -->
             <a href="/alerts" class="block hover:ring-2 hover:ring-blue-400 rounded-lg transition">
                 <div
-                 class="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm h-44 flex items-center justify-between transition duration-200 hover:shadow-md hover:border-gray-200 dark:hover:border-gray-600">
+                    class="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm h-44 flex items-center justify-between transition duration-200 hover:shadow-md hover:border-gray-200 dark:hover:border-gray-600">
                     <div class="pl-3 flex flex-col justify-center text-sm w-full truncate">
                         <div class="font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap">Active Alerts</div>
                         <div id="alert-status" class="text-red-600 dark:text-red-400 mt-1 text-base font-semibold">None
@@ -74,6 +75,7 @@
                     </div>
                 </div>
             </a>
+
             <!-- top container by CPU -->
             <div class="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm">
                 <div class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-200">Top Containers by CPU Usage</div>
@@ -87,11 +89,13 @@
             </div>
         </div> <!-- end left summary cards -->
         <!-- Recent Events -->
+
         <div
             class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm p-4 h-full">
-            <div class="font-semibold border-b border-gray-100 text-gray-800 dark:text-gray-100 mb-2">Recent Events</div>
+            <div class="font-semibold border-b border-gray-100 text-gray-800 dark:text-gray-100 mb-2">Recent Events
+            </div>
             <div id="event-log"
-                class="max-h-[600px] overflow-y-auto space-y-2 text-sm text-gray-800 dark:text-gray-300">
+                class="max-h-[300px] overflow-y-auto space-y-2 text-sm text-gray-800 dark:text-gray-300">
                 <!-- JS populates here -->
             </div>
         </div>

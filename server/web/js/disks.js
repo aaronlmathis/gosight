@@ -831,3 +831,10 @@ window.diskMetricHandler = function (metrics) {
 };
 
 registerTabInitializer("disk", initDiskTab);
+
+window.addEventListener("metrics", ({ detail: payload }) => {
+    if (payload?.metrics && payload?.meta?.endpoint_id?.startsWith("host-")) {
+        // Call your existing function directly:
+        window.diskMetricHandler(payload.metrics);
+    }
+});

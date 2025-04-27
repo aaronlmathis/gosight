@@ -34,16 +34,17 @@ func (h *LogsHandler) SubmitStream(stream pb.LogService_SubmitStreamServer) erro
 			utils.Error("Log stream receive error: %v", err)
 			return err
 		}
+		SafeHandlePayload(func() {
+			payload := ConvertToModelLogPayload(pbPayload)
+			// Check rulesrunser
+			h.Sys.Tele.Evaluator.EvaluateLogs(h.Sys.Ctx, payload.Logs, payload.Meta)
 
-		payload := ConvertToModelLogPayload(pbPayload)
-		// Check rules
-		h.Sys.Tele.Evaluator.EvaluateLogs(h.Sys.Ctx, payload.Logs, payload.Meta)
-
-		h.Sys.Web.BroadcastLog(payload)
-		if err := h.Sys.Stores.Logs.Write([]model.LogPayload{payload}, stream.Context()); err != nil {
-			utils.Error("Failed to store logs from host %s: %v", payload.EndpointID, err)
-		} else {
-			utils.Debug("Stored %d logs from host: %s at %s", len(payload.Logs), payload.EndpointID, payload.Timestamp)
-		}
+			h.Sys.WSHub.Logs.Broadcast(payload)
+			if err := h.Sys.Stores.Logs.Write([]model.LogPayload{payload}, stream.Context()); err != nil {
+				utils.Error("Failed to store logs from host %s: %v", payload.EndpointID, err)
+			} else {
+				utils.Debug("Stored %d logs from host: %s at %s", len(payload.Logs), payload.EndpointID, payload.Timestamp)
+			}
+		})
 	}
 }

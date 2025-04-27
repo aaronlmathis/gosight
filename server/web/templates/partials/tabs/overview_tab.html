@@ -6,65 +6,53 @@
   <!-- Metrics Row: CPU, Memory, Disk (1 row of 3) -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
     <div
-      class="relative p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between h-full">
-      <!-- Icon -->
-      <div class="absolute top-4 right-4 text-blue-400">
-        <!-- Heroicon: Chip / CPU -->
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M9 4v1M15 4v1M9 19v1M15 19v1M4 9h1M4 15h1M19 9h1M19 15h1M7 7h10v10H7V7z" />
-        </svg>
+      class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md flex flex-col justify-between h-full">
+
+      <div class="flex items-center justify-between">
+        <p class="text-sm text-gray-500 dark:text-gray-400">CPU Usage</p>
+        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400" id="cpu-percent-label">--%</p>
       </div>
-      <p class="text-sm text-gray-500 dark:text-gray-400">CPU Usage</p>
-      <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-        <span id="cpu-percent-label"></span>
-      </p>
-      <p class="text-xs text-gray-400 dark:text-gray-500">percent</p>
+
+      <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">percent</p>
+
       <div class="mt-2">
         <div id="miniCpuChart" class="w-full h-20"></div>
       </div>
+
     </div>
 
     <div
-      class="relative p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md flex flex-col justify-between h-full">
-      <!-- Icon -->
-      <div class="absolute top-4 right-4 text-green-400">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M4 6h16M4 10h16M4 14h16M4 18h16M8 6v12M16 6v12" />
-        </svg>
+      class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md flex flex-col justify-between h-full">
+
+      <div class="flex items-center justify-between">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Memory Used</p>
+        <p class="text-2xl font-bold text-green-600 dark:text-green-400" id="mem-percent-label">--%</p>
       </div>
 
-      <!-- Content -->
-      <p class="text-sm text-gray-500 dark:text-gray-400">Memory Used</p>
-      <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-        <span id="mem-percent-label"></span>
-      </p>
-      <p class="text-xs text-gray-400 dark:text-gray-500">GB</p>
+      <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">percent</p>
+
       <div class="mt-2">
-        <div id="miniMemoryChart" class="w-full h-[200px]"></div>
+        <div id="miniMemoryChart" class="w-full h-20"></div>
       </div>
+
     </div>
 
     <div
-      class="relative p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md flex flex-col justify-between h-full">
-      <!-- Icon -->
-      <div class="absolute top-4 right-4 text-yellow-400">
-        <!-- Heroicon: Chip (or use Archive icon for storage) -->
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M20 12H4M20 12V6a2 2 0 00-2-2H6a2 2 0 00-2 2v6m16 0v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6" />
-        </svg>
+      class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md flex flex-col justify-between h-full">
+
+      <div class="flex items-center justify-between">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Swap Used</p>
+        <p class="text-2xl font-bold text-yellow-500 dark:text-yellow-400" id="swap-percent-label">--%</p>
       </div>
-      <p class="text-sm text-gray-500 dark:text-gray-400">Swap Used</p>
-      <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-        <span id="swap-percent-label"></span>
-      </p>
-      <p class="text-xs text-gray-400 dark:text-gray-500">GB</p>
+
+      <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">percent</p>
+
       <div class="mt-2">
-        <div id="miniSwapChart" class="w-full h-[200px]"></div>
+        <div id="miniSwapChart" class="w-full h-20"></div>
       </div>
+
     </div>
+
   </div>
   <div class="grid grid-cols-1 gap-4 mb-6">
     <div

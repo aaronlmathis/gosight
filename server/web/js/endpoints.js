@@ -251,7 +251,7 @@ function groupContainers(rows) {
     if (!map[id]) {
       map[id] = {
         name: tags.container_name || "—",
-        image: tags.image_id || "—",
+        image: tags.image || "—",
         status: tags.status || "unknown",
         cpu: "—",
         mem: "—",
@@ -275,7 +275,7 @@ function groupContainers(rows) {
     if (!map[id]) {
       map[id] = {
         name: tags.container_name || "—",
-        image: tags.image_id || "—",
+        image: tags.image || "—",
         status: tags.status || "unknown",
         cpu: "—",
         mem: "—",
@@ -321,12 +321,13 @@ function buildContainerTable(containers) {
   const rows = containers.map((c, i) => `
 <tr class="${i % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
 <td class="px-4 py-2">${statusBadge(c.status)}</td>
-<td class="px-4 py-2">${c.name}</td>
 <td class="px-4 py-2 text-left">
   <span class="inline-block px-2 py-0.5 rounded-sm text-xs bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
     ${c.runtime}
   </span>
 </td>
+<td class="px-4 py-2">${c.name}</td>
+
 <td class="px-4 py-2 text-gray-700 dark:text-gray-300">${c.image}</td>
 <td class="px-4 py-2 text-right">${c.cpu}</td>
 <td class="px-4 py-2 text-right">${c.mem}</td>

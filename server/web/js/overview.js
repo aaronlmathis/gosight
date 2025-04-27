@@ -90,99 +90,42 @@ function appendMiniPoint(chart, timestamp, val) {
     chart.updateSeries([{ data: series }], false); // false = NO full redraw
 }
 
-//
-// WebSocket Connection
-//
 
-function connectWebSocket() {
-    const socket = new WebSocket(`wss://${location.host}/ws/metrics?endpointID=${encodeURIComponent(window.endpointID)}`);
-    console.log("WebSocket connecting for:", window.endpointID);
-    const statusBadge = document.getElementById("ws-status-badge");
-
-    socket.addEventListener("open", () => {
-        console.log("✅ WebSocket connected");
-
-        if (statusBadge) {
-            statusBadge.classList.remove("hidden", "bg-red-500", "text-red-100");
-            statusBadge.classList.add("bg-green-500", "text-green-100");
-            statusBadge.textContent = "Connected";
-        }
-    });
-
-    socket.addEventListener("close", () => {
-        console.log("❌ WebSocket disconnected");
-
-        if (statusBadge) {
-            statusBadge.classList.remove("hidden", "bg-green-500", "text-green-100");
-            statusBadge.classList.add("bg-red-500", "text-red-100");
-            statusBadge.textContent = "Disconnected";
-        }
-    });
-
-    socket.addEventListener("error", (e) => {
-        console.error("WebSocket error:", e);
-        // Optional: show error visually too
-    });
-    socket.onmessage = (event) => {
-        try {
-            const envelope = JSON.parse(event.data);
-            if (!envelope?.type) return;
-
-            switch (envelope.type) {
-                case "metrics":
-                    handleMetricsPayload(envelope.data);
-                    break;
-                case "logs":
-                    handleLogsPayload(envelope.data);
-                    break;
-                case "event":
-                    if (window.eventHandler) window.eventHandler([envelope.data]);
-                    break;
-            }
-        } catch (err) {
-            console.error("Failed to parse WebSocket JSON:", err);
-        }
-    };
-}
-
-function handleMetricsPayload(payload) {
+window.addEventListener("metrics", ({ detail: payload }) => {
     if (!payload?.metrics || !payload?.meta) return;
 
     if (payload.meta.endpoint_id?.startsWith("host-")) {
         updateMiniCharts(payload.metrics);
         const summary = extractHostSummary(payload.metrics, payload.meta);
         renderOverviewSummary(summary);
-        if (window.networkMetricHandler) window.networkMetricHandler(payload.metrics);
-        if (window.cpuMetricHandler) window.cpuMetricHandler(payload.metrics);
-        if (window.diskMetricHandler) window.diskMetricHandler(payload.metrics);
     }
 
     if (payload.meta.endpoint_id?.startsWith("ctr-")) {
         updateContainerTable(payload);
     }
-}
+});
 
-function handleLogsPayload(logPayload) {
+window.addEventListener("logs", ({ detail: logPayload }) => {
     if (logPayload?.Logs?.length > 0) {
         for (const log of logPayload.Logs) {
             appendLogLine(log);
-            appendActivityRow(log);
         }
     }
-}
+});
 
 //
 // Metric Updaters
 //
 
 function updateMiniCharts(metrics) {
-    let cpuVal = null, memVal = null, swapVal = null;
+    let cpuVal = null, memVal = null;
+    let swapUsed = null, swapTotal = null;
     let metricTimestamp = null;
 
     for (const m of metrics) {
         if (m.namespace !== "System") continue;
 
-        // Capture timestamp of the metric
+        // Capture timestamp
         if (!metricTimestamp && m.timestamp) {
             metricTimestamp = m.timestamp * 1000;
         }
@@ -190,15 +133,20 @@ function updateMiniCharts(metrics) {
         if (m.subnamespace === "CPU" && m.name === "usage_percent" && m.dimensions?.scope === "total") {
             cpuVal = m.value;
         }
-        if (m.subnamespace === "Memory" && m.name === "used_percent") {
-            memVal = m.value;
-        }
-        if (m.subnamespace === "Memory" && m.name === "swap_used_percent") {
-            swapVal = m.value;
+
+        if (m.subnamespace === "Memory") {
+            if (m.name === "used_percent") {
+                memVal = m.value;
+            }
+            if (m.name === "swap_used") {
+                swapUsed = m.value;
+            }
+            if (m.name === "swap_total") {
+                swapTotal = m.value;
+            }
         }
     }
 
-    // Fallback if metricTimestamp wasn't found
     const timestamp = metricTimestamp || Date.now();
 
     if (miniCharts.cpu) {
@@ -214,70 +162,26 @@ function updateMiniCharts(metrics) {
         document.getElementById("mem-percent-label").textContent = `${memVal.toFixed(1)}%`;
     }
 
-    if (miniCharts.swap && typeof swapVal === "number" && !isNaN(swapVal)) {
-        appendMiniPoint(miniCharts.swap, timestamp, swapVal);
-        latestSwapUsedPercent = swapVal;
-        document.getElementById("swap-percent-label").textContent = `${swapVal.toFixed(1)}%`;
+    if (miniCharts.swap) {
+        let swapPercent = 0;
+        if (typeof swapUsed === "number" && typeof swapTotal === "number" && swapTotal > 0) {
+            swapPercent = (swapUsed / swapTotal) * 100;
+        }
+
+        appendMiniPoint(miniCharts.swap, timestamp, swapPercent);
+        latestSwapUsedPercent = swapPercent;
+        document.getElementById("swap-percent-label").textContent = `${swapPercent.toFixed(1)}%`;
     }
 }
-
-
-
-
 
 //
 //
 // LOG STREAMING SECTION
 //
-//
-function appendActivityRow(log) {
-    const tbody = document.getElementById("activity-log-body");
-    if (!tbody || !log) return;
+///*
 
-    const row = document.createElement("tr");
-
-    // Determine badge color based on level
-    const level = (log.level || "").toLowerCase();
-    const badgeClass = {
-        error: "bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-200",
-        warn: "bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100",
-        info: "bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100",
-        debug: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
-        notice: "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-300",
-    }[level] || "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-
-    const category = log.category || log.meta?.unit || log.meta?.service || log.source || "unknown";
-    const message = log.message || "";
-    const timestamp = new Date(log.timestamp).toLocaleString();
-
-    row.innerHTML = `
-        <td class="px-4 py-2">
-            <span class="text-xs font-semibold px-2 py-0.5 rounded ${badgeClass}">
-                ${level.toUpperCase()}
-            </span>
-        </td>
-        <td class="px-4 py-2 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">${timestamp}</td>
-        <td class="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">${message}</td>
-    `;
-
-    tbody.prepend(row);
-
-    // Limit to 100 rows max
-    while (tbody.children.length > 100) {
-        tbody.removeChild(tbody.lastChild);
-    }
-}
 const maxLogLines = 10;
-const logContainer = document.getElementById("log-stream");
 
-function renderLogLine(log) {
-    const ts = new Date(log.timestamp).toLocaleTimeString();
-    const level = log.level?.toUpperCase() || "INFO";
-    const source = log.source || log.meta?.service || "unknown";
-    const message = log.message || "";
-
-    return `[${ts}] [${level}] ${source}: ${message}`;
-}
 function appendLogLine(log) {
     const container = document.getElementById("log-stream");
 
@@ -336,7 +240,22 @@ function logLevelColorClass(level) {
 //// END ACTIVITY TAB
 /////
 
+async function fetchRecentLogs() {
+    try {
+        const res = await fetch(`/api/v1/logs?endpointID=${encodeURIComponent(window.endpointID)}&limit=10`);
+        if (!res.ok) throw new Error("Failed to fetch recent logs");
+        const payload = await res.json();
 
+        if (payload?.Logs?.length > 0) {
+            for (const log of payload.Logs) {
+                appendLogLine(log);
+                appendActivityRow(log);
+            }
+        }
+    } catch (err) {
+        console.error("Failed to fetch initial logs:", err);
+    }
+}
 
 function extractHostSummary(metrics, meta) {
     const summary = {
@@ -467,7 +386,7 @@ function updateContainerTable(payload) {
         id,
         name: meta.container_name || "—",
         host: meta.hostname || "—",
-        image: meta.image_id || "—",
+        image: meta.image_name || "—",
         status: meta.tags?.status || "unknown",
         cpu: null,
         mem: null,
@@ -538,20 +457,18 @@ function updateContainerTable(payload) {
 //
 
 async function initOverviewTab() {
-    console.log("✅ initOverviewTab running");
+
 
     document.getElementById("overview-content")?.classList.remove("hidden");
-    console.log("✅ overview-content unhidden");
+
 
     await renderMiniCharts();
-    console.log("✅ miniCharts rendered");
+    await fetchRecentLogs();
 
     setupContainerFilters();
     connectWebSocket();
-    console.log("✅ WebSocket connected");
 
-    document.getElementById("overview-skeleton")?.classList.add("hidden");
-    console.log("✅ Skeleton hidden, dashboard fully live");
+
 }
 
 

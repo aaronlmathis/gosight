@@ -17,13 +17,16 @@ type MetricRunner struct {
 	Config         *config.Config
 	MetricSender   *metricsender.MetricSender
 	MetricRegistry *metriccollector.MetricRegistry
-	AgentID        string
-	AgentVersion   string
 	StartTime      time.Time
+	Meta           *model.Meta
 }
 
-func NewRunner(ctx context.Context, cfg *config.Config, agentID, agentVersion string) (*MetricRunner, error) {
+func NewRunner(ctx context.Context, cfg *config.Config, baseMeta *model.Meta) (*MetricRunner, error) {
+
+	// Init the collector registry
 	metricRegistry := metriccollector.NewRegistry(cfg)
+
+	// Init Metric Sender
 	metricSender, err := metricsender.NewSender(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sender: %v", err)
@@ -33,9 +36,8 @@ func NewRunner(ctx context.Context, cfg *config.Config, agentID, agentVersion st
 		Config:         cfg,
 		MetricSender:   metricSender,
 		MetricRegistry: metricRegistry,
-		AgentID:        agentID,
-		AgentVersion:   agentVersion,
 		StartTime:      time.Now(),
+		Meta:           baseMeta,
 	}, nil
 }
 
@@ -87,7 +89,7 @@ func (r *MetricRunner) Run(ctx context.Context) {
 					// Initialize Meta only once per container ID
 					containerMeta, exists := containerMetas[id]
 					if !exists {
-						containerMeta = meta.BuildMeta(r.Config, nil, r.AgentID, r.AgentVersion)
+						containerMeta = meta.CloneMetaWithTags(r.Meta, nil)
 						containerMetas[id] = containerMeta
 					}
 
@@ -130,7 +132,7 @@ func (r *MetricRunner) Run(ctx context.Context) {
 			if len(hostMetrics) > 0 {
 
 				// Build Host Meta
-				hostMeta := meta.BuildMeta(r.Config, nil, r.AgentID, r.AgentVersion)
+				hostMeta := meta.CloneMetaWithTags(r.Meta, nil)
 
 				// Build tags
 				meta.BuildStandardTags(hostMeta, hostMetrics[0], false, r.StartTime)

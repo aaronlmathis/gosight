@@ -320,20 +320,20 @@ export async function updateAlertSummary() {
 function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
-/*
+
 async function loadTop(url, elId, label, unit) {
-    const items = await fetchJson(url);
-    if (!items || !Array.isArray(items)) return;
-    const categories = items.map(i => i.labels?.instance || i.labels?.name || i.labels?.id || "unknown");
-    const data = items.map(i => parseFloat(i.value.toFixed(1)));
-    new ApexCharts(document.getElementById(elId), {
-        chart: { type: "bar", height: 180 },
-        series: [{ name: label, data }],
-        xaxis: { categories },
-        plotOptions: { bar: { horizontal: true } },
-        colors: ["#6366f1"],
-    }).render();
-}*/
+  const items = await fetchJson(url);
+  if (!items || !Array.isArray(items)) return;
+  const categories = items.map(i => i.labels?.instance || i.labels?.name || i.labels?.id || "unknown");
+  const data = items.map(i => parseFloat(i.value.toFixed(1)));
+  new ApexCharts(document.getElementById(elId), {
+    chart: { type: "bar", height: 180 },
+    series: [{ name: label, data }],
+    xaxis: { categories },
+    plotOptions: { bar: { horizontal: true } },
+    colors: ["#6366f1"],
+  }).render();
+}
 
 //
 // render Event Log
@@ -395,6 +395,62 @@ function renderEventLog(events) {
 
 
 
+function renderAlertLog(events) {
+  const el = document.getElementById("alert-log");
+  el.innerHTML = "";
+
+  events.forEach((e, idx) => {
+    const level = (e.level || "info").toLowerCase();
+    const levelLabel = level.charAt(0).toUpperCase() + level.slice(1);
+    const scope = e.scope || "unknown";
+    const timestamp = new Date(e.timestamp).toLocaleTimeString();
+    const message = e.message || e.summary || "—";
+    const id = e.id || "";
+
+    // Context badge based on scope
+    const contextHint = (() => {
+      switch (scope) {
+        case "agent": return e.meta?.hostname;
+        case "endpoint": return e.meta?.hostname || e.meta?.endpoint_id;
+        case "container": return e.meta?.name || e.meta?.image;
+        case "user": return e.meta?.email || e.meta?.user_id;
+        case "rule": return e.meta?.rule_id || e.meta?.metric_name;
+        default: return "";
+      }
+    })();
+
+    const levelClass = {
+      info: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+      warning: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+      error: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+    }[level] || "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
+
+    const scopeClass = {
+      agent: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+      container: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+      endpoint: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+      user: "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200",
+      rule: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200",
+      system: "bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100",
+    }[scope] || "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
+
+    const rowShade = idx % 2 === 0
+      ? "bg-gray-50 dark:bg-gray-800"
+      : "bg-white dark:bg-gray-900";
+
+    el.innerHTML += `
+      <a href="/events/${id}" class="block px-4 py-3 ${rowShade} hover:bg-gray-100 dark:hover:bg-gray-700 transition" title="${escapeHTML(message)}">
+        <div class="flex items-center gap-3 text-sm text-gray-800 dark:text-gray-200">
+          <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold ${levelClass}">${levelLabel}</span>
+          <span class="inline-block px-2 py-0.5 rounded text-xs font-medium ${scopeClass}">${escapeHTML(scope)}</span>
+          <span class="text-xs text-gray-500 dark:text-gray-400">${timestamp}</span>
+          <span class="truncate flex-1">${escapeHTML(message)}</span>
+          ${contextHint ? `<span class="text-xs italic text-gray-400 dark:text-gray-500 ml-2">${escapeHTML(contextHint)}</span>` : ""}
+        </div>
+      </a>
+    `;
+  });
+}
 
 
 
@@ -418,8 +474,11 @@ export async function initHome() {
     await loadTop("/api/v1/query?sort=desc&metric=container.mem.rss&limit=5", "top-mem-containers", "Top Memory Containers", "MB");
     */
   // Load logs/events
-  const events = await fetchJson("/api/v1/events?limit=12");
+  const events = await fetchJson("/api/v1/events?limit=11");
   renderEventLog(events || []);
+
+  //const alerts = await fetchJson("/api/v1/alerts?limit=5");
+  //renderAlertLog(alerts || []);
 
   // Summary update (alerts count)
   await updateAlertSummary();

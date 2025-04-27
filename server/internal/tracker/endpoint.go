@@ -348,7 +348,7 @@ func (t *EndpointTracker) SyncToStore(ctx context.Context, store datastore.DataS
 
 		utils.Debug("Syncing container %s to t.dataStore: %s", ctr.Name, ctr.Status)
 		if err := t.dataStore.UpsertContainer(ctx, ctr); err != nil {
-			utils.Error("❌ Container sync failed for %s: %v", ctr.Name, err)
+			utils.Error("Container sync failed for %s: %v", ctr.Name, err)
 			continue
 		}
 		ctr.Updated = false
@@ -370,7 +370,7 @@ func (t *EndpointTracker) CheckAgentStatusesAndEmitEvents() {
 	}
 
 	for _, agent := range storedAgents {
-		isLive := t.IsLive(agent.AgentID)
+		isLive := t.IsAgentLive(agent.AgentID)
 
 		//  Agent is missing from in-memory tracker and was Online → emit Offline
 		if !isLive && agent.Status != "Offline" && time.Since(agent.LastSeen) > 2*time.Minute {
@@ -415,20 +415,32 @@ func (t *EndpointTracker) CheckAgentStatusesAndEmitEvents() {
 			//utils.Debug("Writing updated agent status for %s", agent.Hostname)
 			err := t.dataStore.UpsertAgent(t.ctx, agent)
 			if err != nil {
-				utils.Error("❌ Failed to upsert agent %s: %v", agent.Hostname, err)
+				utils.Error("Failed to upsert agent %s: %v", agent.Hostname, err)
 			}
 			agent.Updated = false
 		}
 	}
 }
 
-// IsLive checks if an agent is live based on its last seen time.
+// IsAgentLive checks if an agent is live based on its last seen time.
 // It returns true if the agent was seen within the last 10 seconds, otherwise false.
-func (t *EndpointTracker) IsLive(agentID string) bool {
+func (t *EndpointTracker) IsAgentLive(agentID string) bool {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	if a, ok := t.agents[agentID]; ok {
+		return time.Since(a.LastSeen) <= 10*time.Second
+	}
+	return false
+}
+
+// IsContainerLive checks if an container is live based on its last seen time.
+// It returns true if the container was seen within the last 10 seconds, otherwise false.
+func (t *EndpointTracker) IsContainerLive(endpointID string) bool {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	if a, ok := t.containers[endpointID]; ok {
 		return time.Since(a.LastSeen) <= 10*time.Second
 	}
 	return false
@@ -439,9 +451,6 @@ func (t *EndpointTracker) IsLive(agentID string) bool {
 // It updates the container status in the datastore and emits lifecycle events.
 // This function is called periodically to ensure the container statuses are up to date.
 func (t *EndpointTracker) CheckContainerStatusesAndEmit() {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
 	now := time.Now()
 
 	// Step 1: Pull known containers from store
@@ -451,29 +460,55 @@ func (t *EndpointTracker) CheckContainerStatusesAndEmit() {
 		return
 	}
 
-	for _, stored := range storedContainers {
-		c, exists := t.containers[stored.ContainerID]
+	for _, container := range storedContainers {
+		isLive := t.IsContainerLive(container.ContainerID)
+		if !isLive && container.Status != "Inactive" && time.Since(container.LastSeen) > 2*time.Minute {
+			// Mark Inactive
+			container.Status = "Inactive"
+			container.Updated = true
 
-		if !exists || time.Since(c.LastSeen) > 2*time.Minute {
-			// If it’s not in memory OR stale
-			if stored.Status != "inactive" {
-				stored.Status = "inactive"
-				stored.Updated = true
+			t.emitter.Emit(t.ctx, model.EventEntry{
+				ID:         uuid.NewString(),
+				Timestamp:  now,
+				Type:       "event",
+				Level:      "warning",
+				Category:   "container",
+				Message:    fmt.Sprintf("Container %s is no longer reporting (last known: %s)", container.Name, container.Status),
+				Source:     "container.lifecycle",
+				Scope:      "container",
+				Target:     container.ContainerID,
+				EndpointID: container.EndpointID,
+				Meta:       BuildContainerEventMeta(container),
+			})
+		}
 
-				t.emitter.Emit(t.ctx, model.EventEntry{
-					ID:         uuid.NewString(),
-					Timestamp:  now,
-					Type:       "event",
-					Level:      "warning",
-					Category:   "container",
-					Message:    fmt.Sprintf("Container %s is no longer reporting (last known: %s)", stored.Name, stored.Status),
-					Source:     "container.lifecycle",
-					Scope:      "container",
-					Target:     stored.ContainerID,
-					EndpointID: stored.EndpointID,
-					Meta:       BuildContainerEventMeta(stored),
-				})
+		if isLive && (container.Status == "Inactive" || container.Status == "Unknown") {
+			// Only emit "back online" if it was Inactive before
+			container.Status = "Running"
+			container.Updated = true
+
+			t.emitter.Emit(t.ctx, model.EventEntry{
+				ID:         uuid.NewString(),
+				Timestamp:  now,
+				Type:       "event",
+				Level:      "info",
+				Category:   "container",
+				Message:    fmt.Sprintf("Container %s is back online", container.Name),
+				Source:     "container.lifecycle",
+				Scope:      "container",
+				Target:     container.ContainerID,
+				EndpointID: container.EndpointID,
+				Meta:       BuildContainerEventMeta(container),
+			})
+		}
+		if container.Updated {
+			utils.Debug("Writing updated container status for %s", container.Name)
+			err := t.dataStore.UpsertContainer(t.ctx, container)
+			if err != nil {
+				utils.Error("Failed to upsert container %s: %v", container.Name, err)
 			}
+			container.Updated = false
 		}
 	}
+
 }

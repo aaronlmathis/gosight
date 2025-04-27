@@ -31,7 +31,9 @@ import (
 	"github.com/aaronlmathis/gosight/agent/internal/config"
 	agentidentity "github.com/aaronlmathis/gosight/agent/internal/identity"
 	"github.com/aaronlmathis/gosight/agent/internal/logs/logrunner"
+	"github.com/aaronlmathis/gosight/agent/internal/meta"
 	metricrunner "github.com/aaronlmathis/gosight/agent/internal/metrics/metricrunner"
+	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
@@ -41,18 +43,25 @@ type Agent struct {
 	AgentID      string
 	AgentVersion string
 	LogRunner    *logrunner.LogRunner
+	Meta         *model.Meta
 }
 
 func NewAgent(ctx context.Context, cfg *config.Config, agentVersion string) (*Agent, error) {
+
+	// Retrieve (or set) the agent ID
 	agentID, err := agentidentity.LoadOrCreateAgentID()
 	if err != nil {
 		utils.Fatal("Failed to get agent ID: %v", err)
 	}
-	metricRunner, err := metricrunner.NewRunner(ctx, cfg, agentID, agentVersion)
+
+	// Build base metadata for the agent and cache it in the Agent struct
+	baseMeta := meta.BuildMeta(cfg, nil, agentID, agentVersion)
+
+	metricRunner, err := metricrunner.NewRunner(ctx, cfg, baseMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create metric runner: %v", err)
 	}
-	logRunner, err := logrunner.NewRunner(ctx, cfg, agentID, agentVersion)
+	logRunner, err := logrunner.NewRunner(ctx, cfg, baseMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create log runner: %v", err)
 	}
@@ -62,6 +71,7 @@ func NewAgent(ctx context.Context, cfg *config.Config, agentVersion string) (*Ag
 		AgentID:      agentID,
 		AgentVersion: agentVersion,
 		LogRunner:    logRunner,
+		Meta:         baseMeta,
 	}, nil
 }
 

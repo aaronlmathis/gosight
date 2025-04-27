@@ -26,55 +26,39 @@ package sys
 import (
 	"context"
 
-	"github.com/aaronlmathis/gosight/server/internal/alerts"
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
 	"github.com/aaronlmathis/gosight/server/internal/config"
-	"github.com/aaronlmathis/gosight/server/internal/dispatcher"
-	"github.com/aaronlmathis/gosight/server/internal/events"
-	"github.com/aaronlmathis/gosight/server/internal/rules"
-	"github.com/aaronlmathis/gosight/server/internal/store/alertstore"
-	"github.com/aaronlmathis/gosight/server/internal/store/datastore"
-	"github.com/aaronlmathis/gosight/server/internal/store/eventstore"
-	"github.com/aaronlmathis/gosight/server/internal/store/logstore"
-	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
-	"github.com/aaronlmathis/gosight/server/internal/store/metricindex"
-	"github.com/aaronlmathis/gosight/server/internal/store/metricstore"
-	"github.com/aaronlmathis/gosight/server/internal/store/routestore"
-	"github.com/aaronlmathis/gosight/server/internal/store/rulestore"
-	"github.com/aaronlmathis/gosight/server/internal/store/userstore"
 	"github.com/aaronlmathis/gosight/server/internal/tracker"
 	"github.com/aaronlmathis/gosight/server/internal/websocket"
 )
-
-// StoreModule contains all persistent or semi-persistent storage components.
-type StoreModule struct {
-	Metrics metricstore.MetricStore // Time-series metrics (e.g., VictoriaMetrics)
-	Logs    logstore.LogStore       // Structured logs (e.g., journald, /var/log/secure)
-	Users   userstore.UserStore     // User auth, roles, permissions
-	Data    datastore.DataStore     // Hosts, endpoints, agents, etc.
-	Events  eventstore.EventStore   // Event logs, audit, alert events
-	Rules   rulestore.RuleStore     // Alert rules defined by users
-	Actions *routestore.RouteStore  // Routes loaded from alert_routes.yaml
-	Alerts  alertstore.AlertStore   // Alert instances (active, resolved, history)
-}
-
-// TelemetryModule encapsulates telemetry-related state and processing.
-type TelemetryModule struct {
-	Index      *metricindex.MetricIndex // Metric name/dimension catalog
-	Meta       *metastore.MetaTracker   // Tracks source metadata (labels, tags, endpoint info)
-	Evaluator  *rules.Evaluator         // Rule evaluator (metrics → match?)
-	Alerts     *alerts.Manager          // Tracks alert state per rule/endpoint
-	Emitter    *events.Emitter          // Emits events (alerts, system actions)
-	Dispatcher *dispatcher.Dispatcher   // Routes alert events to actions
-}
 
 // SystemContext is passed to all subsystems, providing full access to config, state, and interfaces.
 type SystemContext struct {
 	Ctx     context.Context
 	Cfg     *config.Config
 	Tracker *tracker.EndpointTracker // Tracks endpoint state, uptime, heartbeat
-	Web     *websocket.Hub           // WebSocket hub for live streaming to UI
+	WSHub   *websocket.HubManager
 	Auth    map[string]gosightauth.AuthProvider
 	Stores  *StoreModule
 	Tele    *TelemetryModule
+}
+
+func NewSystemContext(
+	ctx context.Context,
+	cfg *config.Config,
+	tracker *tracker.EndpointTracker,
+	wsHub *websocket.HubManager,
+	authProviders map[string]gosightauth.AuthProvider,
+	stores *StoreModule,
+	telemetry *TelemetryModule,
+) *SystemContext {
+	return &SystemContext{
+		Ctx:     ctx,
+		Cfg:     cfg,
+		Tracker: tracker,
+		WSHub:   wsHub,
+		Auth:    authProviders,
+		Stores:  stores,
+		Tele:    telemetry,
+	}
 }

@@ -60,7 +60,7 @@ func ToFloat64(v interface{}) float64 {
 	case int32:
 		return float64(n)
 	default:
-		utils.Warn("⚠️ ToFloat64: unknown type %T, defaulting to 0", v)
+		utils.Warn("ToFloat64: unknown type %T, defaulting to 0", v)
 		return 0
 	}
 }

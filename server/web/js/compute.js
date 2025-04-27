@@ -549,7 +549,7 @@ function renderPerCoreTable() {
     }
 }
 window.cpuMetricHandler = function (metrics) {
-    //console.log("📡 Received metrics:", metrics);
+    console.log("📡 Received metrics:", metrics);
 
     for (const metric of metrics) {
         if (metric.namespace !== "System") continue;
@@ -660,48 +660,47 @@ window.cpuMetricHandler = function (metrics) {
 
 
             case "system.memory.used_percent":
-                if (metric.dimensions?.source === "physical") {
-                    updateComputeLineChart(memoryLineChart, metric.value, memoryUsageBuffer, "label-memory-percent");
-                    updateMemoryAndSwapStats();
-                }
+                updateComputeLineChart(memoryLineChart, metric.value, memoryUsageBuffer, "label-memory-percent");
+                updateMemoryAndSwapStats();
                 break;
 
             case "system.memory.total":
-                if (metric.dimensions?.source === "swap") {
-                    swapPercentMeta.total = metric.value;
-                    //console.log("🧪 available metric:", metric);
-                    tryUpdateSwapPercent();
-                    updateMemoryAndSwapStats();
-                } else if (metric.dimensions?.source === "physical") {
-                    memoryDonutBuffer.total = metric.value;
-                    updateMemoryDonutChart();
-                    updateMemoryAndSwapStats();
-                }
+                memoryDonutBuffer.total = metric.value;
+                updateMemoryDonutChart();
+                updateMemoryAndSwapStats();
                 break;
 
             case "system.memory.available":
-                if (metric.dimensions?.source === "swap") {
-                    swapPercentMeta.free = metric.value;
-                    //console.log("🧪 available metric:", metric);
-                    tryUpdateSwapPercent();
-                    updateMemoryAndSwapStats();
-                } else if (metric.dimensions?.source === "physical") {
-                    memoryDonutBuffer.available = metric.value;
-                    updateMemoryDonutChart();
-                    updateMemoryAndSwapStats();
-                }
+                memoryDonutBuffer.available = metric.value;
+                updateMemoryDonutChart();
+                updateMemoryAndSwapStats();
                 break;
 
             case "system.memory.used":
-                if (metric.dimensions?.source === "swap") {
-                    swapPercentMeta.used = metric.value;
-                    //tryUpdateSwapPercent(); // optional if you want to use this instead of deriving from total/free
-                } else if (metric.dimensions?.source === "physical") {
-                    memoryMetrics.used = metric.value;
-                    updateMemoryDonutChart();
-                    updateMemoryAndSwapStats();
-                }
+                memoryMetrics.used = metric.value;
+                updateMemoryDonutChart();
+                updateMemoryAndSwapStats();
                 break;
+
+            case "system.memory.swap_total":
+                swapPercentMeta.total = metric.value;
+                tryUpdateSwapPercent();
+                updateMemoryAndSwapStats();
+                break;
+
+            case "system.memory.swap_used":
+                swapPercentMeta.used = metric.value;
+                tryUpdateSwapPercent();
+                updateMemoryAndSwapStats();
+                break;
+
+            case "system.memory.swap_free":
+                swapPercentMeta.free = metric.value;
+                tryUpdateSwapPercent();
+                updateMemoryAndSwapStats();
+                break;
+
+
 
             default:
                 break;
@@ -714,3 +713,9 @@ function initComputeTab() {
 }
 
 registerTabInitializer("compute", initComputeTab);
+window.addEventListener("metrics", ({ detail: payload }) => {
+    if (payload?.metrics && payload?.meta?.endpoint_id?.startsWith("host-")) {
+        // Call your existing function directly:
+        window.cpuMetricHandler(payload.metrics);
+    }
+});

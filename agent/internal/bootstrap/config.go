@@ -93,7 +93,7 @@ func LoadAgentConfig() *config.Config {
 		cfg.Logs.AccessLogFile = *errorLogFile
 	}
 	if *customTags != "" {
-		cfg.Agent.CustomTags = utils.ParseTagString(*customTags)
+		cfg.CustomTags = utils.ParseTagString(*customTags)
 	}
 
 	return cfg

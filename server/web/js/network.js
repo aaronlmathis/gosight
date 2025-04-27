@@ -447,7 +447,7 @@ window.networkMetricHandler = function (metrics) {
             document.getElementById("interface-select").value = iface;
             updateCurrentBandwidthDisplay();
             updateStaticStatCardsFromCache();
-            console.log("🎯 Auto-selected first interface:", iface);
+            console.log("Auto-selected first interface:", iface);
         }
 
         if (iface === selectedInterface) {
@@ -470,7 +470,7 @@ window.networkMetricHandler = function (metrics) {
             } else if (metric.name === "err_out") {
                 document.getElementById("stat-errors-out").textContent = metric.value.toLocaleString();
             }
-            if (!networkTrafficLineChart) return; // ⛔ Prevent crash if metric arrives mid-tab-load
+            if (!networkTrafficLineChart) return; // Prevent crash if metric arrives mid-tab-load
 
             if (iface === selectedInterface && queuedBandwidthSample.tx != null && queuedBandwidthSample.rx != null) {
                 const label = new Date().toLocaleTimeString();
@@ -530,3 +530,10 @@ window.networkMetricHandler = function (metrics) {
     }
 };
 registerTabInitializer("network", initNetworkTab);
+
+window.addEventListener("metrics", ({ detail: payload }) => {
+    if (payload?.metrics && payload?.meta?.endpoint_id?.startsWith("host-")) {
+        // Call your existing function directly:
+        window.networkMetricHandler(payload.metrics);
+    }
+});

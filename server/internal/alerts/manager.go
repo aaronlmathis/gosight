@@ -21,10 +21,10 @@ type Manager struct {
 	emitter    *events.Emitter
 	dispatcher *dispatcher.Dispatcher
 	store      alertstore.AlertStore
-	hub        *websocket.Hub
+	hub        *websocket.AlertsHub
 }
 
-func NewManager(emitter *events.Emitter, dispatcher *dispatcher.Dispatcher, store alertstore.AlertStore, hub *websocket.Hub) *Manager {
+func NewManager(emitter *events.Emitter, dispatcher *dispatcher.Dispatcher, store alertstore.AlertStore, hub *websocket.AlertsHub) *Manager {
 	return &Manager{
 		active:     make(map[string]*model.AlertInstance),
 		emitter:    emitter,
@@ -65,7 +65,7 @@ func (m *Manager) HandleState(
 			_ = m.store.UpsertAlert(ctx, current)
 			// broadcast to websocket clients
 			utils.Debug("ReBroadcasting from alertmgr: %s", current.ID)
-			m.hub.BroadcastAlert(*current)
+			m.hub.Broadcast(*current)
 			// emit alert firing event
 			m.emitAlertFiringEvent(ctx, rule, meta, now)
 
@@ -114,7 +114,7 @@ func (m *Manager) HandleState(
 		_ = m.store.UpsertAlert(ctx, inst)
 
 		// Broadcast to websocket clients
-		m.hub.BroadcastAlert(*inst)
+		m.hub.Broadcast(*inst)
 
 		// emit alert firing event
 		m.emitAlertFiringEvent(ctx, rule, meta, now)
@@ -139,7 +139,7 @@ func (m *Manager) HandleState(
 			_ = m.store.ResolveAlert(ctx, rule.ID, current.Target, now)
 
 			// broadcast to websocket clients
-			m.hub.BroadcastAlert(*current)
+			m.hub.Broadcast(*current)
 		}
 	}
 }
@@ -229,7 +229,7 @@ func (m *Manager) HandleLogState(
 		m.active[k] = inst
 
 		_ = m.store.UpsertAlert(ctx, inst)
-		m.hub.BroadcastAlert(*inst)
+		m.hub.Broadcast(*inst)
 		m.emitLogAlertFiringEvent(ctx, rule, meta, log, now)
 	}
 }

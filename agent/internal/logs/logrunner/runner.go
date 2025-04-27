@@ -15,21 +15,16 @@ import (
 )
 
 type LogRunner struct {
-	Config       *config.Config
-	LogSender    *logsender.LogSender
-	LogRegistry  *logcollector.LogRegistry
-	AgentID      string
-	AgentVersion string
-	runWg        sync.WaitGroup
+	Config      *config.Config
+	LogSender   *logsender.LogSender
+	LogRegistry *logcollector.LogRegistry
+	Meta        *model.Meta
+	runWg       sync.WaitGroup
 }
 
-func NewRunner(ctx context.Context, cfg *config.Config, agentID, agentVersion string) (*LogRunner, error) {
+func NewRunner(ctx context.Context, cfg *config.Config, baseMeta *model.Meta) (*LogRunner, error) {
 
-	logRegistry := logcollector.NewRegistry(cfg) // Assuming NewRegistry initializes collectors like SecurityLogCollector
-
-	// Register collectors - This might happen inside NewRegistry
-	// Example: securityCollector := linuxcollector.NewSecurityLogCollector(cfg)
-	// logRegistry.Register(securityCollector)
+	logRegistry := logcollector.NewRegistry(cfg)
 
 	logSender, err := logsender.NewSender(ctx, cfg)
 	if err != nil {
@@ -39,11 +34,10 @@ func NewRunner(ctx context.Context, cfg *config.Config, agentID, agentVersion st
 	}
 
 	return &LogRunner{
-		Config:       cfg,
-		LogSender:    logSender,
-		LogRegistry:  logRegistry,
-		AgentID:      agentID,
-		AgentVersion: agentVersion,
+		Config:      cfg,
+		LogSender:   logSender,
+		LogRegistry: logRegistry,
+		Meta:        baseMeta,
 	}, nil
 }
 
@@ -74,14 +68,14 @@ func (r *LogRunner) Run(ctx context.Context) {
 	defer r.Close() // Ensure cleanup on exit
 
 	utils.Debug("Initializing LogRunner...")
-	taskQueue := make(chan *model.LogPayload, r.Config.Agent.LogCollection.BufferSize) // Consider making buffer size configurable
+	taskQueue := make(chan *model.LogPayload, r.Config.Agent.LogCollection.BufferSize)
 
 	// Start sender worker pool
 	// Make sure StartWorkerPool handles context cancellation gracefully
 	r.runWg.Add(1)
 	go func() {
 		defer r.runWg.Done()
-		r.LogSender.StartWorkerPool(ctx, taskQueue, r.Config.Agent.LogCollection.Workers) // 10 = num workers, make configurable
+		r.LogSender.StartWorkerPool(ctx, taskQueue, r.Config.Agent.LogCollection.Workers)
 		utils.Debug("Log sender worker pool stopped.")
 	}()
 
@@ -112,9 +106,10 @@ func (r *LogRunner) Run(ctx context.Context) {
 				continue
 			}
 
-			// Build host meta once per collection cycle
-			// It's okay if this is slightly delayed from the actual log timestamp
-			meta := meta.BuildMeta(r.Config, nil, r.AgentID, r.AgentVersion)
+			// clone base meta before modifying it
+			meta := meta.CloneMetaWithTags(r.Meta, nil)
+
+			// Generate Endpoint ID
 			endpointID := utils.GenerateEndpointID(meta)
 			meta.EndpointID = endpointID
 
@@ -128,7 +123,7 @@ func (r *LogRunner) Run(ctx context.Context) {
 
 				// Attach metadata (LogRunner is responsible for the payload structure)
 				payload := &model.LogPayload{
-					AgentID:    r.AgentID,
+					AgentID:    meta.AgentID,
 					HostID:     meta.HostID,
 					Hostname:   meta.Hostname,
 					EndpointID: meta.EndpointID,

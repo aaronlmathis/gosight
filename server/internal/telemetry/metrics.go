@@ -44,7 +44,6 @@ func NewMetricsHandler(sys *sys.SystemContext) *MetricsHandler {
 		Sys: sys,
 	}
 }
-
 func (h *MetricsHandler) SubmitStream(stream pb.MetricsService_SubmitStreamServer) error {
 	for {
 		req, err := stream.Recv()
@@ -59,42 +58,41 @@ func (h *MetricsHandler) SubmitStream(stream pb.MetricsService_SubmitStreamServe
 			return err
 		}
 
-		// Convert payload into a model.MetricPayload.
-		converted := ConvertToModelPayload(req)
+		SafeHandlePayload(func() {
 
-		//utils.Debug("Received metrics from %s", converted.Meta.EndpointID)
+			// Convert payload into a model.MetricPayload.
+			converted := ConvertToModelPayload(req)
 
-		// Check rules
-		h.Sys.Tele.Evaluator.EvaluateMetric(h.Sys.Ctx, converted.Metrics, converted.Meta)
+			// Check rules
+			h.Sys.Tele.Evaluator.EvaluateMetric(h.Sys.Ctx, converted.Metrics, converted.Meta)
 
-		// Update Agent Tracker
-		h.Sys.Tracker.UpdateAgent(converted.Meta)
-		if converted.Meta.ContainerID != "" {
-			h.Sys.Tracker.UpdateContainer(converted.Meta)
-		}
-		// Broadcast to WebSocket clients
-		h.Sys.Web.BroadcastMetric(converted)
+			// Update Agent Tracker
+			h.Sys.Tracker.UpdateAgent(converted.Meta)
 
-		//utils.Debug("Received metrics: %v", converted)
+			if converted.Meta.ContainerID != "" {
+				h.Sys.Tracker.UpdateContainer(converted.Meta)
+			}
+			// Broadcast to WebSocket clients
+			h.Sys.WSHub.Metrics.Broadcast(converted)
 
-		// Enqueue metrics for storage
-		if err := h.Sys.Stores.Metrics.Write([]model.MetricPayload{converted}); err != nil {
-			utils.Warn("Failed to enqueue metrics from %s: %v", converted.EndpointID, err)
-		} else {
-			utils.Info("Enqueued %d metrics from host: %s at %s", len(converted.Metrics), converted.EndpointID, converted.Timestamp)
-
-			if converted.Meta != nil && converted.Meta.EndpointID != "" {
-				// Store the meta information in the MetaTracker
-				h.Sys.Tele.Meta.Set(converted.Meta.EndpointID, *converted.Meta)
+			// Enqueue metrics for storage
+			if err := h.Sys.Stores.Metrics.Write([]model.MetricPayload{converted}); err != nil {
+				utils.Warn("Failed to enqueue metrics from %s: %v", converted.EndpointID, err)
 			} else {
-				utils.Debug("Missing EndpointID — not storing meta")
-			}
+				utils.Info("Enqueued %d metrics from host: %s at %s", len(converted.Metrics), converted.EndpointID, converted.Timestamp)
 
-			for _, m := range converted.Metrics {
-				// Index the metric in the MetricIndex
-				h.Sys.Tele.Index.Add(m.Namespace, m.SubNamespace, m.Name, m.Dimensions)
+				if converted.Meta != nil && converted.Meta.EndpointID != "" {
+					// Store the meta information in the MetaTracker
+					h.Sys.Tele.Meta.Set(converted.Meta.EndpointID, *converted.Meta)
+				} else {
+					utils.Debug("Missing EndpointID — not storing meta")
+				}
 
+				for _, m := range converted.Metrics {
+					// Index the metric in the MetricIndex
+					h.Sys.Tele.Index.Add(m.Namespace, m.SubNamespace, m.Name, m.Dimensions)
+				}
 			}
-		}
+		})
 	}
 }

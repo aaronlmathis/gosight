@@ -236,5 +236,8 @@ func (s *HttpServer) setupAPIRoutes() {
 }
 
 func (s *HttpServer) setupWebSocketRoutes() {
-	s.Router.HandleFunc("/ws/metrics", s.Sys.Web.ServeWS)
+	s.Router.HandleFunc("/ws/metrics", s.Sys.WSHub.Metrics.ServeWS)
+	s.Router.HandleFunc("/ws/alerts", s.Sys.WSHub.Alerts.ServeWS)
+	s.Router.HandleFunc("/ws/events", s.Sys.WSHub.Events.ServeWS)
+	s.Router.HandleFunc("/ws/logs", s.Sys.WSHub.Logs.ServeWS)
 }

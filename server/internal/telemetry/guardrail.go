@@ -19,30 +19,24 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// gosight/agent/internal/bootstrap/web_socket.go
+// Provide safety and stability while accepting untrusted, variable, or user generated data.
+// server/internal/telemetry/guardrail.go
 
-package bootstrap
+package telemetry
 
 import (
-	"context"
+	"runtime/debug"
 
-	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
-	"github.com/aaronlmathis/gosight/server/internal/websocket"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-// InitWebSocketHub initializes the WebSocket hub for the GoSight agent.
-// The WebSocket hub is responsible for managing WebSocket connections and
-// broadcasting messages to connected clients.
-func InitWebSocketHub(ctx context.Context, metaStore *metastore.MetaTracker) *websocket.HubManager {
-
-	// Create a new WebSocket hub manager
-	hubManager := websocket.NewHubManager(metaStore)
-
-	// Start all websocket hubs (alerts, logs, events, metrics) in separate goroutines
-	hubManager.StartAll(ctx)
-	utils.Info("WebSocket hub initialized and running")
-
-	return hubManager
-
+// SafeHandlePayload wraps a handler function to recover from any panics that occur during its execution.
+func SafeHandlePayload(handler func()) {
+	defer func() {
+		if r := recover(); r != nil {
+			stack := debug.Stack()
+			utils.Error("Panic recovered in payload handler: %v\n%s", r, string(stack))
+		}
+	}()
+	handler()
 }

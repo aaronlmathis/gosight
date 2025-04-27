@@ -3,6 +3,7 @@ package httpserver
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -68,11 +69,29 @@ func (s *HttpServer) HandleEventsAPI(w http.ResponseWriter, r *http.Request) {
 			filter.End = &t
 		}
 	}
+	if v := q.Get("sort"); v != "" {
+		filter.SortOrder = v
+	}
 
 	results, err := s.Sys.Stores.Events.QueryEvents(filter)
 	if err != nil {
 		http.Error(w, "Failed to query events", http.StatusInternalServerError)
 		return
+	}
+	if filter.SortOrder == "asc" {
+		// Sort by ascending Timestamp
+		sort.Slice(results, func(i, j int) bool {
+			return results[i].Timestamp.Before(results[j].Timestamp)
+		})
+	} else if filter.SortOrder == "desc" {
+		// Sort by descending Timestamp
+		sort.Slice(results, func(i, j int) bool {
+			return results[i].Timestamp.After(results[j].Timestamp)
+		})
+	}
+
+	if results == nil {
+		results = []model.EventEntry{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

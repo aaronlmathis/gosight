@@ -37,11 +37,11 @@ import (
 // It provides a method to emit events with various attributes such as level, category, message, source, and metadata.
 type Emitter struct {
 	Store eventstore.EventStore
-	hub   *websocket.Hub
+	hub   *websocket.EventsHub
 }
 
 // NewEmitter creates a new Emitter instance with the provided event store.
-func NewEmitter(store eventstore.EventStore, hub *websocket.Hub) *Emitter {
+func NewEmitter(store eventstore.EventStore, hub *websocket.EventsHub) *Emitter {
 	return &Emitter{
 		Store: store,
 		hub:   hub,
@@ -59,7 +59,7 @@ func (e *Emitter) Emit(ctx context.Context, event model.EventEntry) {
 
 	if e.hub != nil {
 		utils.Debug("Emmitter broadcasting event: %s", event.ID)
-		e.hub.BroadcastEvent(event)
+		e.hub.Broadcast(event)
 	}
 	e.Store.AddEvent(ctx, event)
 }

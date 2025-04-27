@@ -1,0 +1,784 @@
+// metric-explorer.js
+import { gosightFetch } from "./api.js";
+
+let allMetrics = []; // Full list of { label, namespace, subnamespace, name }
+let tagSuggestions = {}; // key:tag, value:Set of values
+const selectedFilters = {}; // key => value
+const chartMap = {}; // key: metric.label → ApexCharts instance
+
+// New 
+const chartSlots = [];  // tracks charts per slot
+const selectedMetrics = [];  // tracks all added metrics
+// end new
+window.addEventListener("DOMContentLoaded", async () => {
+    // New
+    const NUM_INITIAL_SLOTS = 3; // You can increase this later 
+
+    for (let i = 0; i < NUM_INITIAL_SLOTS; i++) {
+        addChartSlot(i);
+    }
+    // end new
+    /*const NUM_STARTING_SLOTS = 4;
+
+    for (let i = 0; i < NUM_STARTING_SLOTS; i++) {
+        const slot = document.createElement("div");
+        slot.id = `chart-slot-${i}`;
+        slot.className = "rounded border-2 border-dashed border-gray-300 dark:border-gray-700 p-4 flex items-center justify-center h-[250px] bg-white dark:bg-gray-900 text-gray-400 cursor-pointer hover:border-blue-400";
+        slot.innerHTML = `<span class="text-sm">+ New Chart</span>`;
+        document.getElementById("metric-panels").appendChild(slot);
+    } */
+    const metricInput = document.getElementById("metric-search");
+    const suggestionsEl = document.getElementById("metric-suggestions");
+    const selectedEl = document.getElementById("selected-metrics");
+    const tagInput = document.getElementById("tag-search");
+    const tagSuggestionsEl = document.getElementById("tag-suggestions");
+    document.getElementById("group-by").addEventListener("change", loadData);
+    const timeRange = document.getElementById("time-series")?.value || "1h";
+    document.getElementById("aggregate").addEventListener("change", loadData);
+    document.getElementById("group-by").addEventListener("change", loadData);
+    document.getElementById("refresh-btn")?.addEventListener("click", loadData);
+    document.getElementById("period").addEventListener("change", loadData);
+    document.getElementById("layout-cols")?.addEventListener("input", () => {
+        const cols = parseInt(document.getElementById("layout-cols").value) || 2;
+        const panels = document.getElementById("metric-panels");
+
+        // only update small screen behavior
+        panels.classList.remove("grid-cols-1", "grid-cols-2", "grid-cols-3", "grid-cols-4", "grid-cols-5", "grid-cols-6");
+        panels.classList.add(`grid-cols-${cols}`);
+    });
+
+
+    const namespaces = await (await gosightFetch("/api/v1/")).json();
+    for (const ns of namespaces) {
+        const subs = await (await gosightFetch(`/api/v1/${ns}`)).json();
+        for (const sub of subs) {
+            const metrics = await (await gosightFetch(`/api/v1/${ns}/${sub}`)).json();
+            for (const m of metrics) {
+                allMetrics.push({
+                    label: m,
+                    namespace: ns,
+                    subnamespace: sub,
+                    name: m.split(".").pop(),
+                });
+            }
+        }
+    }
+
+    metricInput.addEventListener("input", () => {
+        const q = metricInput.value.trim().toLowerCase();
+        suggestionsEl.innerHTML = "";
+        if (q.length < 2) {
+            suggestionsEl.innerHTML = ""; // Clear box on short query
+            return;
+        }
+
+        const filtered = allMetrics.filter(m => m.label.includes(q)).slice(0, 10);
+        let currentGroup = "";
+
+        for (const metric of filtered) {
+            const group = `${metric.namespace}.${metric.subnamespace}`;
+            if (group !== currentGroup) {
+                const groupHeader = document.createElement("div");
+                groupHeader.className = "text-xs font-semibold mt-2 text-gray-500 dark:text-gray-400";
+                groupHeader.textContent = group;
+                suggestionsEl.appendChild(groupHeader);
+                currentGroup = group;
+            }
+
+            const item = document.createElement("div");
+            item.className = "cursor-pointer px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded";
+            item.textContent = metric.label;
+            item.addEventListener("click", () => {
+                addSelectedMetric(metric);
+                metricInput.value = "";
+                suggestionsEl.innerHTML = "";
+            });
+            suggestionsEl.appendChild(item);
+        }
+    });
+    /*
+        function addSelectedMetric(metric) {
+            // Find the first empty slot
+            const panels = document.querySelectorAll("#metric-panels > div");
+            let target = null;
+    
+            for (const panel of panels) {
+                if (!panel.dataset.metric) {
+                    target = panel;
+                    break;
+                }
+            }
+    
+            if (!target) {
+                // No empty slots — add a new one
+                target = document.createElement("div");
+                target.className = "rounded border p-2 bg-white dark:bg-gray-900";
+                document.getElementById("metric-panels").appendChild(target);
+            }
+    
+            const chartId = `chart-${metric.label}`;
+            target.id = chartId;
+            target.dataset.metric = metric.label;
+            target.innerHTML = ""; // clear the placeholder
+    
+            const pill = document.createElement("span");
+            pill.className = "inline-flex items-center bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-1 rounded-full text-xs mr-1 mb-1";
+            pill.textContent = metric.label;
+    
+            const remove = document.createElement("button");
+            remove.className = "ml-2 text-blue-500 hover:text-red-500 text-sm";
+            remove.innerHTML = "&times;";
+            remove.addEventListener("click", () => {
+                delete chartMap[metric.label];
+                target.dataset.metric = "";
+                target.innerHTML = `<span class="text-sm text-gray-400">+ New Chart</span>`;
+                target.className = "rounded border-2 border-dashed border-gray-300 dark:border-gray-700 p-4 flex items-center justify-center h-[250px] bg-white dark:bg-gray-900 text-gray-400 cursor-pointer hover:border-blue-400";
+            });
+    
+            pill.appendChild(remove);
+            document.getElementById("selected-metrics").appendChild(pill);
+    
+            renderChartPanel(metric, target);
+            loadData();
+        }
+    */
+    // New
+    function addChartSlot(index) {
+        const slot = document.createElement("div");
+        slot.id = `chart-slot-${index}`;
+        slot.setAttribute("draggable", "true");
+
+        slot.className = "transition-all duration-300 ease-in-out rounded border-2 border-dashed border-gray-300 dark:border-gray-700 p-4 bg-white dark:bg-gray-900 text-gray-400 cursor-move hover:border-blue-400";
+
+        if (index === 0) {
+            slot.classList.add("col-span-2"); // full width across the 2-grid slot
+        } else {
+            slot.classList.add("col-span-1"); // side-by-side in 2 columns
+        }
+
+
+        slot.innerHTML = `<span class="text-sm">+ New Chart</span>`;
+        document.getElementById("metric-panels").appendChild(slot);
+
+        // DRAG/DROP EVENTS
+        slot.addEventListener("dragstart", (e) => {
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", slot.id);
+            slot.classList.add("opacity-50");
+        });
+
+        slot.addEventListener("dragend", (e) => {
+            slot.classList.remove("opacity-50");
+        });
+
+        slot.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move"; // 🔥 this line too
+            slot.classList.add("border-blue-500");
+        });
+
+        slot.addEventListener("dragleave", (e) => {
+            slot.classList.remove("border-blue-500");
+        });
+
+        slot.addEventListener("drop", (e) => {
+            e.preventDefault();
+            slot.classList.remove("border-blue-500");
+
+            const draggedId = e.dataTransfer.getData("text/plain");
+            const draggedEl = document.getElementById(draggedId);
+
+            if (draggedEl) {
+                const parent = slot.parentNode;
+                parent.insertBefore(draggedEl, slot);
+                rebalanceChartSlots();
+            }
+        });
+        slot.addEventListener("drop", (e) => {
+            e.preventDefault();
+            slot.classList.remove("border-blue-500");
+
+            const draggedId = e.dataTransfer.getData("text/plain");
+            const draggedEl = document.getElementById(draggedId);
+
+            if (draggedEl && draggedEl !== slot) {
+                const parent = slot.parentNode;
+
+                // Move the dragged element BEFORE the current slot
+                parent.insertBefore(draggedEl, slot);
+
+                // Reorder chartSlots array to match new DOM order
+                const newOrder = Array.from(parent.children).map(el => el.id);
+                chartSlots.sort((a, b) => {
+                    return newOrder.indexOf(a.id) - newOrder.indexOf(b.id);
+                });
+
+                // Reassign slot indexes
+                rebalanceChartSlots();
+
+                // Reload chart if needed
+                loadData();
+            }
+        });
+        chartSlots.push({ id: slot.id, metrics: [], chart: null });
+    }
+    function rebalanceChartSlots() {
+        const panels = document.querySelectorAll("#metric-panels > div");
+        panels.forEach((panel, idx) => {
+            panel.classList.remove("col-span-2", "col-span-1");
+            panel.classList.add(idx === 0 ? "col-span-2" : "col-span-1");
+        });
+    }
+    function addSelectedMetric(metric) {
+        const pill = document.createElement("span");
+        pill.className = "inline-flex items-center bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-1 rounded-full text-xs mr-1 mb-1";
+        pill.textContent = metric.label;
+
+        const remove = document.createElement("button");
+        remove.className = "ml-2 text-blue-500 hover:text-red-500 text-sm";
+        remove.innerHTML = "&times;";
+        remove.addEventListener("click", () => {
+            pill.remove();
+            const idx = selectedMetrics.findIndex(m => m.label === metric.label);
+            if (idx !== -1) selectedMetrics.splice(idx, 1);
+            const slot = document.getElementById(`chart-slot-${idx}`);
+            if (slot) slot.remove();
+            chartSlots.splice(idx, 1);
+            rebalanceChartSlots();
+            loadData();
+        });
+
+        pill.appendChild(remove);
+        document.getElementById("selected-metrics").appendChild(pill);
+
+        selectedMetrics.push(metric);
+
+
+
+        loadData();
+    }
+    async function fetchAndRenderSingleChart(url, panel, metric) {
+        try {
+            const res = await gosightFetch(url);
+            const data = await res.json();
+            if (!data || !Array.isArray(data)) return;
+
+            const groupKey = document.getElementById("group-by")?.value || "";
+            const agg = document.getElementById("aggregate")?.value || "";
+
+            const series = buildSeries(data, groupKey, agg);
+
+            if (!panel.chart) {
+                renderUnifiedChartPanel(panel.id, panel, series);
+            } else {
+                panel.chart.updateSeries(series);
+            }
+        } catch (err) {
+            console.error(`Failed to load metric ${metric.label}`, err);
+        }
+    }
+
+    // end new
+    await loadEndpointTagSuggestions();
+
+    document.getElementById("from-filter-input").addEventListener("input", (e) => {
+        const query = e.target.value.trim().toLowerCase();
+        const box = document.getElementById("from-suggestions");
+        box.innerHTML = "";
+
+        if (!query || query.length < 2) {
+            box.classList.add("hidden");
+            return;
+        }
+
+        const allEntries = [];
+
+        for (const [key, values] of Object.entries(tagSuggestions)) {
+            for (const val of values) {
+                if (!val) continue;
+                allEntries.push({ key, val });
+            }
+        }
+
+        const matches = allEntries.filter(({ key, val }) => {
+            return `${key}:${val}`.toLowerCase().includes(query);
+        });
+
+        if (matches.length === 0) {
+            box.classList.add("hidden");
+            return;
+        }
+
+        box.classList.remove("hidden");
+        box.style.maxHeight = "240px";
+        box.style.overflowY = "auto";
+
+        matches.slice(0, 10).forEach(({ key, val }) => {
+            const item = document.createElement("div");
+            item.className = "px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm whitespace-nowrap";
+            item.textContent = `${key}:${val}`;
+            item.onclick = () => {
+                addSelectedFilter(key, val);
+                box.classList.add("hidden");
+                document.getElementById("from-filter-input").value = "";
+            };
+            box.appendChild(item);
+        });
+    });
+
+
+    function addSelectedFilter(key, val) {
+        const id = `${key}:${val}`;
+        if (selectedFilters[id]) return;
+        selectedFilters[id] = true;
+
+        const container = document.getElementById("from-selected");
+        const chip = document.createElement("span");
+        chip.className = "inline-flex items-center bg-gray-200 dark:bg-gray-800 text-xs rounded px-2 py-1";
+        chip.innerHTML = `${key}:${val} <button class="ml-1 text-red-500 hover:text-red-700">&times;</button>`;
+
+        chip.querySelector("button").onclick = () => {
+            delete selectedFilters[id];
+            chip.remove();
+        };
+
+        container.appendChild(chip);
+        loadData();
+
+    }
+    async function loadEndpointTagSuggestions() {
+        const hosts = await gosightFetch("/api/v1/endpoints/hosts").then(res => res.json());
+        const containers = await gosightFetch("/api/v1/endpoints/containers").then(res => res.json());
+        const endpoints = [...hosts, ...containers];
+
+        tagSuggestions = {}; // clear
+        const blacklist = new Set(["agent_start_time", "_cmdline", "_uid", "_exe"]);
+
+        for (const ep of endpoints) {
+            const tags = { ...ep.labels };
+
+            // Patch missing top-level fields like in old working code
+            if (ep.Hostname) tags["hostname"] = ep.Hostname;
+            if (ep.Name) tags["container_name"] = ep.Name;
+            if (ep.container_name) tags["container_name"] = ep.container_name;
+            if (ep.EndpointID) tags["endpoint_id"] = ep.EndpointID;
+            if (ep.ImageName) tags["image_name"] = ep.ImageName;
+
+            for (const [rawKey, val] of Object.entries(tags)) {
+                const k = rawKey.toLowerCase();  // Important: normalize case
+                if (!val || blacklist.has(k)) continue;
+                if (!tagSuggestions[k]) tagSuggestions[k] = new Set();
+                tagSuggestions[k].add(val);
+            }
+        }
+
+        console.log("📦 Loaded tagSuggestions:", tagSuggestions);
+    }
+
+
+
+
+    function buildSeries(dataArray, groupKey, agg) {
+        if (!groupKey && !agg) {
+            const groups = {};
+
+            for (const d of dataArray) {
+                const id = d.tags?.endpoint_id || d.tags?.instance || d.tags?.hostname || "unknown";
+                if (!groups[id]) groups[id] = [];
+                groups[id].push([d.timestamp, d.value]);
+            }
+
+            return Object.entries(groups).map(([name, data]) => ({ name, data }));
+        }
+        const groupMap = {};
+
+        for (const point of dataArray) {
+            const groupValue = groupKey && point.tags?.[groupKey]
+                ? point.tags[groupKey]
+                : "unknown";
+
+            const ts = point.timestamp;
+            const val = point.value;
+
+            if (!groupMap[groupValue]) {
+                groupMap[groupValue] = {};
+            }
+
+            if (!groupMap[groupValue][ts]) {
+                groupMap[groupValue][ts] = [];
+            }
+
+            groupMap[groupValue][ts].push(val);
+        }
+
+        const result = [];
+
+        for (const [group, tsMap] of Object.entries(groupMap)) {
+            const series = [];
+
+            for (const [ts, values] of Object.entries(tsMap)) {
+                const timestamp = parseInt(ts);
+                let value = 0;
+
+                if (!agg || agg === "") {
+                    // Default: average values in group
+                    value = values.reduce((a, b) => a + b, 0) / values.length;
+                } else {
+                    switch (agg) {
+                        case "sum": value = values.reduce((a, b) => a + b, 0); break;
+                        case "avg": value = values.reduce((a, b) => a + b, 0) / values.length; break;
+                        case "min": value = Math.min(...values); break;
+                        case "max": value = Math.max(...values); break;
+                        case "stddev":
+                            const mean = values.reduce((a, b) => a + b, 0) / values.length;
+                            const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length;
+                            value = Math.sqrt(variance);
+                            break;
+                    }
+                }
+
+                series.push([timestamp, value]);
+            }
+
+            result.push({ name: group, data: series });
+        }
+
+        return result;
+    }
+    /*
+        async function loadData() {
+            console.log("loadData() triggered");
+    
+            const metricLabels = Array.from(document.querySelectorAll("#selected-metrics span"))
+                .map(el => el.textContent.trim().replace("×", "").trim());
+    
+            console.log("Selected metrics:", metricLabels);
+    
+            if (metricLabels.length === 0) {
+                console.log("No metrics selected; exiting loadData.");
+                return;
+            }
+    
+            const groupKey = document.getElementById("group-by")?.value || "";
+            const agg = document.getElementById("aggregate")?.value || "";
+            const timeRange = document.getElementById("time-range")?.value || "1h";
+    
+            const now = new Date();
+            let startDate = new Date(now);
+    
+            if (timeRange.endsWith("m")) startDate.setMinutes(now.getMinutes() - parseInt(timeRange));
+            else if (timeRange.endsWith("h")) startDate.setHours(now.getHours() - parseInt(timeRange));
+            else if (timeRange.endsWith("d")) startDate.setDate(now.getDate() - parseInt(timeRange));
+            else startDate.setHours(now.getHours() - 1);
+    
+            const start = startDate.toISOString();
+            const end = now.toISOString();
+    
+            const tagFilter = Object.keys(selectedFilters)
+                .map(f => f.replace(":", "="))
+                .join(",");
+    
+            console.log("Building API queries with time range", start, "→", end, "and tags:", tagFilter);
+            const period = document.getElementById("period")?.value || "15s";
+            for (const metric of metricLabels) {
+                const url = `/api/v1/query?metric=${encodeURIComponent(metric)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&step=${encodeURIComponent(period)}` +
+                    (tagFilter ? `&tags=${encodeURIComponent(tagFilter)}` : "");
+    
+    
+                console.log("Fetching URL:", url);
+    
+                try {
+                    const res = await gosightFetch(url);
+                    const data = await res.json();
+                    console.log("Received data for", metric, data);
+    
+                    const series = buildSeries(data, groupKey, agg);
+                    const chart = chartMap[metric];
+                    if (chart) {
+                        console.log("💡 Calling updateSeries for", metric, series);
+                        console.log("Rendering:", metric.label, series);
+    
+                        chart.updateSeries(series);
+    
+                    }
+    
+                    if (chart) chart.updateSeries(series);
+                } catch (err) {
+                    console.error("Failed to load metric", metric, err);
+                }
+            }
+        }
+    */
+    // New
+    async function loadData() {
+        for (let i = 0; i < selectedMetrics.length; i++) {
+            const slot = chartSlots[i];
+            const metric = selectedMetrics[i];
+
+            if (!slot) continue;
+
+            const panel = document.getElementById(slot.id);
+
+            // Fetch data for just that metric
+            const now = new Date();
+            const startDate = new Date(now);
+            const timeRange = document.getElementById("time-series")?.value || "1h";
+
+            if (timeRange.endsWith("m")) startDate.setMinutes(now.getMinutes() - parseInt(timeRange));
+            else if (timeRange.endsWith("h")) startDate.setHours(now.getHours() - parseInt(timeRange));
+            else if (timeRange.endsWith("d")) startDate.setDate(now.getDate() - parseInt(timeRange));
+
+            const start = startDate.toISOString();
+            const end = now.toISOString();
+            const period = document.getElementById("period")?.value || "15s";
+
+            const tagFilter = Object.keys(selectedFilters)
+                .map(f => f.replace(":", "="))
+                .join(",");
+
+            const url = `/api/v1/query?metric=${encodeURIComponent(metric.label)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&step=${encodeURIComponent(period)}` +
+                (tagFilter ? `&tags=${encodeURIComponent(tagFilter)}` : "");
+
+            fetchAndRenderSingleChart(url, panel, metric);
+        }
+
+    }
+
+    // end new
+
+    // New
+    function renderUnifiedChartPanel(slotId, panel, initialSeries) {
+        panel.innerHTML = "";
+
+        // DO NOT overwrite the whole className!
+        panel.classList.remove("border-dashed", "border-gray-300", "dark:border-gray-700", "flex", "items-center", "justify-center", "text-gray-400", "cursor-pointer", "hover:border-blue-400");
+        panel.classList.add("border", "p-2", "bg-white", "dark:bg-gray-900");
+
+        const chart = new ApexCharts(panel, {
+            chart: {
+                id: `chart-${slotId}`,
+                type: "area",
+                height: 250,
+                stacked: false,
+                zoom: {
+                    type: "x",
+                    enabled: true,
+                    autoScaleYaxis: true
+                },
+                toolbar: {
+                    autoSelected: "zoom"
+                }
+            },
+            stroke: { curve: "smooth", width: 2 },
+            fill: {
+                type: "gradient",
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.4,
+                    opacityTo: 0,
+                    stops: [0, 90, 100]
+                }
+            },
+            dataLabels: { enabled: false },
+            markers: { size: 0 },
+            xaxis: {
+                type: "datetime",
+                labels: {
+                    format: "MMM dd",
+                    datetimeFormatter: {
+                        day: "MMM dd",
+                        hour: "HH:mm",
+                        minute: "HH:mm"
+                    }
+                }
+            },
+            yaxis: {
+                labels: {
+                    formatter: val => val.toFixed(2)
+                },
+                title: { text: "Value" }
+            },
+            tooltip: {
+                shared: false,
+                intersect: false,
+                x: { format: "MMM dd HH:mm" },
+                y: { formatter: val => val.toFixed(2) }
+            },
+            theme: {
+                mode: document.documentElement.classList.contains("dark") ? "dark" : "light"
+            },
+            legend: {
+                position: getValidLegendPosition()
+            },
+            series: initialSeries
+        });
+
+        chart.render();
+        chartSlots[0].chart = chart;
+    }
+    function getValidLegendPosition() {
+        const allowed = ["top", "bottom", "left", "right"];
+        const dropdown = document.getElementById("legend");
+        if (!dropdown) return "bottom";
+
+        const selected = dropdown.value.trim().toLowerCase();
+        return allowed.includes(selected) ? selected : "bottom";
+    }
+    // End New
+    function showChartError(metric, message) {
+        const panel = document.getElementById(`chart-${metric}`);
+        if (!panel || !panel.chart) return;
+
+        panel.chart.updateSeries([]);
+        panel.chart.updateOptions({
+            noData: {
+                text: message || "Error loading data",
+                style: {
+                    color: "#f87171", // Tailwind red-400
+                    fontSize: '14px',
+                }
+            }
+        });
+    }
+    function renderChartPanel(metric, panel) {
+
+        panel.className = "rounded border p-2 bg-white dark:bg-gray-900";
+
+        const chart = new ApexCharts(panel, {
+            chart: {
+                type: "area",
+                height: 250,
+                zoom: {
+                    type: "x",
+                    enabled: true,
+                    autoScaleYaxis: true
+                },
+                toolbar: {
+                    autoSelected: "zoom",
+                    tools: {
+                        zoom: true,
+                        zoomin: true,
+                        zoomout: true,
+                        pan: true,
+                        reset: true
+                    }
+                }
+            },
+            stroke: {
+                curve: "smooth",
+                width: 2
+            },
+            fill: {
+                type: "gradient",
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.4,
+                    opacityTo: 0,
+                    stops: [0, 90, 100]
+                }
+            },
+            dataLabels: {
+                enabled: false
+            },
+            markers: {
+                size: 0
+            },
+            title: {
+                text: metric.label,
+                align: "left",
+                style: {
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    color: "#263238"
+                }
+            },
+            xaxis: {
+                type: "datetime",
+                labels: {
+                    format: "MMM dd",
+                    datetimeFormatter: {
+                        month: "MMM 'yy",
+                        day: "dd MMM",
+                        hour: "HH:mm",
+                        minute: "HH:mm"
+                    }
+                }
+            },
+            yaxis: {
+                labels: {
+                    formatter: val => val.toFixed(2)
+                },
+                title: {
+                    text: "Value"
+                }
+            },
+            tooltip: {
+                shared: false,
+                intersect: false, // snap to closest line point
+                x: {
+                    format: "MMM dd HH:mm"
+                },
+                y: {
+                    formatter: val => val.toFixed(2)
+                }
+            },
+            theme: {
+                mode: document.documentElement.classList.contains("dark") ? "dark" : "light"
+            },
+            noData: {
+                text: "Loading..."
+            },
+            series: []
+        });
+
+        panel.chart = chart;
+        chartMap[metric.label] = chart;
+        chart.render();
+    }
+
+
+    document.getElementById("clear-metrics-btn").addEventListener("click", () => {
+        const selectedEl = document.getElementById("selected-metrics");
+        selectedEl.innerHTML = "";
+
+        // Remove all chart panels
+        const panels = document.getElementById("metric-panels");
+        panels.innerHTML = "";
+
+        // Clear chartMap
+        for (const key in chartMap) {
+            delete chartMap[key];
+        }
+
+        console.log("Cleared all selected metrics and charts.");
+
+        // Optionally: clear filters too
+        // selectedFilters = {}; 
+        // document.getElementById("from-selected").innerHTML = "";
+
+        loadData(); // trigger re-load (no metrics selected now)
+    });
+    document.getElementById("graph-type").addEventListener("change", (e) => {
+        const type = e.target.value || "line";
+
+        for (const chart of Object.values(chartMap)) {
+            chart.updateOptions({
+                chart: { type }
+            });
+        }
+
+        console.log("🎨 Updated graph type to:", type);
+    });
+
+    document.getElementById("legend").addEventListener("change", (e) => {
+        const pos = e.target.value || "bottom";
+
+        for (const chart of Object.values(chartMap)) {
+            chart.updateOptions({
+                legend: { position: pos }
+            });
+        }
+
+        console.log("🧭 Updated legend position to:", pos);
+    });
+});

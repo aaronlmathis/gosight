@@ -56,7 +56,7 @@ func BuildMeta(cfg *config.Config, addTags map[string]string, agentID, agentVers
 		hostInfo = &host.InfoStat{}
 	}
 
-	tags := utils.MergeMaps(cfg.Agent.CustomTags, addTags)
+	tags := utils.MergeMaps(cfg.CustomTags, addTags)
 
 	meta := &model.Meta{
 		AgentID:              agentID,
@@ -78,6 +78,22 @@ func BuildMeta(cfg *config.Config, addTags map[string]string, agentID, agentVers
 	}
 
 	return meta
+}
+
+// CloneMetaWithTags returns a shallow copy of the base Meta
+// but optionally overrides or adds new Tags.
+func CloneMetaWithTags(base *model.Meta, extraTags map[string]string) *model.Meta {
+	if base == nil {
+		return nil
+	}
+
+	// Shallow copy the struct
+	clone := *base
+
+	// Deep copy and merge the Tags map
+	clone.Tags = utils.MergeMaps(base.Tags, extraTags)
+
+	return &clone
 }
 
 // BuildContainerMeta builds a container-specific meta object
@@ -102,7 +118,7 @@ func BuildContainerMeta(cfg *config.Config, addTags map[string]string, agentID, 
 		hostInfo = &host.InfoStat{}
 	}
 
-	tags := utils.MergeMaps(cfg.Agent.CustomTags, addTags)
+	tags := utils.MergeMaps(cfg.CustomTags, addTags)
 
 	return &model.Meta{
 		AgentID:              agentID,
