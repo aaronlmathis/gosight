@@ -48,6 +48,80 @@ func NewPGAlertStore(db *sql.DB) *PGAlertStore {
 	return &PGAlertStore{db: db}
 }
 
+func (s *PGAlertStore) ListAlerts(ctx context.Context) ([]model.AlertInstance, error) {
+	query := `
+        SELECT 
+            id,
+            rule_id,
+            state,
+            previous,
+            scope,
+            target,
+            first_fired,
+            last_fired,
+            last_ok,
+            resolved_at,
+            last_value,
+            level,
+            message,
+            labels
+        FROM alerts
+        ORDER BY last_fired DESC
+    `
+	rows, err := s.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var alerts []model.AlertInstance
+
+	for rows.Next() {
+		var a model.AlertInstance
+		var resolvedAt sql.NullTime
+		var labelsBytes []byte
+
+		err := rows.Scan(
+			&a.ID,
+			&a.RuleID,
+			&a.State,
+			&a.Previous,
+			&a.Scope,
+			&a.Target,
+			&a.FirstFired,
+			&a.LastFired,
+			&a.LastOK,
+			&resolvedAt,
+			&a.LastValue,
+			&a.Level,
+			&a.Message,
+			&labelsBytes,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if resolvedAt.Valid {
+			a.ResolvedAt = &resolvedAt.Time
+		}
+
+		// Unmarshal JSON labels into map
+		if len(labelsBytes) > 0 {
+			if err := json.Unmarshal(labelsBytes, &a.Labels); err != nil {
+				return nil, err
+			}
+		}
+
+		alerts = append(alerts, a)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return alerts, nil
+}
+
 // UpsertAlert inserts or updates an alert instance in the database.
 func (s *PGAlertStore) UpsertAlert(ctx context.Context, a *model.AlertInstance) error {
 	if a.ID == "" {

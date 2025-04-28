@@ -119,6 +119,7 @@ func (s *HttpServer) templateFuncs() template.FuncMap {
 		"hasPermission": func(_, _ interface{}) bool { return true }, // stub or hook
 		"safeHTML":      func(s string) template.HTML { return template.HTML(s) },
 		"title":         cases.Title(language.English).String,
+		"marshal":       templates.Marshal,
 		"toJson": func(v interface{}) template.JS {
 			b, _ := json.Marshal(v)
 			return template.JS(b)

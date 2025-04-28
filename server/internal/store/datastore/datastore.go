@@ -42,6 +42,15 @@ type DataStore interface {
 	GetContainerByID(ctx context.Context, id string) (*model.Container, error)
 	ListContainers(ctx context.Context) ([]*model.Container, error)
 
+	// Tag methods
+	GetTags(ctx context.Context, endpointID string) (map[string]string, error)
+	SetTags(ctx context.Context, endpointID string, tags map[string]string) error
+	DeleteTag(ctx context.Context, endpointID, key string) error
+	ListTags(ctx context.Context, endpointID string) (map[string]string, error)
+
+	ListKeys(ctx context.Context) ([]string, error)
+	ListValues(ctx context.Context, key string) ([]string, error)
+
 	// Lifecycle
 	Close() error
 }

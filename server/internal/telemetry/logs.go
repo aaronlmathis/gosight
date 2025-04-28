@@ -35,15 +35,31 @@ func (h *LogsHandler) SubmitStream(stream pb.LogService_SubmitStreamServer) erro
 			return err
 		}
 		SafeHandlePayload(func() {
-			payload := ConvertToModelLogPayload(pbPayload)
-			// Check rulesrunser
-			h.Sys.Tele.Evaluator.EvaluateLogs(h.Sys.Ctx, payload.Logs, payload.Meta)
+			converted := ConvertToModelLogPayload(pbPayload)
 
-			h.Sys.WSHub.Logs.Broadcast(payload)
-			if err := h.Sys.Stores.Logs.Write([]model.LogPayload{payload}, stream.Context()); err != nil {
-				utils.Error("Failed to store logs from host %s: %v", payload.EndpointID, err)
+			// Enrich Meta.Tags with custom tags from datastore
+			if converted.Meta != nil && converted.Meta.EndpointID != "" {
+				tags, err := h.Sys.Stores.Data.GetTags(stream.Context(), converted.Meta.EndpointID)
+				if err == nil {
+					if converted.Meta.Tags == nil {
+						converted.Meta.Tags = make(map[string]string)
+					}
+					for k, v := range tags {
+						if _, exists := converted.Meta.Tags[k]; !exists {
+							converted.Meta.Tags[k] = v
+						}
+					}
+				}
+			}
+
+			// Check rulesrunser
+			h.Sys.Tele.Evaluator.EvaluateLogs(h.Sys.Ctx, converted.Logs, converted.Meta)
+
+			h.Sys.WSHub.Logs.Broadcast(converted)
+			if err := h.Sys.Stores.Logs.Write([]model.LogPayload{converted}, stream.Context()); err != nil {
+				utils.Error("Failed to store logs from host %s: %v", converted.EndpointID, err)
 			} else {
-				utils.Debug("Stored %d logs from host: %s at %s", len(payload.Logs), payload.EndpointID, payload.Timestamp)
+				utils.Debug("Stored %d logs from host: %s at %s", len(converted.Logs), converted.EndpointID, converted.Timestamp)
 			}
 		})
 	}

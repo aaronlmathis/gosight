@@ -18,55 +18,51 @@
 </h1>
 <div class="flex items-center justify-between text-sm mb-4">
     <div class="flex items-center space-x-3">
-        <span class="text-green-500 font-medium">● Online</span>
-        <span class="text-gray-500 dark:text-gray-400">Last report: 3m ago</span>
-        <span
-            class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">prod</span>
-        <span
-            class="bg-gray-100 text-gray-800 text-xs font-semibold px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-white">k8s</span>
+        <span id="online-status" class="text-green-500 font-medium">● Online</span>
+        <span id="last-report" class="text-gray-500 dark:text-gray-400">Last report: 3m ago</span>
+
+        <!-- DYNAMIC TAG BADGES GO HERE -->
+        <div id="tag-badges" class="flex flex-wrap items-center gap-2"></div>
+
+        {{ template "partials/modal_add_tag" . }}
     </div>
-    <button class="text-sm text-blue-500 hover:underline">↻ Refresh</button>
 </div>
 <!-- Host Summary Inline Row (Responsive) -->
-<div class="flex flex-wrap items-center gap-2 mt-2 text-sm text-gray-700 dark:text-gray-300">
+<div class="flex flex-wrap  gap-2 mt-2 text-sm text-gray-900 dark:text-gray-300">
 
     <!-- Uptime -->
-    <div
-        class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+    <div class="flex items-center gap-1  px-3 py-1.5 ">
         <i class="fa-solid fa-clock text-blue-500 text-xs"></i>
         <span class="font-medium">Uptime:</span>
         <span id="uptime"></span>
     </div>
 
     <!-- Processes -->
-    <div
-        class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
-        <i class="fa-solid fa-microchip text-green-500 text-xs"></i>
+    <div class="flex items-center gap-1 px-3 py-1.5">
+        <i class=" fa-solid fa-microchip text-green-500 text-xs"></i>
         <span class="font-medium">Procs:</span>
         <span id="procs"></span>
     </div>
 
     <!-- Logged-in Users -->
-    <div
-        class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+    <div class="flex items-center gap-1  px-3 py-1.5">
         <i class="fa-solid fa-user-group text-yellow-500 text-xs"></i>
         <span class="font-medium">Users:</span>
         <span id="users"></span>
     </div>
 
     <!-- OS Info -->
-    <div
-        class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+    <div class="flex items-center gap-1 px-3 py-1.5 ">
         <i class="fa-solid fa-server text-purple-500 text-xs"></i>
         <span class="font-medium">OS:</span>
         <span id="osinfo"></span>
     </div>
     <!-- OS Info -->
-    <div
-        class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+    <div class="flex items-center gap-1 px-3 py-1.5 ">
         <i class="fa-solid fa-server text-purple-500 text-xs"></i>
         <span class="font-medium">CPU:</span>
         <span id="cpu-info"></span>
     </div>
 </div>
+
 {{ end }}

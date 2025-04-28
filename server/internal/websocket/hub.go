@@ -36,6 +36,7 @@ type Client struct {
 	Conn       *websocket.Conn
 	EndpointID string
 	AgentID    string
+	HostID     string
 	Send       chan []byte // NEW
 }
 

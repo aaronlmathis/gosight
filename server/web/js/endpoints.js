@@ -236,6 +236,13 @@ function toggleContainerRow(rowID) {
   }
 }
 
+function heartbeatBadge(heartbeat) {
+  if (heartbeat === "Online")
+    return `<span class="px-2 py-0.5 rounded-sm text-xs font-bold bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">${heartbeat}</span>`;
+  if (heartbeat === "Idle")
+    return `<span class="px-2 py-0.5 rounded-sm text-xs font-bold bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100">${heartbeat}</span>`;
+  return `<span class="px-2 py-0.5 rounded-sm text-xs font-bold bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">${heartbeat}</span>`;
+}
 
 function groupContainers(rows) {
   if (!Array.isArray(rows)) return [];
@@ -253,6 +260,7 @@ function groupContainers(rows) {
         name: tags.container_name || "—",
         image: tags.image || "—",
         status: tags.status || "unknown",
+        heartbeat: "Online",
         cpu: "—",
         mem: "—",
         rx: "—",
@@ -277,6 +285,7 @@ function groupContainers(rows) {
         name: tags.container_name || "—",
         image: tags.image || "—",
         status: tags.status || "unknown",
+        heartbeat: "Online",
         cpu: "—",
         mem: "—",
         rx: "—",
@@ -321,6 +330,7 @@ function buildContainerTable(containers) {
   const rows = containers.map((c, i) => `
 <tr class="${i % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
 <td class="px-4 py-2">${statusBadge(c.status)}</td>
+<td class="px-4 py-2">${heartbeatBadge(c.heartbeat)}</td>
 <td class="px-4 py-2 text-left">
   <span class="inline-block px-2 py-0.5 rounded-sm text-xs bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
     ${c.runtime}
@@ -343,6 +353,7 @@ function buildContainerTable(containers) {
   <thead class="text-xs text-gray-400 bg-gray-100 dark:bg-gray-700 dark:text-gray-300">
     <tr>
       <th class="px-4 py-2">Status</th>
+      <th class="px-4 py-2">Heartbeat</th> 
             <th class="px-4 py-2 text-left">Runtime</th>
       <th class="px-4 py-2">Name</th>
 

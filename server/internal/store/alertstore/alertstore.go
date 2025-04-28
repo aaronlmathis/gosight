@@ -37,6 +37,7 @@ import (
 type AlertStore interface {
 	UpsertAlert(ctx context.Context, a *model.AlertInstance) error
 	ResolveAlert(ctx context.Context, ruleID, target string, resolvedAt time.Time) error
+	ListAlerts(ctx context.Context) ([]model.AlertInstance, error)
 	ListActiveAlerts(ctx context.Context) ([]model.AlertInstance, error)
 	ListAlertHistory(ctx context.Context, since time.Time) ([]model.AlertInstance, error)
 }

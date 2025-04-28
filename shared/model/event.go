@@ -60,15 +60,17 @@ func GenerateID() string {
 }
 
 type EventFilter struct {
-	Limit     int
-	Level     string
-	Type      string
-	Category  string
-	Scope     string
-	Target    string
-	Source    string
-	Contains  string
-	Start     *time.Time
-	End       *time.Time
-	SortOrder string // "asc" or "desc"
+	Limit      int
+	Level      string
+	HostID     string
+	EndpointID string
+	Type       string
+	Category   string
+	Scope      string
+	Target     string
+	Source     string
+	Contains   string
+	Start      *time.Time
+	End        *time.Time
+	SortOrder  string // "asc" or "desc"
 }

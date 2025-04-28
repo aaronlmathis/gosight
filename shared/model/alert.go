@@ -72,3 +72,9 @@ type AlertInstance struct {
 	Labels     map[string]string `json:"labels"`
 	ResolvedAt *time.Time        `json:"resolved_at,omitempty"` // when it was resolved
 }
+
+type AlertSummary struct {
+	RuleID     string    `json:"rule_id"`
+	State      string    `json:"state"`       // "firing", "resolved", etc.
+	LastChange time.Time `json:"last_change"` // based on LastFired
+}

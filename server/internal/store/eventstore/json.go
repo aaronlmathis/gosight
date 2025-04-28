@@ -3,10 +3,12 @@ package eventstore
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"sync"
 
 	"github.com/aaronlmathis/gosight/shared/model"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 // JSONEventStore is a file-backed implementation of the EventStore interface.
@@ -72,6 +74,7 @@ func (s *JSONEventStore) AddEvent(ctx context.Context, e model.EventEntry) error
 // The filter can include various criteria such as level, type, category,
 // source, scope, target, and time range.
 func (s *JSONEventStore) QueryEvents(filter model.EventFilter) ([]model.EventEntry, error) {
+	fmt.Printf("[DEBUG] Querying events with HostID = %s\n", filter.HostID)
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -105,6 +108,21 @@ func (s *JSONEventStore) QueryEvents(filter model.EventFilter) ([]model.EventEnt
 		if filter.End != nil && e.Timestamp.After(*filter.End) {
 			continue
 		}
+		if filter.EndpointID != "" && e.EndpointID != filter.EndpointID {
+			continue
+		}
+		utils.Debug("HOSTID : %v", filter.HostID)
+		if filter.HostID != "" {
+			if e.Meta == nil {
+				fmt.Printf("Skipping event: meta is nil\n")
+				continue
+			}
+			if e.Meta["host_id"] != filter.HostID {
+				fmt.Printf("Skipping event: meta host_id = %s, filter.HostID = %s\n", e.Meta["host_id"], filter.HostID)
+				continue
+			}
+		}
+
 		result = append(result, e)
 		if filter.Limit > 0 && len(result) >= filter.Limit {
 			break

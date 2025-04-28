@@ -1,5 +1,6 @@
 import { registerTabInitializer } from "./tabs.js";
-
+// /js/metric-explorer.js
+import { gosightFetch } from "./api.js";
 registerTabInitializer("activity", initActivityTab);
 
 function initActivityTab() {
@@ -10,7 +11,14 @@ function initActivityTab() {
 
 async function fetchAndRenderActivity() {
   try {
-    const res = await fetch("/api/v1/events?limit=50&sort=desc");
+    const params = new URLSearchParams({
+      limit: 50,
+      sort: "desc"
+    })
+    if (window.hostID) {
+      params.append("hostID", window.hostID);
+    }
+    const res = await gosightFetch(`/api/v1/events?${params.toString()}`);
     const events = await res.json();
     const tbody = document.getElementById("activity-log-body");
     tbody.innerHTML = "";
@@ -79,50 +87,72 @@ function appendActivityRow(e) {
 
   detailTr.innerHTML = `
     <td colspan="4">
-      <div id="${detailRowId}-wrapper"
-        class="overflow-hidden transition-all duration-300 ease-in-out max-h-0 opacity-0"
-        style="will-change: max-height, opacity;">
-  
-        <div class="px-5 py-4 space-y-4 text-sm bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 shadow-md rounded-b-md">
-  
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-y-2">
-            <div>
-              <span class="text-gray-500 dark:text-gray-400 font-medium">Level</span>
-              <div><span class="px-2 py-0.5 rounded bg-yellow-100 text-yellow-800 text-xs font-semibold">${e.level}</span></div>
-            </div>
-            <div>
-              <span class="text-gray-500 dark:text-gray-400 font-medium">Scope</span>
-              <div>${e.scope || "-"}</div>
-            </div>
-            <div>
-              <span class="text-gray-500 dark:text-gray-400 font-medium">Target</span>
-              <div class="font-mono text-blue-600 dark:text-blue-400">${e.target || "-"}</div>
-            </div>
-            <div>
-              <span class="text-gray-500 dark:text-gray-400 font-medium">Source</span>
-              <div>${e.source || "-"}</div>
-            </div>
+  <div id="${detailRowId}-wrapper"
+    class="overflow-hidden transition-[max-height,opacity] duration-500 ease-in-out max-h-0 opacity-0"
+    style="will-change: max-height, opacity;">
+
+    <div class="px-6 py-6 space-y-6 text-sm bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 rounded-b-lg">
+
+      <!-- TOP INFO STACK -->
+      <div class="space-y-4">
+        <!-- Level and Scope -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="text-gray-900 dark:text-gray-100 font-bold">Level:</span>
+            <span class="px-2 py-0.5 rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 text-xs font-bold">${e.level}</span>
           </div>
-  
-          <div>
-            <span class="text-gray-500 dark:text-gray-400 font-medium block mb-1">Message</span>
-            <div class="italic text-base text-gray-800 dark:text-gray-200">${e.message || "-"}</div>
+
+          <div class="flex items-center space-x-2 mt-2 md:mt-0">
+            <span class="text-gray-900 dark:text-gray-100 font-bold">Scope:</span>
+            <span class="text-gray-900 dark:text-gray-100 font-medium">${e.scope || "-"}</span>
           </div>
-  
-          ${Object.keys(e.meta || {}).length > 0 ? `
-            <div>
-              <span class="text-gray-500 dark:text-gray-400 font-medium block mb-2">Metadata</span>
-              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1 text-sm text-gray-700 dark:text-gray-400">
-                ${Object.entries(e.meta).map(([k, v]) => `
-                  <div><span class="text-gray-500 dark:text-gray-400 font-medium">${k}:</span> ${v}</div>
-                `).join("")}
-              </div>
-            </div>
-          ` : ""}
-  
+        </div>
+
+        <!-- Target and Source with CTA -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="text-gray-900 dark:text-gray-100 font-bold">Target:</span>
+            <span class="font-mono text-blue-600 dark:text-blue-400">${e.target || "-"}</span>
+          </div>
+
+          <div class="flex items-center gap-4 mt-3 md:mt-0">
+            <button class="px-4 py-2 text-sm font-semibold rounded-md text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition">
+              View in Alerts
+            </button>
+          </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="text-gray-900 dark:text-gray-100 font-bold">Source:</span>
+            <span class="text-gray-900 dark:text-gray-100 font-medium">${e.source || "-"}</span>
+          </div>
         </div>
       </div>
-    </td>
+
+      <!-- MESSAGE SECTION -->
+      <div>
+        <span class="text-gray-900 dark:text-gray-100 font-bold block mb-2">Message</span>
+        <div class="italic text-base text-gray-800 dark:text-gray-200">${e.message || "-"}</div>
+      </div>
+
+      <!-- METADATA GRID -->
+      ${Object.keys(e.meta || {}).length > 0 ? `
+        <div>
+          <span class="text-gray-900 dark:text-gray-100 font-bold block mb-2">Metadata</span>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-x-8 gap-y-4 text-sm text-gray-700 dark:text-gray-300">
+            ${Object.entries(e.meta).map(([k, v]) => `
+              <div>
+                <span class="font-semibold">${k}:</span> ${v}
+              </div>
+            `).join("")}
+          </div>
+        </div> 
+      ` : ""}
+      
+    </div>
+  </div>
+</td>
   `;
 
   // Insert at the top

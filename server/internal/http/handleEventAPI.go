@@ -63,6 +63,13 @@ func (s *HttpServer) HandleEventsAPI(w http.ResponseWriter, r *http.Request) {
 			filter.Start = &t
 		}
 	}
+	if v := q.Get("hostID"); v != "" {
+		filter.HostID = v
+	}
+
+	if v := q.Get("endpointID"); v != "" {
+		filter.EndpointID = v
+	}
 	if v := q.Get("end"); v != "" {
 		t, err := time.Parse(time.RFC3339, v)
 		if err == nil {

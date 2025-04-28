@@ -25,7 +25,6 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package templates
 
 import (
-	"fmt"
 	"html/template"
 	"net/http"
 	"os"
@@ -112,7 +111,7 @@ func loadTemplates(baseDir string) error {
 	}
 
 	Tmpl = newTmpl
-	utils.Debug("Loaded %d base layout/partial templates from %s", counter, baseDir)
+	//utils.Debug("Loaded %d base layout/partial templates from %s", counter, baseDir)
 	return nil
 }
 
@@ -139,7 +138,7 @@ func watchForChanges(baseDir string) {
 		select {
 		case event := <-watcher.Events:
 			if filepath.Ext(event.Name) == ".html" {
-				utils.Debug("Template changed: %s", event.Name)
+				//utils.Debug("Template changed: %s", event.Name)
 				loadTemplates(baseDir)
 			}
 		case err := <-watcher.Errors:
@@ -168,9 +167,6 @@ func RenderTemplate(w http.ResponseWriter, layout, page string, data any) error 
 		return err
 	}
 	utils.Debug("Parsed page template: %s", pagePath)
-	for _, t := range tmpl.Templates() {
-		fmt.Println("✅ Loaded template:", t.Name())
-	}
 
 	layoutPath := "layouts/" + layout
 	err = tmpl.ExecuteTemplate(w, layoutPath, data)

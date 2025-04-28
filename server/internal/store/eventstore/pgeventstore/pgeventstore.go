@@ -82,6 +82,12 @@ func (s *PGEventStore) QueryEvents(filter model.EventFilter) ([]model.EventEntry
 	if filter.End != nil {
 		q += " AND timestamp <= " + arg(*filter.End)
 	}
+	if filter.EndpointID != "" {
+		q += " AND endpoint_id = " + arg(filter.EndpointID)
+	}
+	if filter.HostID != "" {
+		q += " AND meta->>'host_id' = " + arg(filter.HostID)
+	}
 
 	q += " ORDER BY timestamp DESC"
 	if filter.Limit > 0 {

@@ -308,3 +308,15 @@ CREATE TABLE events (
 CREATE INDEX idx_events_time ON events(timestamp DESC);
 CREATE INDEX idx_events_target ON events(target);
 CREATE INDEX idx_events_category ON events(category);
+
+
+CREATE TABLE tags (
+  id SERIAL PRIMARY KEY,
+  endpoint_id VARCHAR(255) NOT NULL,
+  key TEXT NOT NULL,
+  value TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT now(),
+  updated_at TIMESTAMP DEFAULT now()
+);
+
+CREATE INDEX idx_tags_endpoint_id ON tags(endpoint_id);

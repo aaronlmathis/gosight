@@ -195,7 +195,7 @@ func (s *PGDataStore) ListAgents(ctx context.Context) ([]*model.Agent, error) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("🔥 PANIC in ListAgents loop:", r)
+			fmt.Println("PANIC in ListAgents loop:", r)
 			debug.PrintStack()
 		}
 	}()
@@ -218,7 +218,7 @@ func (s *PGDataStore) ListAgents(ctx context.Context) ([]*model.Agent, error) {
 			&agent.LastSeen,
 			&agent.EndpointID,
 			&agent.Status,
-			&since, // 🟢 changed from &agent.Since
+			&since,
 		)
 		if err != nil {
 			utils.Warn("Scan error: %v", err)
@@ -255,7 +255,7 @@ func (s *PGDataStore) ListAgents(ctx context.Context) ([]*model.Agent, error) {
 // or "Stopped" if the container is stopped
 // UpsertContainer inserts or updates a container in the database
 func (s *PGDataStore) UpsertContainer(ctx context.Context, c *model.Container) error {
-	labels, _ := json.Marshal(c.Labels) // You already use this
+	labels, _ := json.Marshal(c.Labels)
 
 	_, err := s.db.ExecContext(ctx, `
         INSERT INTO containers (
@@ -267,10 +267,11 @@ func (s *PGDataStore) UpsertContainer(ctx context.Context, c *model.Container) e
             image_id,
             runtime,
             status,
+            heartbeat,
             last_seen,
             labels
         ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
         )
         ON CONFLICT (container_id) DO UPDATE SET
             endpoint_id = EXCLUDED.endpoint_id,
@@ -280,6 +281,7 @@ func (s *PGDataStore) UpsertContainer(ctx context.Context, c *model.Container) e
             image_id = EXCLUDED.image_id,
             runtime = EXCLUDED.runtime,
             status = EXCLUDED.status,
+            heartbeat = EXCLUDED.heartbeat,
             last_seen = EXCLUDED.last_seen,
             labels = EXCLUDED.labels;
     `,
@@ -291,6 +293,7 @@ func (s *PGDataStore) UpsertContainer(ctx context.Context, c *model.Container) e
 		c.ImageID,
 		c.Runtime,
 		c.Status,
+		c.Heartbeat,
 		c.LastSeen,
 		labels,
 	)
@@ -303,7 +306,7 @@ func (s *PGDataStore) UpsertContainer(ctx context.Context, c *model.Container) e
 // and for the agent to check in with the server
 func (s *PGDataStore) ListContainers(ctx context.Context) ([]*model.Container, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT container_id, endpoint_id, host_id, name, image, image_id, runtime, status, last_seen, labels
+		SELECT container_id, endpoint_id, host_id, name, image, image_id, runtime, status, heartbeat, last_seen, labels
 		FROM containers
 	`)
 	if err != nil {
@@ -325,6 +328,7 @@ func (s *PGDataStore) ListContainers(ctx context.Context) ([]*model.Container, e
 			&c.ImageID,
 			&c.Runtime,
 			&c.Status,
+			&c.Heartbeat,
 			&c.LastSeen,
 			&labelsJSON,
 		)
@@ -342,7 +346,7 @@ func (s *PGDataStore) ListContainers(ctx context.Context) ([]*model.Container, e
 // GetContainerByID retrieves a container by its container_id
 func (s *PGDataStore) GetContainerByID(ctx context.Context, id string) (*model.Container, error) {
 	row := s.db.QueryRowContext(ctx, `
-		SELECT container_id, endpoint_id, host_id, name, image, image_id, runtime, status, last_seen, labels
+		SELECT container_id, endpoint_id, host_id, name, image, image_id, runtime, status, heartbeat, last_seen, labels
 		FROM containers WHERE container_id = $1
 	`, id)
 
@@ -358,6 +362,7 @@ func (s *PGDataStore) GetContainerByID(ctx context.Context, id string) (*model.C
 		&c.ImageID,
 		&c.Runtime,
 		&c.Status,
+		&c.Heartbeat,
 		&c.LastSeen,
 		&labelsJSON,
 	)

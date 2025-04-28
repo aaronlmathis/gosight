@@ -26,6 +26,7 @@ package tracker
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
@@ -72,5 +73,28 @@ func BuildContainerEventMeta(c *model.Container) map[string]string {
 		"status":       c.Status,
 		"endpoint_id":  c.EndpointID,
 		"host_id":      c.HostID,
+	}
+}
+
+func NormalizeContainerStatus(raw string) string {
+	switch strings.ToLower(raw) {
+	case "created":
+		return "Created"
+	case "running":
+		return "Running"
+	case "paused":
+		return "Paused"
+	case "restarting":
+		return "Restarting"
+	case "removing":
+		return "Removing"
+	case "exited":
+		return "Exited"
+	case "dead":
+		return "Dead"
+	case "stopped":
+		return "Stopped"
+	default:
+		return "Unknown"
 	}
 }

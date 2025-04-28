@@ -31,6 +31,7 @@ type Container struct {
 	ImageID     string
 	Runtime     string
 	Status      string
+	Heartbeat   string
 	EndpointID  string
 	HostID      string
 	LastSeen    time.Time

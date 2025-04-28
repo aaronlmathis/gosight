@@ -106,6 +106,7 @@ func (h *EventsHub) ServeWS(w http.ResponseWriter, r *http.Request) {
 		Conn:       conn,
 		EndpointID: endpointID,
 		AgentID:    meta.AgentID,
+		HostID:     meta.HostID,
 		Send:       make(chan []byte, 100),
 	}
 
@@ -129,12 +130,22 @@ func (h *EventsHub) shouldDeliver(payload model.EventEntry, client *Client) bool
 		return true // No filter
 	}
 
-	if payload.Target == client.EndpointID {
+	// Primary: Match exact EndpointID
+	if payload.EndpointID != "" && payload.EndpointID == client.EndpointID {
 		return true
 	}
-
-	if payload.Meta != nil && payload.Meta["agent_id"] == client.AgentID {
-		return true
+	// Secondary: Match on meta fields
+	if payload.Meta != nil {
+		if eid, ok := payload.Meta["endpoint_id"]; ok && eid == client.EndpointID {
+			return true
+		}
+		if aid, ok := payload.Meta["agent_id"]; ok && aid == client.AgentID {
+			return true
+		}
+		// New fallback: match if event's meta.host_id == client's endpointID
+		if hid, ok := payload.Meta["host_id"]; ok && hid == client.HostID {
+			return true
+		}
 	}
 
 	return false

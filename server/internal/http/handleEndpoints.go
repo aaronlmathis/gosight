@@ -34,6 +34,7 @@ import (
 	"strings"
 	"time"
 
+	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
 	"github.com/aaronlmathis/gosight/server/internal/http/templates"
 	"github.com/aaronlmathis/gosight/shared/model"
@@ -80,9 +81,13 @@ func (s *HttpServer) HandleEndpointPage(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "failed to load user", http.StatusInternalServerError)
 		return
 	}
+
+	permissions := gosightauth.FlattenPermissions(user.Roles)
+
 	pageData := templates.TemplateData{
-		Title: "Endpoints",
-		User:  user,
+		Title:       "Endpoints",
+		User:        user,
+		Permissions: permissions,
 		Breadcrumbs: []templates.Breadcrumb{
 			{Label: "Endpoints"},
 		},
@@ -124,13 +129,16 @@ func (s *HttpServer) HandleEndpointDetail(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	permissions := gosightauth.FlattenPermissions(user.Roles)
+
 	meta, _ := s.Sys.Tele.Meta.Get(endpointID)
 
 	// Build Template data based on endpoint_id
 	pageData := templates.TemplateData{
-		Title:  "Endpoints",
-		User:   user,
-		Labels: map[string]string{"endpoint_id": endpointID},
+		Title:       "Endpoints",
+		User:        user,
+		Permissions: permissions,
+		Labels:      map[string]string{"endpoint_id": endpointID},
 		Breadcrumbs: []templates.Breadcrumb{
 			{Label: "Endpoints", URL: "/endpoints"},
 			{Label: endpointID},

@@ -105,7 +105,7 @@ func NewFileStore(ctx context.Context, cfg *config.Config) *FileStore {
 }
 
 func (v *FileStore) Write(logs []model.LogPayload, streamCtx context.Context) error {
-	utils.Debug(" filestore.Write received: %d metrics (store addr: %p)", totalLogCount(logs), v)
+	//utils.Debug(" filestore.Write received: %d metrics (store addr: %p)", totalLogCount(logs), v)
 
 	select {
 	case v.incoming <- logs:
@@ -141,7 +141,7 @@ func (v *FileStore) collectorLoop() {
 
 			pending = append(pending, batch...)
 			currentTotal := totalLogCount(pending)
-			utils.Debug(" Received payload with %d metrics", currentTotal)
+			//utils.Debug(" Received payload with %d metrics", currentTotal)
 			//utils.Debug(" Total metrics pending: %d", currentTotal)
 
 			if currentTotal >= v.batchSize {
@@ -171,7 +171,7 @@ func (v *FileStore) worker() {
 		select {
 
 		case batch := <-v.queue:
-			utils.Debug("Filestore Worker received batch with %d payloads / %d logs", len(batch), totalLogCount(batch))
+			//utils.Debug("Filestore Worker received batch with %d payloads / %d logs", len(batch), totalLogCount(batch))
 			v.flush(batch)
 		case <-v.ctx.Done():
 			utils.Debug("Logstore collector loop exiting")
@@ -221,7 +221,7 @@ func (v *FileStore) flush(batch []model.LogPayload) {
 		_ = gz.Close()
 		_ = f.Close()
 
-		utils.Debug("Wrote %d logs to %s", len(payload.Logs), filename)
+		//utils.Debug("Wrote %d logs to %s", len(payload.Logs), filename)
 	}
 }
 

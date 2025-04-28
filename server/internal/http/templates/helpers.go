@@ -1,6 +1,10 @@
 package templates
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+	"html/template"
+)
 
 func FormatUptime(seconds float64) string {
 	s := int64(seconds)
@@ -25,4 +29,11 @@ func HumanizeBytes(b float64) string {
 	default:
 		return fmt.Sprintf("%.0f B", b)
 	}
+}
+func Marshal(v interface{}) template.JS {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return template.JS("null")
+	}
+	return template.JS(data)
 }

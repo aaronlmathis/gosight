@@ -1,0 +1,35 @@
+{{ define "partials/modal_add_tag" }}
+<!-- Add Tag Modal using Flowbite -->
+
+<div id="add-tags-modal"
+    class="hidden fixed inset-0 bg-gray-800/40 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300 ease-out opacity-0">
+    <div
+        class="relative bg-white rounded-sm shadow-sm dark:bg-gray-800 p-6 w-full max-w-lg transition-transform transform scale-95">
+
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Add Tags</h2>
+            <button id="close-add-tags"
+                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">&times;</button>
+        </div>
+
+        <form id="tags-form" class="space-y-4 text-sm text-gray-700 dark:text-gray-300">
+            <div id="tags-rows" class="space-y-2">
+                <!-- Tag row will be injected here -->
+            </div>
+
+            <button type="button" id="add-tag-row" class="text-xs text-blue-500 hover:underline">➕ Add another
+                tag</button>
+
+            <div class="flex justify-end space-x-2 mt-6">
+                <button type="button" id="cancel-tags"
+                    class="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded text-gray-800 dark:bg-gray-600 dark:text-white">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white">Save
+                    Tags</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+
+{{ end }}

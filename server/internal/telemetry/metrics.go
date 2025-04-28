@@ -63,6 +63,22 @@ func (h *MetricsHandler) SubmitStream(stream pb.MetricsService_SubmitStreamServe
 			// Convert payload into a model.MetricPayload.
 			converted := ConvertToModelPayload(req)
 
+			// Apply tags from tagstore
+			// Enrich Meta.Tags with custom tags from datastore
+			if converted.Meta != nil && converted.Meta.EndpointID != "" {
+				tags, err := h.Sys.Stores.Data.GetTags(stream.Context(), converted.Meta.EndpointID)
+				if err == nil {
+					if converted.Meta.Tags == nil {
+						converted.Meta.Tags = make(map[string]string)
+					}
+					for k, v := range tags {
+						if _, exists := converted.Meta.Tags[k]; !exists {
+							converted.Meta.Tags[k] = v
+						}
+					}
+				}
+			}
+
 			// Check rules
 			h.Sys.Tele.Evaluator.EvaluateMetric(h.Sys.Ctx, converted.Metrics, converted.Meta)
 
@@ -79,7 +95,7 @@ func (h *MetricsHandler) SubmitStream(stream pb.MetricsService_SubmitStreamServe
 			if err := h.Sys.Stores.Metrics.Write([]model.MetricPayload{converted}); err != nil {
 				utils.Warn("Failed to enqueue metrics from %s: %v", converted.EndpointID, err)
 			} else {
-				utils.Info("Enqueued %d metrics from host: %s at %s", len(converted.Metrics), converted.EndpointID, converted.Timestamp)
+				//utils.Info("Enqueued %d metrics from host: %s at %s", len(converted.Metrics), converted.EndpointID, converted.Timestamp)
 
 				if converted.Meta != nil && converted.Meta.EndpointID != "" {
 					// Store the meta information in the MetaTracker

@@ -352,7 +352,7 @@ function setupContainerFilters() {
     hostFilter.addEventListener("input", applyContainerFilters);
 }
 function renderOverviewSummary(summary) {
-    document.getElementById("hostname").textContent = summary.hostname;
+
     document.getElementById("uptime").textContent = formatUptime(summary.uptime);
     document.getElementById("users").textContent = summary.users;
     document.getElementById("procs").textContent = summary.procs;
@@ -466,7 +466,7 @@ async function initOverviewTab() {
     await fetchRecentLogs();
 
     setupContainerFilters();
-    connectWebSocket();
+
 
 
 }

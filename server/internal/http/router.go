@@ -33,6 +33,7 @@ import (
 func (s *HttpServer) setupRoutes() {
 	s.setupStaticRoutes()
 	s.setupAuthRoutes()
+	s.setupAlertsRoutes()
 	s.setupMetricExplorerRoutes()
 	s.setupActivityRoutes()
 	s.setupEndpointRoutes()
@@ -122,6 +123,22 @@ func (s *HttpServer) setupIndexRoutes() {
 	)
 }
 
+// setupMetricAlertsRoutes sets up the  alerts routes for the HTTP server.
+// This includes the alerts page as well as the rule builder page.
+func (s *HttpServer) setupAlertsRoutes() {
+	s.Router.Handle("/alerts",
+		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
+			gosightauth.RequirePermission("gosight:dashboard:view",
+				gosightauth.AccessLogMiddleware(
+					http.HandlerFunc(s.HandleAlertsPage),
+				),
+				s.Sys.Stores.Users,
+			),
+		),
+	)
+
+}
+
 // setupMetricExplorerRoutes sets up the metric explorer routes for the HTTP server.
 // It includes routes for viewing the metric explorer page and the metric detail page.
 // The routes are protected by middleware that checks for injects context and trace identifiers.
@@ -207,6 +224,20 @@ func (s *HttpServer) setupAPIRoutes() {
 	secure := func(permission string, handler http.HandlerFunc) http.Handler {
 		return withAuth(gosightauth.RequirePermission(permission, handler, s.Sys.Stores.Users))
 	}
+
+	// Search
+	api.Handle("/search", secure("gosight:api:search", http.HandlerFunc(s.HandleGlobalSearchAPI))).Methods("GET")
+
+	// Tags
+	// Tag management
+	api.Handle("/tags/keys", secure("gosight:api:tags:view", http.HandlerFunc(s.HandleTagKeys))).Methods("GET")
+	api.Handle("/tags/keys", secure("gosight:api:tags:view", http.HandlerFunc(s.HandleTagKeys))).Methods("GET")
+	api.Handle("/tags/values", secure("gosight:api:tags:view", http.HandlerFunc(s.HandleTagValues))).Methods("GET")
+	api.Handle("/tags/{endpointID}", secure("gosight:api:tags:view", http.HandlerFunc(s.HandleGetTags))).Methods("GET")
+	api.Handle("/tags/{endpointID}", secure("gosight:api:tags:set", http.HandlerFunc(s.HandleSetTags))).Methods("POST")
+	api.Handle("/tags/{endpointID}", secure("gosight:api:tags:patch", http.HandlerFunc(s.HandlePatchTags))).Methods("PATCH")
+	api.Handle("/tags/{endpointID}/{key}", secure("gosight:api:tags:delete", http.HandlerFunc(s.HandleDeleteTag))).Methods("DELETE")
+
 	// Endpoint APIs
 	api.Handle("/endpoints", secure("gosight:api:endpoints:view", http.HandlerFunc(s.HandleEndpointsAPI))).Methods("GET")
 	api.Handle("/endpoints/{endpointType}", secure("gosight:api:endpoints:view", http.HandlerFunc(s.HandleEndpointsByTypeAPI))).Methods("GET")
@@ -218,6 +249,9 @@ func (s *HttpServer) setupAPIRoutes() {
 	// Events and Alerts
 	api.Handle("/events", secure("gosight:api:events:view", http.HandlerFunc(s.HandleEventsAPI))).Methods("GET")
 
+	api.Handle("/alerts/summary", secure("gosight:api:events:view", http.HandlerFunc(s.HandleAlertsSummaryAPI))).Methods("GET")
+	api.Handle("/alerts/rules", secure("gosight:api:events:view", http.HandlerFunc(s.HandleAlertRulesAPI))).Methods("GET")
+	api.Handle("/alerts/active", secure("gosight:api:events:view", http.HandlerFunc(s.HandleActiveAlertsAPI))).Methods("GET")
 	api.Handle("/alerts", secure("gosight:api:events:view", http.HandlerFunc(s.HandleAlertsAPI))).Methods("GET")
 
 	// Metrics and queries
