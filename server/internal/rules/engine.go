@@ -25,9 +25,11 @@ package rules
 
 import (
 	"context"
+	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 
-	"github.com/Knetic/govaluate"
 	"github.com/aaronlmathis/gosight/server/internal/alerts"
 	"github.com/aaronlmathis/gosight/server/internal/store/rulestore"
 	"github.com/aaronlmathis/gosight/shared/model"
@@ -47,12 +49,13 @@ type Evaluator struct {
 // for each rule and endpoint combination.
 // The history is keyed by rule ID and endpoint ID, allowing for
 // efficient tracking of metrics over time.
+
 func NewEvaluator(store rulestore.RuleStore, alertMgr *alerts.Manager) *Evaluator {
 	return &Evaluator{
 		store:    store,
 		AlertMgr: alertMgr,
 		history:  make(map[string][]model.Metric),
-		firing:   make(map[string]bool), // ruleID + endpointID
+		firing:   make(map[string]bool),
 	}
 }
 
@@ -63,7 +66,6 @@ func NewEvaluator(store rulestore.RuleStore, alertMgr *alerts.Manager) *Evaluato
 // The metrics are expected to be in the format of model.Metric,
 // and the metadata is expected to be in the format of model.Meta.
 func (e *Evaluator) EvaluateMetric(ctx context.Context, metrics []model.Metric, meta *model.Meta) {
-	//utils.Debug("Evaluating metrics for rules...")
 
 	activeRules, err := e.store.GetActiveRules(ctx)
 	if err != nil {
@@ -72,60 +74,51 @@ func (e *Evaluator) EvaluateMetric(ctx context.Context, metrics []model.Metric, 
 	}
 
 	for _, rule := range activeRules {
-		if rule.Type != "metric" { // Only apply metric-type rules
-			continue
-		}
-		//utils.Debug("Checking rule %s with expression %s", rule.ID, rule.Expression)
-		if !ruleMatchLabels(rule.Match, meta) {
-			//utils.Debug("Rule %s did not match endpoint %s or tags", rule.ID, meta.EndpointID)
+		utils.Debug("Evaluating rule: %s", rule.ID)
+		if !rule.Enabled {
 			continue
 		}
 
-		// Build map[string]interface{} for expression
-		values := make(map[string]interface{})
+		if rule.Type != "metric" {
+			continue
+		}
+		utils.Debug("Before label check")
+		if !ruleMatchLabels(rule.Match, meta) {
+			continue
+		}
+		utils.Debug("After label check")
+		metricName := fmt.Sprintf("%s.%s.%s", rule.Scope.Namespace, rule.Scope.SubNamespace, rule.Scope.Metric)
+
+		utils.Debug("Metric name to match: %s", metricName)
+		var matched *model.Metric
 		for _, m := range metrics {
-			// Example: "mem_used_percent" = 72.5
-			key := strings.ToLower(m.SubNamespace + "_" + m.Name)
-			values[key] = m.Value
-			// Dimensions
-			for k, v := range m.Dimensions {
-				values[k] = v
+			full := strings.ToLower(fmt.Sprintf("%s.%s.%s", m.Namespace, m.SubNamespace, m.Name))
+			utils.Debug("Checking metric: %s against rule metric: %s", full, metricName)
+			if full == metricName {
+				matched = &m
+				break
 			}
 		}
-
-		// Meta tags
-		for k, v := range meta.Tags {
-			values[k] = v
-		}
-
-		//fmt.Printf("Expression to parse: '%s'\n", rule.Expression)
-		expression, err := govaluate.NewEvaluableExpression(rule.Expression)
-
-		if err != nil {
-			//fmt.Printf("Expression parse failed for rule [%s]: %v", rule.ID, err)
+		utils.Debug("After ranging metric names...")
+		if matched == nil {
 			continue
 		}
 
-		result, err := expression.Evaluate(values)
-		if err != nil {
-			//fmt.Printf("Expression evaluate failed for rule %s: %v", rule.ID, err)
-			continue
-		}
+		utils.Debug("About to fire rule: %s", rule.ID)
 
-		//utils.Debug("→ Expression result for rule %s: %v", rule.ID, result)
-
-		isTriggered, _ := result.(bool)
+		firing := evaluateExpression(rule.Expression, matched)
 		key := rule.ID + "|" + meta.EndpointID
 
-		if isTriggered {
+		if firing {
 			if !e.firing[key] {
 				e.firing[key] = true
-				e.AlertMgr.HandleState(ctx, rule, meta, extractFirstValue(values), true)
+
+				e.AlertMgr.HandleState(ctx, rule, meta, matched.Value, true)
 			}
 		} else {
 			if e.firing[key] {
 				delete(e.firing, key)
-				e.AlertMgr.HandleState(ctx, rule, meta, extractFirstValue(values), false)
+				e.AlertMgr.HandleState(ctx, rule, meta, matched.Value, false)
 			}
 		}
 	}
@@ -139,6 +132,7 @@ func (e *Evaluator) EvaluateMetric(ctx context.Context, metrics []model.Metric, 
 // and the metadata is expected to be in the format of model.Meta.
 // Logs are point-in-time events, so they are always evaluated immediately.
 func (e *Evaluator) EvaluateLogs(ctx context.Context, logs []model.LogEntry, meta *model.Meta) {
+	utils.Debug("✅  Evaluate Metric called.")
 	activeRules, err := e.store.GetActiveRules(ctx)
 	if err != nil {
 		utils.Error("Failed to fetch active rules: %v", err)
@@ -147,72 +141,90 @@ func (e *Evaluator) EvaluateLogs(ctx context.Context, logs []model.LogEntry, met
 
 	for _, log := range logs {
 		for _, rule := range activeRules {
-			if rule.Type != "log" { // Only apply log-type rules
+			utils.Debug("Evaluating log rule: %s", rule.ID)
+			if !rule.Enabled {
 				continue
 			}
-
+			if rule.Type != "log" {
+				continue
+			}
 			if !ruleMatchLabels(rule.Match, meta) {
 				continue
 			}
-
-			values := make(map[string]interface{})
-
-			// Map log fields
-			values["level"] = log.Level
-			values["message"] = log.Message
-			values["source"] = log.Source
-			values["category"] = log.Category
-
-			// Map log tags
-			for k, v := range log.Tags {
-				values[k] = v
-			}
-
-			// Map log Fields
-			for k, v := range log.Fields {
-				values[k] = v
-			}
-
-			// Map endpoint meta tags
-			for k, v := range meta.Tags {
-				values[k] = v
-			}
-
-			expression, err := govaluate.NewEvaluableExpressionWithFunctions(rule.Expression, map[string]govaluate.ExpressionFunction{
-				"contains": func(args ...interface{}) (interface{}, error) {
-					if len(args) != 2 {
-						return false, nil
-					}
-					str, ok1 := args[0].(string)
-					substr, ok2 := args[1].(string)
-					if !ok1 || !ok2 {
-						return false, nil
-					}
-					return strings.Contains(str, substr), nil
-				},
-			})
-			if err != nil {
-				utils.Warn("Invalid log rule expression %s: %v", rule.ID, err)
+			if rule.Match.Category != "" && rule.Match.Category != log.Category {
 				continue
 			}
-
-			result, err := expression.Evaluate(values)
-			if err != nil {
-				utils.Warn("Failed to evaluate log rule %s: %v", rule.ID, err)
+			if rule.Match.Source != "" && rule.Match.Source != log.Source {
 				continue
 			}
-
-			isTriggered, _ := result.(bool)
-
-			if isTriggered {
-				// Always fire immediately for logs (logs are point-in-time events)
+			firing := evaluateLogExpression(rule.Expression, log)
+			if firing {
+				utils.Debug("✅  Firing alert for rule: %s, endpoint: %s", rule.ID, meta.EndpointID)
 				e.AlertMgr.HandleLogState(ctx, rule, meta, log, true)
 			}
 		}
 	}
 }
 
+// evaluateLogExpression evaluates the log entry against the rule's expression.
+func evaluateLogExpression(expr model.Expression, log model.LogEntry) bool {
+	val := ""
+	if expr.Datatype == "level" {
+		val = log.Level
+	} else if expr.Datatype == "message" {
+		val = log.Message
+	} else {
+		val = log.Source
+	}
+
+	switch expr.Operator {
+	case "contains":
+		return strings.Contains(val, toString(expr.Value))
+	case "=", "==":
+		return val == toString(expr.Value)
+	case "!=":
+		return val != toString(expr.Value)
+	case "regex":
+		re, err := regexp.Compile(toString(expr.Value))
+		if err != nil {
+			return false
+		}
+		return re.MatchString(val)
+	default:
+		return false
+	}
+}
+
+// evaluateLogExpression evaluates the log entry against the rule's expression.
+func evaluateExpression(expr model.Expression, m *model.Metric) bool {
+	switch expr.Operator {
+	case ">":
+		return m.Value > toFloat(expr.Value)
+	case "<":
+		return m.Value < toFloat(expr.Value)
+	case ">=":
+		return m.Value >= toFloat(expr.Value)
+	case "<=":
+		return m.Value <= toFloat(expr.Value)
+	case "=", "==":
+		return m.Value == toFloat(expr.Value)
+	case "!=":
+		return m.Value != toFloat(expr.Value)
+	case "contains":
+		return strings.Contains(toString(m.Value), toString(expr.Value))
+	case "regex":
+		re, err := regexp.Compile(toString(expr.Value))
+		if err != nil {
+			return false
+		}
+		return re.MatchString(toString(m.Value))
+	default:
+		return false
+	}
+}
+
 // ruleMatchLabels checks if the rule's match labels match the given metadata labels.
+
 func ruleMatchLabels(match model.MatchCriteria, meta *model.Meta) bool {
 	if len(match.EndpointIDs) > 0 {
 		found := false
@@ -227,22 +239,37 @@ func ruleMatchLabels(match model.MatchCriteria, meta *model.Meta) bool {
 		}
 	}
 
-	for k, v := range match.TagSelectors {
+	for k, v := range match.Labels {
 		if meta.Tags[k] != v {
 			return false
 		}
 	}
-
 	return true
 }
 
-// extractFirstValue extracts the first float64 value from the map.
-// It returns 0.0 if no float64 value is found.
-func extractFirstValue(values map[string]interface{}) float64 {
-	for _, val := range values {
-		if f, ok := val.(float64); ok {
-			return f
-		}
+func toFloat(v interface{}) float64 {
+	switch val := v.(type) {
+	case float64:
+		return val
+	case int:
+		return float64(val)
+	case string:
+		f, _ := strconv.ParseFloat(val, 64)
+		return f
+	default:
+		return 0.0
 	}
-	return 0.0
+}
+
+func toString(v interface{}) string {
+	switch val := v.(type) {
+	case string:
+		return val
+	case float64:
+		return fmt.Sprintf("%.2f", val)
+	case int:
+		return fmt.Sprintf("%d", val)
+	default:
+		return fmt.Sprintf("%v", val)
+	}
 }

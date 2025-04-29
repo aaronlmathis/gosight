@@ -1,0 +1,45 @@
+<!-- templates/pages/add_alert.html -->
+{{ define "page-content" }}
+
+<section class="p-6 space-y-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <h2 class="text-2xl font-semibold text-gray-800 dark:text-white">Create New Alert</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Define a new alert rule for metrics, logs, or events.</p>
+    </div>
+
+    <div class="flex flex-col md:flex-row gap-8">
+
+        <!-- Stepper (Left Column) -->
+        <div class="md:w-1/4">
+            <ol id="timeline-stepper" class="relative border-s border-gray-200 dark:border-gray-700 space-y-8">
+                <!-- Steps will be dynamically injected here -->
+            </ol>
+        </div>
+
+        <!-- Step Content (Right Column) -->
+        <div id="step-content" class="flex-1">
+            <!-- Dynamic form content loaded here -->
+        </div>
+
+    </div>
+
+    <!-- Buttons -->
+    <div class="flex justify-between mt-8">
+        <button id="prev-btn"
+            class="px-6 py-2 bg-gray-300 hover:bg-gray-400 text-black rounded hidden">Previous</button>
+        <button id="next-btn" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">Next</button>
+    </div>
+
+
+
+</section>
+
+{{ end }}
+
+{{ define "page-scripts" }}
+<script type="module" src="/js/add_alert.js"></script>;
+
+
+
+{{ end }}

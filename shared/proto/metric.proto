@@ -6,6 +6,7 @@ option go_package = "github.com/aaronlmathis/gosight/shared/proto";
 import "google/protobuf/timestamp.proto";
 import "meta.proto";
 
+
 message StatisticValues {
   double minimum = 1;
   double maximum = 2;
@@ -36,12 +37,5 @@ message MetricPayload {
   Meta meta = 7;
 }
 
-message MetricResponse {
-  string status = 1;
-  int32 status_code = 2;
-}
 
-service MetricsService {
-  rpc SubmitMetrics (MetricPayload) returns (MetricResponse);
-  rpc SubmitStream (stream MetricPayload) returns (MetricResponse);
-}
+

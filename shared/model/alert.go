@@ -27,31 +27,45 @@ import "time"
 
 // AlertRule represents a rule for triggering alerts based on metrics.
 type AlertRule struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	Enabled    bool   `json:"enabled"`
-	Level      string `json:"level"`      // info, warning, critical
-	Expression string `json:"expression"` // e.g. "mem.used_percent > 80 and swap.used_percent > 50"
-	Message    string `json:"message"`
-	Type       string `json:"type"` // "metric" or "log"
-
-	Match    MatchCriteria `json:"match"`              // metric + label filters
-	Actions  []string      `json:"actions"`            // route IDs to trigger
-	Cooldown time.Duration `json:"cooldown,omitempty"` // suppress duplicate firing
-
-	EvalInterval    time.Duration `json:"eval_interval"`               // how often to check
-	RepeatInterval  time.Duration `json:"repeat_interval,omitempty"`   // e.g. "30m"
-	NotifyOnResolve bool          `json:"notify_on_resolve,omitempty"` // true or false
+	ID          string        `json:"id" yaml:"id"`
+	Name        string        `json:"name" yaml:"name"`
+	Description string        `json:"description,omitempty" yaml:"description,omitempty"`
+	Message     string        `json:"message" yaml:"message"` // message template for alert
+	Level       string        `json:"level" yaml:"level"`     // info, warning, critical
+	Enabled     bool          `json:"enabled" yaml:"enabled"`
+	Type        string        `json:"type" yaml:"type"` // metric, log, event, composite
+	Match       MatchCriteria `json:"match" yaml:"match"`
+	Scope       Scope         `json:"scope" yaml:"scope"`
+	Expression  Expression    `json:"expression" yaml:"expression"`
+	Actions     []string      `json:"actions" yaml:"actions"`
+	Options     Options       `json:"options" yaml:"options"`
 }
 
-// MetricSelector defines the metric to be monitored and any labels to match.
+type Scope struct {
+	Namespace    string `json:"namespace,omitempty" yaml:"namespace,omitempty"`
+	SubNamespace string `json:"subnamespace,omitempty" yaml:"subnamespace,omitempty"`
+	Metric       string `json:"metric,omitempty" yaml:"metric,omitempty"`
+}
+
+type Expression struct {
+	Operator string      `json:"operator" yaml:"operator"`                     // >, <, =, !=, contains, regex
+	Value    interface{} `json:"value" yaml:"value"`                           // number or string
+	Datatype string      `json:"datatype,omitempty" yaml:"datatype,omitempty"` // percent, numeric, status
+}
+
+type Options struct {
+	Cooldown        string `json:"cooldown,omitempty" yaml:"cooldown,omitempty"`
+	EvalInterval    string `json:"eval_interval,omitempty" yaml:"eval_interval,omitempty"`
+	RepeatInterval  string `json:"repeat_interval,omitempty" yaml:"repeat_interval,omitempty"`
+	NotifyOnResolve bool   `json:"notify_on_resolve,omitempty" yaml:"notify_on_resolve,omitempty"`
+}
+
 type MatchCriteria struct {
-	Namespace    string            `json:"namespace,omitempty"`
-	SubNamespace string            `json:"subnamespace,omitempty"`
-	Metric       string            `json:"metric,omitempty"`
-	Labels       map[string]string `json:"labels,omitempty"`        // e.g. container_name=webapp
-	EndpointIDs  []string          `json:"endpoint_ids,omitempty"`  // specific targets
-	TagSelectors map[string]string `json:"tag_selectors,omitempty"` // match Meta.Tags
+	EndpointIDs []string          `json:"endpoint_ids,omitempty" yaml:"endpoint_ids,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	Category    string            `json:"category,omitempty" yaml:"category,omitempty"`
+	Source      string            `json:"source,omitempty" yaml:"source,omitempty"`
+	Scope       string            `json:"scope,omitempty" yaml:"scope,omitempty"`
 }
 
 // AlertInstance represents the current state of a triggered alert.

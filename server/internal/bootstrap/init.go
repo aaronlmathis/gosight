@@ -56,7 +56,7 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 	fmt.Printf("About to init logger with level = %s\n", cfg.Logs.LogLevel)
 
 	// Initialize logging
-	if err := utils.InitLogger(cfg.Logs.AppLogFile, cfg.Logs.ErrorLogFile, cfg.Logs.AccessLogFile, cfg.Logs.LogLevel); err != nil {
+	if err := utils.InitLogger(cfg.Logs.AppLogFile, cfg.Logs.ErrorLogFile, cfg.Logs.AccessLogFile, cfg.Logs.DebugLogFile, cfg.Logs.LogLevel); err != nil {
 		fmt.Printf("Failed to initialize logger: %v\n", err)
 		return nil, fmt.Errorf("failed to initialize logger: %w", err)
 	}
@@ -103,7 +103,7 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 	emitter := events.NewEmitter(eventStore, wsHub.Events)
 
 	// Initialize dispatcher
-	dispatcher := dispatcher.NewDispatcher(actionStore.Routes)
+	dispatcher := dispatcher.NewDispatcher(actionStore.BuildMap())
 
 	// Initialize alert manager
 	alertMgr := alerts.NewManager(emitter, dispatcher, alertStore, wsHub.Alerts)

@@ -130,7 +130,7 @@ func (v *FileStore) collectorLoop() {
 	for {
 		select {
 		case <-v.ctx.Done():
-			utils.Debug("LogStore collector loop exiting")
+			//utils.Debug("LogStore collector loop exiting")
 			if len(pending) > 0 {
 				v.enqueue(pending)
 			}
@@ -166,7 +166,7 @@ func (v *FileStore) collectorLoop() {
 func (v *FileStore) worker() {
 	defer v.wg.Done()
 	for {
-		utils.Debug("Filestore Worker waiting for batch...")
+		//utils.Debug("Filestore Worker waiting for batch...")
 
 		select {
 
@@ -226,9 +226,9 @@ func (v *FileStore) flush(batch []model.LogPayload) {
 }
 
 func (v *FileStore) Close() error {
-	utils.Info("Waiting for VictoriaStore workers to finish...")
+	utils.Info("Waiting for FileStore workers to finish...")
 	v.wg.Wait()
-	utils.Info("VictoriaStore shutdown complete")
+	utils.Info("FileStore shutdown complete")
 	return nil
 }
 

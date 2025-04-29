@@ -19,23 +19,13 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// server/internal/bootstrap/logger.go
-// Initializes logger.
-package bootstrap
+// shared/model/command.go
 
-import (
-	"fmt"
-	"os"
+package model
 
-	"github.com/aaronlmathis/gosight/agent/internal/config"
-	"github.com/aaronlmathis/gosight/shared/utils"
-)
-
-func SetupLogging(cfg *config.Config) {
-
-	if err := utils.InitLogger(cfg.Agent.AppLogFile, cfg.Agent.ErrorLogFile, cfg.Agent.AccessLogFile, cfg.Agent.DebugLogFile, cfg.Logs.LogLevel); err != nil {
-		fmt.Printf("Failed to initialize logger: %v\n", err)
-		os.Exit(1)
-	}
-
+type CommandRequest struct {
+	AgentID     string   `json:"agent_id"`       // Unique identifier for the agent
+	CommandType string   `json:"command_type"`   // e.g., "shell" or "ansible"
+	CommandData string   `json:"command_data"`   // The actual shell command or playbook content
+	Args        []string `json:"args,omitempty"` // Optional arguments for shell commands
 }

@@ -31,66 +31,53 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/aaronlmathis/gosight/agent/internal/command"
 	"github.com/aaronlmathis/gosight/agent/internal/config"
+	grpcconn "github.com/aaronlmathis/gosight/agent/internal/grpc"
 	"github.com/aaronlmathis/gosight/agent/internal/protohelper"
-	agentutils "github.com/aaronlmathis/gosight/agent/internal/utils"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/proto"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
+	goproto "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Sender holds the gRPC client and connection
 type MetricSender struct {
-	client proto.MetricsServiceClient
+	client proto.StreamServiceClient
 	cc     *grpc.ClientConn
-	stream proto.MetricsService_SubmitStreamClient
+	stream proto.StreamService_StreamClient
 	wg     sync.WaitGroup
 }
 
 // NewSender establishes a gRPC connection
 func NewSender(ctx context.Context, cfg *config.Config) (*MetricSender, error) {
 
-	// Load TLS config for agent
-	tlsCfg, err := agentutils.LoadTLSConfig(cfg)
+	clientConn, err := grpcconn.GetGRPCConn(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	// add mTLS to degug log.
-	if len(tlsCfg.Certificates) > 0 {
-		utils.Info("using mTLS for agent authentication")
-	} else {
-		utils.Info("Using TLS only (no client certificate)")
-	}
-
-	// Establish gRPC connection
-	clientConn, err := grpc.NewClient(cfg.Agent.ServerURL,
-		grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)),
-	)
-	if err != nil {
-		return nil, err
-	}
-	utils.Info("connecting to server at: %s", cfg.Agent.ServerURL)
 	// Create gRPC client
 	// and establish a stream for sending metrics
-	client := proto.NewMetricsServiceClient(clientConn)
+	client := proto.NewStreamServiceClient(clientConn)
 	utils.Info("established gRPC Connection with %v", cfg.Agent.ServerURL)
 
 	//
-	stream, err := client.SubmitStream(ctx)
+	stream, err := client.Stream(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open stream: %w", err)
 	}
 
-	return &MetricSender{
+	sender := &MetricSender{
 		client: client,
 		cc:     clientConn,
 		stream: stream,
-	}, nil
+	}
+	go sender.receiveResponses()
 
+	return sender, nil
 }
 
 func (s *MetricSender) Close() error {
@@ -133,24 +120,56 @@ func (s *MetricSender) SendMetrics(payload *model.MetricPayload) error {
 	}
 	//utils.Debug("Proto Meta Tags: %+v", convertedMeta)
 
-	req := &proto.MetricPayload{
-		AgentId:  payload.AgentID,
-		HostId:   payload.HostID,
-		Hostname: payload.Hostname,
-
+	metricPayload := &proto.MetricPayload{
+		AgentId:    payload.AgentID,
+		HostId:     payload.HostID,
+		Hostname:   payload.Hostname,
 		EndpointId: payload.EndpointID,
 		Timestamp:  timestamppb.New(payload.Timestamp),
 		Metrics:    pbMetrics,
 		Meta:       convertedMeta,
 	}
-	//fmt.Printf("Sending proto.Meta: %+v\n", req.Meta)
-	//utils.Debug("Sending %d metrics to server: %v", len(pbMetrics), pbMetrics)
-	if err := s.stream.Send(req); err != nil {
+
+	b, err := goproto.Marshal(metricPayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal MetricPayload: %w", err)
+	}
+
+	streamPayload := &proto.StreamPayload{
+		Payload: &proto.StreamPayload_Metric{
+			Metric: &proto.MetricWrapper{
+				RawPayload: b,
+			},
+		},
+	}
+	// Send StreamPayload now
+	if err := s.stream.Send(streamPayload); err != nil {
 		return fmt.Errorf("stream send failed: %w", err)
 	}
 
 	//utils.Info("Streamed %d metrics", len(pbMetrics))
 	return nil
+}
+
+// receiveResponses listens for commands sent from server.
+
+func (s *MetricSender) receiveResponses() {
+	for {
+		resp, err := s.stream.Recv()
+		if err != nil {
+			utils.Error("Stream receive error: %v", err)
+			break // Exit loop (can reconnect later if you want)
+		}
+
+		utils.Debug("Received StreamResponse: status=%s", resp.Status)
+
+		if resp.Command != nil {
+			utils.Info("Received CommandRequest: type=%s command=%s", resp.Command.CommandType, resp.Command.Command)
+
+			// Call command handler
+			command.HandleCommand(resp.Command)
+		}
+	}
 }
 
 func AppendMetricsToFile(payload *model.MetricPayload, filename string) error {

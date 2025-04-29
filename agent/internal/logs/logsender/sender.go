@@ -4,18 +4,15 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/aaronlmathis/gosight/agent/internal/config"
+	grpcconn "github.com/aaronlmathis/gosight/agent/internal/grpc"
 	"github.com/aaronlmathis/gosight/agent/internal/protohelper"
-	agentutils "github.com/aaronlmathis/gosight/agent/internal/utils"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/proto"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 	goproto "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -32,36 +29,11 @@ type LogSender struct {
 
 // NewSender establishes a gRPC connection
 func NewSender(ctx context.Context, cfg *config.Config) (*LogSender, error) {
-	// Load TLS config for agent
-	tlsCfg, err := agentutils.LoadTLSConfig(cfg)
+	clientConn, err := grpcconn.GetGRPCConn(ctx, cfg)
 	if err != nil {
-		utils.Debug("Failed to load TLS config: %v", err)
 		return nil, err
 	}
 
-	// add mTLS to degug log.
-	if len(tlsCfg.Certificates) > 0 {
-		utils.Info("using mTLS for agent authentication")
-	} else {
-		utils.Info("Using TLS only (no client certificate)")
-	}
-
-	clientConn, err := grpc.Dial(
-		cfg.Agent.ServerURL,
-		grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)),
-		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                2 * time.Minute,  // Ping every 2m even if no traffic
-			Timeout:             20 * time.Second, // Wait 20s for ack
-			PermitWithoutStream: true,             // Allow keepalive even if no active RPC
-		}),
-	)
-	if err != nil {
-		utils.Debug("Failed to create gRPC client: %v", err)
-		return nil, err
-	}
-	utils.Info("connecting to server at: %s", cfg.Agent.ServerURL)
-	// Create gRPC client
-	// and establish a stream for sending metrics
 	client := proto.NewLogServiceClient(clientConn)
 	utils.Info("established gRPC Connection with %v", cfg.Agent.ServerURL)
 

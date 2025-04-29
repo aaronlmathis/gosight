@@ -1,4 +1,3 @@
-// server/internal/alerts/manager.go
 package alerts
 
 import (
@@ -38,13 +37,8 @@ func key(ruleID, endpointID string) string {
 	return ruleID + "|" + endpointID
 }
 
-func (m *Manager) HandleState(
-	ctx context.Context,
-	rule model.AlertRule,
-	meta *model.Meta,
-	value float64,
-	triggered bool,
-) {
+func (m *Manager) HandleState(ctx context.Context, rule model.AlertRule, meta *model.Meta, value float64, triggered bool) {
+	utils.Debug("✅  Handle State... Rule ID: %s, Endpoint ID: %s, Value: %f, Triggered: %v", rule.ID, meta.EndpointID, value, triggered)
 	k := key(rule.ID, meta.EndpointID)
 	now := time.Now().UTC()
 
@@ -54,155 +48,83 @@ func (m *Manager) HandleState(
 	current := m.active[k]
 
 	if triggered {
-		// If already active, apply cooldown logic
 		if current != nil {
-			if rule.RepeatInterval == 0 || now.Sub(current.LastFired) < rule.RepeatInterval {
-				return
+			if rule.Options.RepeatInterval != "" {
+				repeatDur, _ := time.ParseDuration(rule.Options.RepeatInterval)
+				if now.Sub(current.LastFired) < repeatDur {
+					return
+				}
 			}
 			current.LastFired = now
 			current.LastValue = value
-			// add to alert store
 			_ = m.store.UpsertAlert(ctx, current)
-			// broadcast to websocket clients
-			utils.Debug("ReBroadcasting from alertmgr: %s", current.ID)
 			m.hub.Broadcast(*current)
-			// emit alert firing event
 			m.emitAlertFiringEvent(ctx, rule, meta, now)
-
-			// dispatch Action
-			m.dispatcher.Dispatch(ctx, model.EventEntry{
-				Timestamp: now,
-				Level:     rule.Level,
-				Category:  "alert",
-				Message:   rule.Message,
-				Source:    rule.Match.Namespace + "." + rule.Match.SubNamespace + "." + rule.Match.Metric,
-				Scope:     current.Scope,
-				Target:    current.Target,
-				Meta:      meta.Tags,
-			})
+			m.dispatchFiringEvent(ctx, rule, meta, current.Target, now, current.Message)
 			return
 		}
-		// Assume its either an alert on an endpoint or global TODO: Add user related alerts logic.
-		scope := "global"
-		target := "gosight-core"
 
-		if meta.EndpointID != "" {
-			scope = "endpoint"
-			target = meta.EndpointID
-		}
+		scope, target := inferScopeAndTarget(meta)
 
-		// New alert firing
 		inst := &model.AlertInstance{
 			ID:         uuid.NewString(),
 			RuleID:     rule.ID,
 			State:      "firing",
 			Previous:   "ok",
-			Scope:      scope,  // or infer from meta/job/tag
-			Target:     target, // the actual target
+			Scope:      scope,
+			Target:     target,
 			FirstFired: now,
 			LastFired:  now,
-			LastOK:     now, // can set to now on first fire
+			LastOK:     now,
 			LastValue:  value,
 			Level:      rule.Level,
 			Message:    rule.Message,
-			Labels:     meta.Tags, // contains env, team, agent_id, etc.
+			Labels:     utils.SafeCopyTags(meta),
+		}
+
+		event := model.EventEntry{
+			Timestamp: now,
+			Level:     rule.Level,
+			Category:  "alert",
+			Message:   rule.Message,
+			Source:    rule.Scope.Namespace + "." + rule.Scope.SubNamespace + "." + rule.Scope.Metric,
+			Scope:     scope,
+			Target:    target,
+			Meta:      utils.SafeCopyTags(meta),
+		}
+		event.Meta["rule_id"] = rule.ID
+
+		if len(rule.Actions) > 0 {
+			for _, actionID := range rule.Actions {
+				utils.Debug("Triggering action ID: %s for alert rule: %s", actionID, rule.ID)
+				m.dispatcher.TriggerActionByID(ctx, actionID, event)
+			}
+			m.active[k] = inst
+			_ = m.store.UpsertAlert(ctx, inst)
+			m.hub.Broadcast(*inst)
+			m.emitter.Emit(ctx, event)
+			return
 		}
 
 		m.active[k] = inst
-
-		// Add to alert store
 		_ = m.store.UpsertAlert(ctx, inst)
-
-		// Broadcast to websocket clients
 		m.hub.Broadcast(*inst)
-
-		// emit alert firing event
 		m.emitAlertFiringEvent(ctx, rule, meta, now)
+		m.dispatchFiringEvent(ctx, rule, meta, target, now, rule.Message)
 	} else {
-		// Transition from firing to resolved
 		if current != nil {
 			delete(m.active, k)
 			m.emitAlertResolvedEvent(ctx, rule, meta, now)
-			if rule.NotifyOnResolve {
-				m.dispatcher.Dispatch(ctx, model.EventEntry{
-					Timestamp: now,
-					Level:     rule.Level,
-					Category:  "alert",
-					Message:   "Resolved: " + rule.Message,
-					Source:    rule.Match.Namespace + "." + rule.Match.SubNamespace + "." + rule.Match.Metric,
-					Target:    current.Target, // TODO: -
-
-					Meta: meta.Tags,
-				})
+			if rule.Options.NotifyOnResolve {
+				m.dispatchResolvedEvent(ctx, rule, meta, current.Target, now, "Resolved: "+rule.Message)
 			}
-			// add to alert store
 			_ = m.store.ResolveAlert(ctx, rule.ID, current.Target, now)
-
-			// broadcast to websocket clients
 			m.hub.Broadcast(*current)
 		}
 	}
 }
 
-func (m *Manager) emitAlertFiringEvent(ctx context.Context, rule model.AlertRule, meta *model.Meta, now time.Time) {
-	// Assume its either an alert on an endpoint or global TODO: Add user related alerts logic.
-	scope := "global"
-	target := "gosight-core"
-
-	if meta.EndpointID != "" {
-		scope = "endpoint"
-		target = meta.EndpointID
-	}
-	event := model.EventEntry{
-		Timestamp: now,
-		Level:     rule.Level,
-		Category:  "alert",
-		Message:   rule.Message,
-		Source:    rule.Match.Namespace + "." + rule.Match.SubNamespace + "." + rule.Match.Metric,
-		Scope:     scope,
-		Target:    target,
-		Meta:      utils.SafeCopyTags(meta),
-	}
-	event.Meta["rule_id"] = rule.ID
-
-	m.emitter.Emit(ctx, event)
-	m.dispatcher.Dispatch(ctx, event)
-}
-
-func (m *Manager) emitAlertResolvedEvent(ctx context.Context, rule model.AlertRule, meta *model.Meta, now time.Time) {
-	// Assume its either an alert on an endpoint or global TODO: Add user related alerts logic.
-	scope := "global"
-	target := "gosight-core"
-	m.emitter.Emit(ctx, model.EventEntry{
-		Timestamp: now,
-		Level:     rule.Level,
-		Category:  "alert",
-		Message:   "Resolved: " + rule.Message,
-		Source:    rule.Match.Namespace + "." + rule.Match.SubNamespace + "." + rule.Match.Metric,
-		Scope:     scope,
-		Target:    target,
-		Meta:      meta.Tags,
-	})
-}
-
-func (m *Manager) ListActive() []model.AlertInstance {
-	m.lock.RLock()
-	defer m.lock.RUnlock()
-
-	var list []model.AlertInstance
-	for _, v := range m.active {
-		list = append(list, *v)
-	}
-	return list
-}
-
-func (m *Manager) HandleLogState(
-	ctx context.Context,
-	rule model.AlertRule,
-	meta *model.Meta,
-	log model.LogEntry,
-	triggered bool,
-) {
+func (m *Manager) HandleLogState(ctx context.Context, rule model.AlertRule, meta *model.Meta, log model.LogEntry, triggered bool) {
 	k := key(rule.ID, meta.EndpointID+"|"+log.Timestamp.Format(time.RFC3339Nano))
 	now := time.Now().UTC()
 
@@ -220,18 +142,74 @@ func (m *Manager) HandleLogState(
 			FirstFired: now,
 			LastFired:  now,
 			LastOK:     now,
-			LastValue:  0, // not meaningful for logs
+			LastValue:  0,
 			Level:      rule.Level,
 			Message:    rule.Message + ": " + log.Message,
-			Labels:     meta.Tags, // inherit endpoint tags
+			Labels:     utils.SafeCopyTags(meta),
+		}
+
+		event := model.EventEntry{
+			Timestamp: now,
+			Level:     rule.Level,
+			Category:  "log_alert",
+			Message:   rule.Message + ": " + log.Message,
+			Source:    log.Source,
+			Scope:     "endpoint",
+			Target:    meta.EndpointID,
+			Meta:      utils.SafeCopyTags(meta),
+		}
+		event.Meta["rule_id"] = rule.ID
+
+		if len(rule.Actions) > 0 {
+			for _, actionID := range rule.Actions {
+				m.dispatcher.TriggerActionByID(ctx, actionID, event)
+			}
+			m.active[k] = inst
+			_ = m.store.UpsertAlert(ctx, inst)
+			m.hub.Broadcast(*inst)
+			m.emitter.Emit(ctx, event)
+			return
 		}
 
 		m.active[k] = inst
-
 		_ = m.store.UpsertAlert(ctx, inst)
 		m.hub.Broadcast(*inst)
 		m.emitLogAlertFiringEvent(ctx, rule, meta, log, now)
 	}
+}
+
+func (m *Manager) emitAlertFiringEvent(ctx context.Context, rule model.AlertRule, meta *model.Meta, now time.Time) {
+	scope, target := inferScopeAndTarget(meta)
+	event := model.EventEntry{
+		Timestamp: now,
+		Level:     rule.Level,
+		Category:  "alert",
+		Message:   rule.Message,
+		Source:    rule.Scope.Namespace + "." + rule.Scope.SubNamespace + "." + rule.Scope.Metric,
+		Scope:     scope,
+		Target:    target,
+		Meta:      utils.SafeCopyTags(meta),
+	}
+	event.Meta["rule_id"] = rule.ID
+	m.emitter.Emit(ctx, event)
+	m.dispatcher.Dispatch(ctx, event)
+}
+
+func (m *Manager) emitAlertResolvedEvent(ctx context.Context, rule model.AlertRule, meta *model.Meta, now time.Time) {
+	scope, target := inferScopeAndTarget(meta)
+	event := model.EventEntry{
+		Timestamp: now,
+		Level:     rule.Level,
+		Category:  "alert",
+		Message:   "Resolved: " + rule.Message,
+		Source:    rule.Scope.Namespace + "." + rule.Scope.SubNamespace + "." + rule.Scope.Metric,
+		Scope:     scope,
+		Target:    target,
+		Meta:      utils.SafeCopyTags(meta),
+	}
+	event.Meta["rule_id"] = rule.ID
+	m.emitter.Emit(ctx, event)
+	m.dispatcher.Dispatch(ctx, event)
 }
 
 func (m *Manager) emitLogAlertFiringEvent(ctx context.Context, rule model.AlertRule, meta *model.Meta, log model.LogEntry, now time.Time) {
@@ -248,4 +226,50 @@ func (m *Manager) emitLogAlertFiringEvent(ctx context.Context, rule model.AlertR
 	event.Meta["rule_id"] = rule.ID
 	m.emitter.Emit(ctx, event)
 	m.dispatcher.Dispatch(ctx, event)
+}
+
+func (m *Manager) ListActive() []model.AlertInstance {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+
+	var list []model.AlertInstance
+	for _, v := range m.active {
+		list = append(list, *v)
+	}
+	return list
+}
+
+func inferScopeAndTarget(meta *model.Meta) (string, string) {
+	if meta.EndpointID != "" {
+		return "endpoint", meta.EndpointID
+	}
+	return "global", "gosight-core"
+}
+
+func (m *Manager) dispatchFiringEvent(ctx context.Context, rule model.AlertRule, meta *model.Meta, target string, now time.Time, message string) {
+	scope, target := inferScopeAndTarget(meta)
+	m.dispatcher.Dispatch(ctx, model.EventEntry{
+		Timestamp: now,
+		Level:     rule.Level,
+		Category:  "alert",
+		Message:   message,
+		Source:    rule.Scope.Namespace + "." + rule.Scope.SubNamespace + "." + rule.Scope.Metric,
+		Scope:     scope,
+		Target:    target,
+		Meta:      utils.SafeCopyTags(meta),
+	})
+}
+
+func (m *Manager) dispatchResolvedEvent(ctx context.Context, rule model.AlertRule, meta *model.Meta, target string, now time.Time, message string) {
+	scope, target := inferScopeAndTarget(meta)
+	m.dispatcher.Dispatch(ctx, model.EventEntry{
+		Timestamp: now,
+		Level:     rule.Level,
+		Category:  "alert",
+		Message:   message,
+		Source:    rule.Scope.Namespace + "." + rule.Scope.SubNamespace + "." + rule.Scope.Metric,
+		Scope:     scope,
+		Target:    target,
+		Meta:      utils.SafeCopyTags(meta),
+	})
 }

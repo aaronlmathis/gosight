@@ -59,7 +59,7 @@ func (h *LogsHandler) SubmitStream(stream pb.LogService_SubmitStreamServer) erro
 			if err := h.Sys.Stores.Logs.Write([]model.LogPayload{converted}, stream.Context()); err != nil {
 				utils.Error("Failed to store logs from host %s: %v", converted.EndpointID, err)
 			} else {
-				utils.Debug("Stored %d logs from host: %s at %s", len(converted.Logs), converted.EndpointID, converted.Timestamp)
+				//utils.Debug("Stored %d logs from host: %s at %s", len(converted.Logs), converted.EndpointID, converted.Timestamp)
 			}
 		})
 	}

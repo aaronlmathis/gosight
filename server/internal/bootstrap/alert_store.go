@@ -41,7 +41,7 @@ import (
 func InitAlertStore(cfg *config.Config) (alertstore.AlertStore, error) {
 	alertStoreType := cfg.AlertStore.Engine
 
-	utils.Info("Initializing user store type: %s", alertStoreType)
+	utils.Info("Initializing alert store type: %s", alertStoreType)
 	var alertStore alertstore.AlertStore
 	switch cfg.AlertStore.Engine {
 	case "postgres":

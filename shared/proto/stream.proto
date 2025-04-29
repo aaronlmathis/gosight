@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/aaronlmathis/gosight/shared/proto";
+
+import "command.proto"; 
+
+message MetricWrapper {
+  bytes raw_payload = 1; // serialized MetricPayload manually
+}
+
+message StreamPayload {
+  oneof payload {
+    MetricWrapper metric = 1;
+    CommandRequest command_request = 2;
+    CommandResponse command_response = 3;
+  }
+}
+
+message StreamResponse {
+  string status = 1;
+  int32 status_code = 2;
+  CommandRequest command = 3; // optional
+}
+
+service StreamService {
+  rpc Stream (stream StreamPayload) returns (stream StreamResponse); 
+}

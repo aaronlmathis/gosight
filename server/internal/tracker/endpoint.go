@@ -37,12 +37,14 @@ import (
 )
 
 type EndpointTracker struct {
-	mu         sync.RWMutex
-	agents     map[string]*model.Agent
-	containers map[string]*model.Container
-	emitter    *events.Emitter
-	ctx        context.Context
-	dataStore  datastore.DataStore
+	mu           sync.RWMutex
+	agents       map[string]*model.Agent
+	containers   map[string]*model.Container
+	emitter      *events.Emitter
+	ctx          context.Context
+	dataStore    datastore.DataStore
+	sessions     map[string]*LiveAgentSession
+	commandQueue map[string]*CommandQueue
 }
 
 func NewEndpointTracker(ctx context.Context, emitter *events.Emitter, dataStore datastore.DataStore) *EndpointTracker {
@@ -67,11 +69,13 @@ func NewEndpointTracker(ctx context.Context, emitter *events.Emitter, dataStore 
 	}
 
 	return &EndpointTracker{
-		agents:     agents,
-		containers: containers,
-		emitter:    emitter,
-		ctx:        ctx,
-		dataStore:  dataStore,
+		agents:       agents,
+		containers:   containers,
+		emitter:      emitter,
+		ctx:          ctx,
+		sessions:     make(map[string]*LiveAgentSession),
+		commandQueue: make(map[string]*CommandQueue),
+		dataStore:    dataStore,
 	}
 }
 

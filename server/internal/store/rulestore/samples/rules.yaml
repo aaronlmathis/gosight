@@ -1,64 +1,67 @@
-- id: high-mem-usage
-  name: Memory Over 80% Hand Typed
+- id: "cpu_high_prod"
+  name: "High CPU Usage - Production"
   enabled: false
-  level: warning
-  expression: "memory_used_percent > 80"
-  message: "Memory usage is over 80%"
-  match:
-    namespace: System
-    subnamespace: Memory
-    metric: used_percent
-    endpoint_ids:
-      - host-test-123
-  actions:
-    - notify-local
-  cooldown: 1m
-  eval_interval: 10s
-
-
-- id: cpu-high
-  name: CPU Usage > 50%
-  enabled: true
-  level: warning
-  expression: "cpu_usage_percent > 50"
-  message: "CPU usage is over 50%"
   type: metric
   match:
-    namespace: System
-    subnamespace: CPU
-    metric: total_percent
-    endpoint_ids:
-      - host-233b50c6-efa
+    endpoint_ids: []
+    labels:
+      Department: "Engineering"
+  scope:
+    namespace: system
+    subnamespace: cpu
+    metric: usage_percent
+  expression:
+    operator: ">"
+    value: 15
+    datatype: percent
+  level: warning
   actions:
     - notify-local
-  cooldown: 30s
-  eval_interval: 10s
-  repeat_interval: 1m
-  notify_on_resolve: true
+  options:
+    cooldown: 30s
+    eval_interval: 10s
+    repeat_interval: 5m
+    notify_on_resolve: true
 
-
-# Log Rules
 - id: "critical-ssh-auth-failure"
   name: "Critical SSH Authentication Failure"
-  enabled: true
+  description: "Triggers when SSH password auth fails in production"
+  enabled: false
   type: "log"
   level: "critical"
-  expression: 'level == "error" && source == "sshd" && contains(message, "Failed password")'
   message: "SSH authentication failed"
   match:
-    labels:
-      environment: "production"
+    source: "sshd"
+    category: "auth"
+  expression:
+    operator: "contains"
+    value: "Failed password"
+    datatype: "message"
   actions:
-  - "local-slacktest"
+    - notify-local
+  options:
+    cooldown: 30s
+    eval_interval: 10s
+    repeat_interval: 5m
+    notify_on_resolve: true
 
 - id: "sudo-auth-failure"
   name: "Sudo Authentication Failure"
-  enabled: true
+  description: "Triggers on incorrect sudo password attempts"
+  enabled: false
   type: "log"
   level: "error"
-  expression: 'level == "error" && source == "sudo" && contains(message, "incorrect password")'
   message: "Sudo authentication failure"
-  match: {}
+  match:
+    source: "sudo"
+  expression:
+    operator: "contains"
+    value: "incorrect password"
+    datatype: "message"
   actions:
-    - "local-slacktest"
-
+    - notify-local
+  options:
+    cooldown: 30s
+    eval_interval: 10s
+    repeat_interval: 5m
+    notify_on_resolve: true

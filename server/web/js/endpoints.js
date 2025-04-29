@@ -1,3 +1,4 @@
+import { gosightFetch } from "./api.js";
 
 function renderSummaryStats(endpoints, containers) {
   const containerCount = containers.length;
@@ -29,8 +30,8 @@ function renderSummaryStats(endpoints, containers) {
   document.getElementById("summary-containers").textContent = `${runningContainers} / ${containerCount}`;
   document.getElementById("summary-runtimes").textContent = runtimes;
 }
-async function loadHostTable() {
-  const agentsRes = await fetch("/api/v1/endpoints/hosts");
+export async function loadHostTable() {
+  const agentsRes = await gosightFetch("/api/v1/endpoints/hosts");
   const agents = await agentsRes.json();
 
   const tbody = document.getElementById("host-table-body");
@@ -39,6 +40,7 @@ async function loadHostTable() {
   for (const agent of agents) {
     const labels = agent.labels || {};
     const endpointID = agent.endpoint_id || "";
+    const agentID = agent.agent_id || "";
     const hname = agent.hostname;
 
     if (endpointID.startsWith("ctr-")) continue;
@@ -99,6 +101,8 @@ async function loadHostTable() {
     tbody.insertAdjacentHTML("beforeend", hostRowHTML);
     tbody.insertAdjacentHTML("beforeend", containerRowHTML);
 
+
+    //
     // Update last seen / uptime AFTER rows are added
     const lastSeenCell = document.getElementById(`lastseen-${rowID}`);
     const uptimeCell = document.getElementById(`uptime-${rowID}`);
@@ -132,14 +136,14 @@ function formatUptime(seconds) {
   const m = Math.floor((s % 3600) / 60);
   return `${d > 0 ? d + 'd ' : ''}${h}h ${m}m`;
 }
-async function fetchGlobalContainerMetrics() {
+export async function fetchGlobalContainerMetrics() {
   const runtimes = ["podman", "docker"];
   const metricNames = ["cpu_percent", "uptime_seconds"];
   const metrics = runtimes.flatMap(rt => metricNames.map(name => `container.${rt}.${name}`));
   const query = metrics.map(m => `metric=${m}`).join("&");
 
   try {
-    const res = await fetch(`/api/v1/query?${query}`);
+    const res = await gosightFetch(`/api/v1/query?${query}`);
     console.log(query)
     const rows = await res.json();
 
@@ -173,10 +177,7 @@ async function fetchGlobalContainerMetrics() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
-  await loadHostTable();
-  await fetchGlobalContainerMetrics();
-});
+
 
 function toggleContainerRow(rowID) {
   const wrapper = document.getElementById(`container-wrapper-${rowID}`);
@@ -220,7 +221,7 @@ function toggleContainerRow(rowID) {
     );
     const query = metrics.map(m => `metric=${m}`).join("&") + `&hostname=${encodeURIComponent(hostname)}`;
     console.log("Container query:", query);
-    fetch(`/api/v1/query?${query}`)
+    gosightFetch(`/api/v1/query?${query}`)
       .then(res => res.json())
       .then(json => {
         const rows = Array.isArray(json) ? json : [];
@@ -235,7 +236,7 @@ function toggleContainerRow(rowID) {
       });
   }
 }
-
+window.toggleContainerRow = toggleContainerRow;
 function heartbeatBadge(heartbeat) {
   if (heartbeat === "Online")
     return `<span class="px-2 py-0.5 rounded-sm text-xs font-bold bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">${heartbeat}</span>`;
@@ -388,7 +389,10 @@ function statusBadge(status) {
   return `<span class="px-2 py-0.5 rounded-sm text-xs font-bold bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">stopped</span>`;
 }
 
-document.addEventListener("DOMContentLoaded", function () {
+
+document.addEventListener("DOMContentLoaded", async () => {
+  await loadHostTable();
+  await fetchGlobalContainerMetrics();
   const searchInput = document.getElementById("filter-by");
   const statusSelect = document.getElementById("filter-status");
 
@@ -433,8 +437,6 @@ document.addEventListener("DOMContentLoaded", function () {
   // Optional: run once initially after loadHostTable fills content
   setTimeout(filterTable, 500); // or call it directly after loadHostTable() if desired
 });
-
-
 /*
 import { formatBytes, formatUptime } from './format.js';
 console.log("endpoints.js is running");

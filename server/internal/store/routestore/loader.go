@@ -47,3 +47,13 @@ func NewRouteStore(path string) (*RouteStore, error) {
 
 	return &RouteStore{Routes: config.Routes}, nil
 }
+
+func (rs *RouteStore) BuildMap() map[string]model.ActionRoute {
+	routeMap := make(map[string]model.ActionRoute)
+	for _, r := range rs.Routes {
+		if r.ID != "" {
+			routeMap[r.ID] = r
+		}
+	}
+	return routeMap
+}

@@ -19,17 +19,6 @@ routes:
       - type: script
         command: /opt/scripts/log_alert.sh
 
-  - id: notify-local
-    match:
-      level: warning
-      rule_id: high-mem-usage
-      tags:
-        env: test
-    actions:
-      - type: webhook
-        url: http://localhost:9999/test-alert
-        headers:
-          Authorization: "Bearer test123"
 
   - id: local-slacktest
     match:
@@ -37,3 +26,13 @@ routes:
     actions:
       - type: webhook
         url: http://localhost:8080
+
+  - id: notify-local
+    match:
+      level: warning
+      rule_id: cpu_high_prod
+      tags:
+        Department: Engineering
+    actions:
+      - type: webhook
+        url: http://localhost:9999/test-alert

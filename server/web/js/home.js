@@ -52,7 +52,7 @@ export async function loadAgentCard() {
 //
 export async function loadAlertRadial() {
   try {
-    const res = await gosightFetch("/api/v1/alerts");
+    const res = await gosightFetch("/api/v1/alerts/active");
     const alerts = await res.json();
     const count = Array.isArray(alerts) ? alerts.length : 0;
 

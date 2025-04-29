@@ -298,58 +298,6 @@ func (x *MetricPayload) GetMeta() *Meta {
 	return nil
 }
 
-type MetricResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
-	StatusCode    int32                  `protobuf:"varint,2,opt,name=status_code,json=statusCode,proto3" json:"status_code,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *MetricResponse) Reset() {
-	*x = MetricResponse{}
-	mi := &file_metric_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *MetricResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MetricResponse) ProtoMessage() {}
-
-func (x *MetricResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metric_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use MetricResponse.ProtoReflect.Descriptor instead.
-func (*MetricResponse) Descriptor() ([]byte, []int) {
-	return file_metric_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *MetricResponse) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
-func (x *MetricResponse) GetStatusCode() int32 {
-	if x != nil {
-		return x.StatusCode
-	}
-	return 0
-}
-
 var File_metric_proto protoreflect.FileDescriptor
 
 const file_metric_proto_rawDesc = "" +
@@ -386,14 +334,7 @@ const file_metric_proto_rawDesc = "" +
 	"endpointId\x128\n" +
 	"\ttimestamp\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12'\n" +
 	"\ametrics\x18\x06 \x03(\v2\r.proto.MetricR\ametrics\x12\x1f\n" +
-	"\x04meta\x18\a \x01(\v2\v.proto.MetaR\x04meta\"I\n" +
-	"\x0eMetricResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status\x12\x1f\n" +
-	"\vstatus_code\x18\x02 \x01(\x05R\n" +
-	"statusCode2\x8d\x01\n" +
-	"\x0eMetricsService\x12<\n" +
-	"\rSubmitMetrics\x12\x14.proto.MetricPayload\x1a\x15.proto.MetricResponse\x12=\n" +
-	"\fSubmitStream\x12\x14.proto.MetricPayload\x1a\x15.proto.MetricResponse(\x01B.Z,github.com/aaronlmathis/gosight/shared/protob\x06proto3"
+	"\x04meta\x18\a \x01(\v2\v.proto.MetaR\x04metaB.Z,github.com/aaronlmathis/gosight/shared/protob\x06proto3"
 
 var (
 	file_metric_proto_rawDescOnce sync.Once
@@ -407,29 +348,24 @@ func file_metric_proto_rawDescGZIP() []byte {
 	return file_metric_proto_rawDescData
 }
 
-var file_metric_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_metric_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_metric_proto_goTypes = []any{
 	(*StatisticValues)(nil),       // 0: proto.StatisticValues
 	(*Metric)(nil),                // 1: proto.Metric
 	(*MetricPayload)(nil),         // 2: proto.MetricPayload
-	(*MetricResponse)(nil),        // 3: proto.MetricResponse
-	nil,                           // 4: proto.Metric.DimensionsEntry
-	(*timestamppb.Timestamp)(nil), // 5: google.protobuf.Timestamp
-	(*Meta)(nil),                  // 6: proto.Meta
+	nil,                           // 3: proto.Metric.DimensionsEntry
+	(*timestamppb.Timestamp)(nil), // 4: google.protobuf.Timestamp
+	(*Meta)(nil),                  // 5: proto.Meta
 }
 var file_metric_proto_depIdxs = []int32{
-	5, // 0: proto.Metric.timestamp:type_name -> google.protobuf.Timestamp
+	4, // 0: proto.Metric.timestamp:type_name -> google.protobuf.Timestamp
 	0, // 1: proto.Metric.statistic_values:type_name -> proto.StatisticValues
-	4, // 2: proto.Metric.dimensions:type_name -> proto.Metric.DimensionsEntry
-	5, // 3: proto.MetricPayload.timestamp:type_name -> google.protobuf.Timestamp
+	3, // 2: proto.Metric.dimensions:type_name -> proto.Metric.DimensionsEntry
+	4, // 3: proto.MetricPayload.timestamp:type_name -> google.protobuf.Timestamp
 	1, // 4: proto.MetricPayload.metrics:type_name -> proto.Metric
-	6, // 5: proto.MetricPayload.meta:type_name -> proto.Meta
-	2, // 6: proto.MetricsService.SubmitMetrics:input_type -> proto.MetricPayload
-	2, // 7: proto.MetricsService.SubmitStream:input_type -> proto.MetricPayload
-	3, // 8: proto.MetricsService.SubmitMetrics:output_type -> proto.MetricResponse
-	3, // 9: proto.MetricsService.SubmitStream:output_type -> proto.MetricResponse
-	8, // [8:10] is the sub-list for method output_type
-	6, // [6:8] is the sub-list for method input_type
+	5, // 5: proto.MetricPayload.meta:type_name -> proto.Meta
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
 	6, // [6:6] is the sub-list for extension type_name
 	6, // [6:6] is the sub-list for extension extendee
 	0, // [0:6] is the sub-list for field type_name
@@ -447,9 +383,9 @@ func file_metric_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metric_proto_rawDesc), len(file_metric_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   4,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   0,
 		},
 		GoTypes:           file_metric_proto_goTypes,
 		DependencyIndexes: file_metric_proto_depIdxs,

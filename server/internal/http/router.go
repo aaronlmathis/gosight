@@ -126,6 +126,18 @@ func (s *HttpServer) setupIndexRoutes() {
 // setupMetricAlertsRoutes sets up the  alerts routes for the HTTP server.
 // This includes the alerts page as well as the rule builder page.
 func (s *HttpServer) setupAlertsRoutes() {
+	// TODO permissions
+	// Add Alert Rule Page
+	s.Router.Handle("/alerts/add",
+		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
+			gosightauth.RequirePermission("gosight:dashboard:view",
+				gosightauth.AccessLogMiddleware(
+					http.HandlerFunc(s.HandleAddAlertRulePage),
+				),
+				s.Sys.Stores.Users,
+			),
+		),
+	)
 	s.Router.Handle("/alerts",
 		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
 			gosightauth.RequirePermission("gosight:dashboard:view",
@@ -228,6 +240,7 @@ func (s *HttpServer) setupAPIRoutes() {
 	// Search
 	api.Handle("/search", secure("gosight:api:search", http.HandlerFunc(s.HandleGlobalSearchAPI))).Methods("GET")
 
+	api.Handle("/command", secure("gosight:api:command:send", http.HandlerFunc(s.handleCommandsAPI))).Methods("POST")
 	// Tags
 	// Tag management
 	api.Handle("/tags/keys", secure("gosight:api:tags:view", http.HandlerFunc(s.HandleTagKeys))).Methods("GET")
@@ -249,6 +262,7 @@ func (s *HttpServer) setupAPIRoutes() {
 	// Events and Alerts
 	api.Handle("/events", secure("gosight:api:events:view", http.HandlerFunc(s.HandleEventsAPI))).Methods("GET")
 
+	api.Handle("/alerts", secure("gosight:api:events:view", http.HandlerFunc(s.HandleCreateAlertRuleAPI))).Methods("POST") // TODO: Permissions
 	api.Handle("/alerts/summary", secure("gosight:api:events:view", http.HandlerFunc(s.HandleAlertsSummaryAPI))).Methods("GET")
 	api.Handle("/alerts/rules", secure("gosight:api:events:view", http.HandlerFunc(s.HandleAlertRulesAPI))).Methods("GET")
 	api.Handle("/alerts/active", secure("gosight:api:events:view", http.HandlerFunc(s.HandleActiveAlertsAPI))).Methods("GET")
@@ -261,6 +275,7 @@ func (s *HttpServer) setupAPIRoutes() {
 	// Metadata discovery endpoints
 	api.Handle("/", secure("gosight:api:metrics:meta", http.HandlerFunc(s.GetNamespaces))).Methods("GET")
 	api.Handle("/{namespace}/{sub}/{metric}/dimensions", secure("gosight:api:metrics:meta", http.HandlerFunc(s.GetMetricDimensions))).Methods("GET")
+	api.Handle("/{namespace}/{sub}/{metric}/labels", secure("gosight:api:metrics:meta", http.HandlerFunc(s.GetMetricDimensions))).Methods("GET")
 	api.Handle("/{namespace}/{sub}/{metric}/data", secure("gosight:api:metrics:read", http.HandlerFunc(s.GetMetricData))).Methods("GET")
 	api.Handle("/{namespace}/{sub}/{metric}/latest", secure("gosight:api:metrics:read", http.HandlerFunc(s.GetMetricLatest))).Methods("GET")
 

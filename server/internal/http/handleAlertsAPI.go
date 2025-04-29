@@ -26,9 +26,15 @@ package httpserver
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/aaronlmathis/gosight/shared/model"
+	"github.com/aaronlmathis/gosight/shared/utils"
+	"github.com/google/uuid"
 )
+
+// HandleAlertsAPI handles requests to the /api/alerts endpoint
+// It retrieves all alerts from the database and returns them as JSON.
 
 func (s *HttpServer) HandleAlertsAPI(w http.ResponseWriter, r *http.Request) {
 
@@ -49,6 +55,8 @@ func (s *HttpServer) HandleAlertsAPI(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// HandleActiveAlertsAPI handles requests to the /api/alerts/active endpoint
+
 func (s *HttpServer) HandleActiveAlertsAPI(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
@@ -63,6 +71,8 @@ func (s *HttpServer) HandleActiveAlertsAPI(w http.ResponseWriter, r *http.Reques
 		return
 	}
 }
+
+// HandleAlertRulesAPI handles requests to the /api/alerts/rules endpoint
 
 func (s *HttpServer) HandleAlertRulesAPI(w http.ResponseWriter, r *http.Request) {
 
@@ -84,6 +94,8 @@ func (s *HttpServer) HandleAlertRulesAPI(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// HandleAlertsSummaryAPI handles requests to the /api/alerts/summary endpoint
+// It returns a summary of alerts grouped by rule_id, showing the latest state and last change time.
 func (s *HttpServer) HandleAlertsSummaryAPI(w http.ResponseWriter, r *http.Request) {
 	alerts, err := s.Sys.Stores.Alerts.ListAlerts(r.Context())
 	if err != nil {
@@ -115,4 +127,42 @@ func (s *HttpServer) HandleAlertsSummaryAPI(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "failed to encode summary", http.StatusInternalServerError)
 		return
 	}
+}
+
+// HandleCreateAlert handles POST /api/v1/alerts
+func (s *HttpServer) HandleCreateAlertRuleAPI(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var rule model.AlertRule
+	if err := json.NewDecoder(r.Body).Decode(&rule); err != nil {
+		utils.Error("Failed to decode alert rule: %v", err)
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Generate ID if missing
+	if strings.TrimSpace(rule.ID) == "" {
+		rule.ID = uuid.NewString()
+	}
+
+	// Name must be unique
+	existing, err := s.Sys.Stores.Rules.GetRuleByName(ctx, rule.Name)
+	if err == nil && existing.ID != "" {
+		utils.Warn("Duplicate rule name: %s", rule.Name)
+		http.Error(w, "rule name already exists", http.StatusConflict)
+		return
+	}
+
+	if err := s.Sys.Stores.Rules.AddRule(ctx, rule); err != nil {
+		utils.Error("Failed to save rule: %v", err)
+		http.Error(w, "failed to save rule", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "ok",
+		"id":     rule.ID,
+	})
 }

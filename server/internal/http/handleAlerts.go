@@ -72,3 +72,43 @@ func (s *HttpServer) HandleAlertsPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
+
+func (s *HttpServer) HandleAddAlertRulePage(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	if forbidden, ok := ctx.Value("forbidden").(bool); ok && forbidden {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	userID, ok := contextutil.GetUserID(ctx)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	user, err := s.Sys.Stores.Users.GetUserWithPermissions(ctx, userID)
+	if err != nil {
+		utils.Error("Failed to load user %s: %v", userID, err)
+		http.Error(w, "failed to load user", http.StatusInternalServerError)
+		return
+	}
+
+	permissions := gosightauth.FlattenPermissions(user.Roles)
+
+	pageData := templates.TemplateData{
+		Title:       "Add Alert",
+		User:        user,
+		Permissions: permissions,
+		Breadcrumbs: []templates.Breadcrumb{
+			{Label: "Alerts", URL: "/alerts"},
+			{Label: "Add Alert"},
+		},
+	}
+
+	err = templates.RenderTemplate(w, "layout_dashboard", "alerts_add_alert", pageData)
+
+	if err != nil {
+		http.Error(w, "template error", 500)
+	}
+}

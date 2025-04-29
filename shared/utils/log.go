@@ -46,88 +46,124 @@ var (
 	debugEnabled bool
 )
 
-func InitLogger(appLogFile, errorLogFile, accessLogFile, logLevel string) error {
+// Writers for different log types
+var (
+	infoWriter   io.Writer
+	errorWriter  io.Writer
+	accessWriter io.Writer
+	debugWriter  io.Writer
+)
 
-	// Set up the logger with the specified log files and log level
-	var writers []io.Writer
+func InitLogger(appLogFile, errorLogFile, accessLogFile, debugLogFile, logLevel string) error {
+	// Default: discard everything (safe fallback)
+	infoWriter = io.Discard
+	errorWriter = io.Discard
+	accessWriter = io.Discard
+	debugWriter = io.Discard
+
+	// Open files
+	var appFile, errFile, accessFile, debugFile *os.File
+	var err error
 
 	if appLogFile != "" {
-		appOutput, err := os.OpenFile(appLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		appFile, err = os.OpenFile(appLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
 		}
-		writers = append(writers, appOutput)
-	} else {
-		writers = append(writers, os.Stdout)
+		infoWriter = appFile
 	}
 
-	if errorLogFile != "" && errorLogFile != appLogFile { // Avoid duplicate if error and app logs are the same file
-		errorOutput, err := os.OpenFile(errorLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if errorLogFile != "" {
+		errFile, err = os.OpenFile(errorLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
 		}
-		writers = append(writers, errorOutput)
+		errorWriter = errFile
 	}
 
 	if accessLogFile != "" {
-		accessOutput, err := os.OpenFile(accessLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		accessFile, err = os.OpenFile(accessLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
 		}
-		writers = append(writers, accessOutput)
+		accessWriter = accessFile
 	}
 
-	mw := io.MultiWriter(writers...)
+	if debugLogFile != "" {
+		debugFile, err = os.OpenFile(debugLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return err
+		}
+		debugWriter = debugFile
+	}
 
-	// For production, you would typically log to JSON instead of console output.
-	// Remove the ConsoleWriter and use the MultiWriter directly with zerolog.New().
-	consoleWriter := zerolog.ConsoleWriter{Out: mw, TimeFormat: "2006-01-02 15:04:05"}
-	logger = zerolog.New(consoleWriter).With().Timestamp().Caller().Logger()
-
-	// logger = zerolog.New(mw).With().Timestamp().Caller().Logger() // Production JSON output
-
-	// Enable debug mode if requested
+	// Enable debug mode?
 	if strings.ToLower(logLevel) == "debug" {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		debugEnabled = true
-	} else if strings.ToLower(logLevel) == "warn" {
-		zerolog.SetGlobalLevel(zerolog.WarnLevel)
-	} else if strings.ToLower(logLevel) == "error" {
-		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+
+		// Pretty console output
+		console := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006-01-02 15:04:05"}
+
+		infoWriter = io.MultiWriter(infoWriter, console)
+		errorWriter = io.MultiWriter(errorWriter, console)
+		accessWriter = io.MultiWriter(accessWriter, console)
+		debugWriter = io.MultiWriter(debugWriter, console)
+
 	} else {
+		// Production levels
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
 
-	logger.Info().Msgf("Log system initialized. Debug enabled: %v, Log Level: %s", debugEnabled, zerolog.GlobalLevel().String())
+	// Base logger writes nowhere directly; Info/Warn/Error/Debug will use split writers
+	logger = zerolog.New(io.Discard).With().Timestamp().Caller().Logger()
+
 	return nil
 }
 
+// INFO (normal server app messages)
 func Info(format string, args ...any) {
-	logger.Info().Msgf(format, args...)
+	event := zerolog.New(infoWriter).With().Timestamp().Logger()
+	event.Info().Msgf(format, args...)
 }
 
+// WARNING
 func Warn(format string, args ...any) {
-	logger.Warn().Msgf(format, args...)
+	event := zerolog.New(errorWriter).With().Timestamp().Logger()
+	event.Warn().Msgf(format, args...)
 }
 
+// ERROR
 func Error(format string, args ...any) {
-	logger.Error().Msgf(format, args...)
+	event := zerolog.New(errorWriter).With().Timestamp().Logger()
+	event.Error().Msgf(format, args...)
 }
 
+// FATAL
 func Fatal(format string, args ...any) {
-	logger.Fatal().Msgf(format, args...)
+	event := zerolog.New(errorWriter).With().Timestamp().Logger()
+	event.Error().Msgf(format, args...)
+	os.Exit(1)
 }
 
+// DEBUG
 func Debug(format string, args ...any) {
-	logger.Debug().Msgf(format, args...)
+	if debugEnabled {
+		event := zerolog.New(debugWriter).With().Timestamp().Logger()
+		event.Debug().Msgf(format, args...)
+	}
 }
 
+// ACCESS LOGGING (special traffic / auth / API hits)
 func Access(format string, args ...any) {
-	logger.Info().Str("level", "access").Msgf(format, args...)
+	event := zerolog.New(accessWriter).With().Timestamp().Str("level", "access").Logger()
+	event.Info().Msgf(format, args...)
 }
 
+// MUST (fatal init failures)
 func Must(label string, err error) {
 	if err != nil {
-		logger.Fatal().Err(err).Msgf("%s init failed", label)
+		event := zerolog.New(errorWriter).With().Timestamp().Logger()
+		event.Fatal().Err(err).Msgf("%s init failed", label)
 	}
 }

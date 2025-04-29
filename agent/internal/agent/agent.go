@@ -29,6 +29,7 @@ import (
 	"fmt"
 
 	"github.com/aaronlmathis/gosight/agent/internal/config"
+	grpcconn "github.com/aaronlmathis/gosight/agent/internal/grpc"
 	agentidentity "github.com/aaronlmathis/gosight/agent/internal/identity"
 	"github.com/aaronlmathis/gosight/agent/internal/logs/logrunner"
 	"github.com/aaronlmathis/gosight/agent/internal/meta"
@@ -89,6 +90,11 @@ func (a *Agent) Close(ctx context.Context) {
 	// Stop the metric runner
 	a.MetricRunner.Close()
 	a.LogRunner.Close()
+
+	err := grpcconn.CloseGRPCConn()
+	if err != nil {
+		utils.Warn("Failed to close gRPC connection cleanly: %v", err)
+	}
 	utils.Info("Agent shutdown complete")
 
 }

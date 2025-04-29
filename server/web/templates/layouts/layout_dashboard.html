@@ -152,8 +152,11 @@
             });
         });
     </script>
+    <div id="permissions-data" data-permissions='{{ marshal .Permissions }}'></div>
+
     <script>
-        window.permissions = {{ marshal .Permissions }};
+        const permissions = JSON.parse(document.getElementById('permissions-data').dataset.permissions);
+        window.permissions = permissions;
     </script>
     <script src="/js/global-search.js" type="module"></script>
     {{/* -- Additional scripts -- */}}

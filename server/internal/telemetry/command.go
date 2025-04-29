@@ -19,23 +19,23 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// server/internal/bootstrap/logger.go
-// Initializes logger.
-package bootstrap
+// internal/grpc/command.go
+
+package telemetry
 
 import (
-	"fmt"
-	"os"
+	"context"
 
-	"github.com/aaronlmathis/gosight/agent/internal/config"
-	"github.com/aaronlmathis/gosight/shared/utils"
+	"github.com/aaronlmathis/gosight/shared/proto"
 )
 
-func SetupLogging(cfg *config.Config) {
-
-	if err := utils.InitLogger(cfg.Agent.AppLogFile, cfg.Agent.ErrorLogFile, cfg.Agent.AccessLogFile, cfg.Agent.DebugLogFile, cfg.Logs.LogLevel); err != nil {
-		fmt.Printf("Failed to initialize logger: %v\n", err)
-		os.Exit(1)
+func (h *StreamHandler) EnqueueCommandToAgent(ctx context.Context, endpointID string, commandType, command string, args []string) error {
+	cmdReq := &proto.CommandRequest{
+		EndpointId:  endpointID,
+		CommandType: commandType,
+		Command:     command,
+		Args:        args,
 	}
-
+	h.Sys.Tracker.EnqueueCommand(endpointID, cmdReq)
+	return nil
 }

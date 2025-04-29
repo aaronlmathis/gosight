@@ -37,11 +37,11 @@ import (
 )
 
 type Dispatcher struct {
-	Routes []model.ActionRoute
+	Routes map[string]model.ActionRoute
 }
 
-func NewDispatcher(routes []model.ActionRoute) *Dispatcher {
-	return &Dispatcher{Routes: routes}
+func NewDispatcher(routeMap map[string]model.ActionRoute) *Dispatcher {
+	return &Dispatcher{Routes: routeMap}
 }
 
 // Dispatch processes an event against all routes and triggers matching actions.
@@ -50,10 +50,23 @@ func (d *Dispatcher) Dispatch(ctx context.Context, event model.EventEntry) {
 		if !matchRoute(route.Match, event) {
 			continue
 		}
-		utils.Debug("Dispatching event:", event.Message)
+		utils.Debug("Dispatching event:" + event.Message)
 		for _, action := range route.Actions {
-			go executeAction(action, event)
+			go d.ExecuteAction(ctx, action, event)
 		}
+	}
+}
+
+// TriggerActionByID looks up a route by ID and executes its actions.
+func (d *Dispatcher) TriggerActionByID(ctx context.Context, actionID string, event model.EventEntry) {
+	route, ok := d.Routes[actionID]
+	if !ok {
+		utils.Warn("🚫 No route found for action ID: %s", actionID)
+		return
+	}
+
+	for _, action := range route.Actions {
+		d.ExecuteAction(ctx, action, event)
 	}
 }
 
@@ -77,7 +90,7 @@ func matchRoute(f model.MatchFilter, e model.EventEntry) bool {
 
 // executeAction executes the action specified in the route.
 // It determines the action type (webhook or script) and calls the appropriate function.
-func executeAction(a model.ActionSpec, e model.EventEntry) {
+func (d *Dispatcher) ExecuteAction(ctx context.Context, a model.ActionSpec, e model.EventEntry) {
 	switch strings.ToLower(a.Type) {
 	case "webhook":
 		executeWebhook(a, e)

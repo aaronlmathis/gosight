@@ -46,6 +46,7 @@ type Config struct {
 		ErrorLogFile  string `yaml:"error_log_file"`
 		AppLogFile    string `yaml:"app_log_file"`
 		AccessLogFile string `yaml:"access_log_file"`
+		DebugLogFile  string `yaml:"debug_log_file"`
 		LogLevel      string `yaml:"log_level"`
 	}
 	Web struct {

@@ -21,6 +21,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         renderAlerts(tableData);
     }
 
+    function renderExpression(expr) {
+        if (typeof expr === "object" && expr !== null) {
+            const left = expr.datatype || "value";
+            const op = expr.operator || "?";
+            let val = expr.value;
+
+            if (typeof val === "number" && expr.datatype === "percent") {
+                val = `${val}%`;
+            } else if (typeof val === "string") {
+                val = `"${val}"`;
+            }
+
+            return `${left} ${op} ${val}`;
+        }
+        return typeof expr === "string" ? expr : "-";
+    }
     function buildTableData() {
         tableData = rules.map(rule => {
             const summary = summaries.find(s => s.rule_id === rule.id);
@@ -42,7 +58,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 name: rule.name,
                 state: state,
                 last_state_change: lastStateChange,
-                conditions_summary: `${rule.expression} ${formatMatchCriteria(rule.match)}`,
+                conditions_summary: `${renderExpression(rule.expression)} ${formatMatchCriteria(rule.match)}`,
                 actions: rule.actions || [],
             };
         });
@@ -52,9 +68,21 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!match || Object.keys(match).length === 0) {
             return "";
         }
-        return "(" + Object.entries(match)
-            .map(([k, v]) => `${k}=${v}`)
-            .join(", ") + ")";
+        let criteria = [];
+
+        if (match.labels && typeof match.labels === "object") {
+            for (const [k, v] of Object.entries(match.labels)) {
+                criteria.push(`label:${k}=${v}`);
+            }
+        }
+
+        for (const [k, v] of Object.entries(match)) {
+            if (k !== "labels") {
+                criteria.push(`${k}=${v}`);
+            }
+        }
+
+        return "(" + criteria.join(", ") + ")";
     }
 
     function renderAlerts(data) {
@@ -68,7 +96,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
 
             alertsTableBody.innerHTML += `
-<tr class="hover:bg-gray-50 dark:hover:bg-gray-800 group border-t border-gray-200 dark:border-gray-700 cursor-pointer" data-id="${alert.id}">
+<tr class="alert-row transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-800 group border-t border-gray-200 dark:border-gray-700 cursor-pointer" data-id="${alert.id}">
+
+
     <td class="px-4 py-3">
         <input type="checkbox" class="row-checkbox accent-blue-500 rounded" data-id="${alert.id}">
     </td>
@@ -111,7 +141,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     selectAllCheckbox.addEventListener("change", () => {
         const checkboxes = document.querySelectorAll(".row-checkbox");
-        checkboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
+
+        checkboxes.forEach(cb => {
+            cb.checked = selectAllCheckbox.checked;
+            const tr = cb.closest("tr");
+            if (tr) {
+                if (cb.checked) {
+                    tr.classList.add("selected");
+                } else {
+                    tr.classList.remove("selected");
+                }
+            }
+        });
         updateBulkActionsState();
     });
 
@@ -176,8 +217,14 @@ document.addEventListener("DOMContentLoaded", async () => {
                 const checkbox = tr.querySelector(".row-checkbox");
                 if (checkbox) {
                     checkbox.checked = !checkbox.checked;
+                    if (checkbox.checked) {
+                        tr.classList.add("bg-selected-light", "dark:bg-selected-dark");
+                    } else {
+                        tr.classList.remove("bg-selected-light", "dark:bg-selected-dark");
+                    }
                     updateBulkActionsState();
                 }
+
             });
         });
     }

@@ -77,6 +77,7 @@ type Config struct {
 		AppLogFile     string              `yaml:"app_log_file"`
 		ErrorLogFile   string              `yaml:"error_log_file"`
 		AccessLogFile  string              `yaml:"access_log_file"`
+		DebugLogFile   string              `yaml:"debug_log_file"`
 		LogLevel       string              `yaml:"log_level"`
 	}
 }

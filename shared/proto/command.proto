@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package proto;
+option go_package = "github.com/aaronlmathis/gosight/shared/proto";
+
+service CommandService {
+  rpc ExecuteCommand (CommandRequest) returns (CommandResponse);
+}
+
+message CommandRequest {
+  string endpoint_id = 1;
+  string command_type = 2;  // "shell" or "ansible"
+  string command = 3;       // Shell command (if type = shell) or playbook content (if type = ansible)
+  repeated string args = 4; // Optional extra args
+}
+
+message CommandResponse {
+  bool success = 1;
+  string output = 2;        // stdout + stderr
+  string error_message = 3; // if failed
+}

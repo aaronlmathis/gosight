@@ -46,7 +46,7 @@ import (
 type GrpcServer struct {
 	Sys           *sys.SystemContext
 	LogHandler    *telemetry.LogsHandler
-	MetricHandler *telemetry.MetricsHandler
+	StreamHandler *telemetry.StreamHandler
 	Listener      net.Listener
 	Server        *grpc.Server
 }
@@ -85,10 +85,11 @@ func NewGRPCServer(sys *sys.SystemContext) (*GrpcServer, error) {
 			MaxConnectionAgeGrace: 0,
 		}),
 	)
-	// Create metric and log handlers
-	metricHandler := telemetry.NewMetricsHandler(sys)
-	proto.RegisterMetricsServiceServer(server, metricHandler)
+	// Create stream handler for metrics and commands
+	streamHandler := telemetry.NewStreamHandler(sys)
+	proto.RegisterStreamServiceServer(server, streamHandler)
 
+	// create streamhandler for logs.
 	logHandler := telemetry.NewLogsHandler(sys)
 	proto.RegisterLogServiceServer(server, logHandler)
 
@@ -100,7 +101,7 @@ func NewGRPCServer(sys *sys.SystemContext) (*GrpcServer, error) {
 	return &GrpcServer{
 		Sys:           sys,
 		LogHandler:    logHandler,
-		MetricHandler: metricHandler,
+		StreamHandler: streamHandler,
 		Listener:      listener,
 		Server:        server,
 	}, nil
