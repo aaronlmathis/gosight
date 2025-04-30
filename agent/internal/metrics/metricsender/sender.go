@@ -30,6 +30,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/aaronlmathis/gosight/agent/internal/command"
 	"github.com/aaronlmathis/gosight/agent/internal/config"
@@ -49,6 +50,7 @@ type MetricSender struct {
 	cc     *grpc.ClientConn
 	stream proto.StreamService_StreamClient
 	wg     sync.WaitGroup
+	cfg    *config.Config
 }
 
 // NewSender establishes a gRPC connection
@@ -74,6 +76,7 @@ func NewSender(ctx context.Context, cfg *config.Config) (*MetricSender, error) {
 		client: client,
 		cc:     clientConn,
 		stream: stream,
+		cfg:    cfg,
 	}
 	go sender.receiveResponses()
 
@@ -142,13 +145,23 @@ func (s *MetricSender) SendMetrics(payload *model.MetricPayload) error {
 			},
 		},
 	}
-	// Send StreamPayload now
-	if err := s.stream.Send(streamPayload); err != nil {
-		return fmt.Errorf("stream send failed: %w", err)
-	}
+	sendCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	//utils.Info("Streamed %d metrics", len(pbMetrics))
-	return nil
+	sendCh := make(chan error, 1)
+	go func() {
+		sendCh <- s.stream.Send(streamPayload)
+	}()
+
+	select {
+	case err := <-sendCh:
+		if err != nil {
+			return fmt.Errorf("stream send failed: %w", err)
+		}
+		return nil
+	case <-sendCtx.Done():
+		return fmt.Errorf("stream send timeout")
+	}
 }
 
 // receiveResponses listens for commands sent from server.
@@ -158,18 +171,52 @@ func (s *MetricSender) receiveResponses() {
 		resp, err := s.stream.Recv()
 		if err != nil {
 			utils.Error("Stream receive error: %v", err)
-			break // Exit loop (can reconnect later if you want)
+
+			// Attempt to reconnect
+			if recErr := s.reconnectStream(); recErr != nil {
+				utils.Error("Failed to reconnect stream: %v", recErr)
+				// Optional: fatal reconnect failure - exit?
+				return
+			}
+			utils.Info("Successfully reconnected stream after failure")
+			continue // Try to receive again
 		}
 
 		utils.Debug("Received StreamResponse: status=%s", resp.Status)
 
 		if resp.Command != nil {
 			utils.Info("Received CommandRequest: type=%s command=%s", resp.Command.CommandType, resp.Command.Command)
-
-			// Call command handler
 			command.HandleCommand(resp.Command)
 		}
 	}
+}
+
+func (s *MetricSender) reconnectStream() error {
+	var err error
+	// Close old connection safely if you want (optional)
+	if s.cc != nil {
+		_ = s.cc.Close()
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Rebuild gRPC client connection
+	conn, err := grpcconn.GetGRPCConn(ctx, s.cfg) // Use your same logic
+	if err != nil {
+		return fmt.Errorf("failed to reconnect gRPC: %w", err)
+	}
+
+	s.cc = conn
+	s.client = proto.NewStreamServiceClient(conn)
+
+	stream, err := s.client.Stream(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to reopen stream: %w", err)
+	}
+
+	s.stream = stream
+	return nil
 }
 
 func AppendMetricsToFile(payload *model.MetricPayload, filename string) error {

@@ -72,30 +72,45 @@ func NewGRPCServer(sys *sys.SystemContext) (*GrpcServer, error) {
 	// Generate credentials from tlsCfg and start gRPC Server
 	creds := credentials.NewTLS(tlsCfg)
 
-	server := grpc.NewServer(grpc.Creds(creds),
+	// Server options for high performance.
+	serverOptions := []grpc.ServerOption{
+		grpc.Creds(creds),
+
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
-			MinTime:             1 * time.Minute, // Clients can only ping once per minute
+			MinTime:             1 * time.Minute,
 			PermitWithoutStream: true,
 		}),
+
 		grpc.KeepaliveParams(keepalive.ServerParameters{
-			Time:                  2 * time.Minute, // Server sends own pings every 2m
+			Time:                  2 * time.Minute,
 			Timeout:               20 * time.Second,
 			MaxConnectionIdle:     0,
 			MaxConnectionAge:      0,
 			MaxConnectionAgeGrace: 0,
 		}),
-	)
+
+		grpc.MaxRecvMsgSize(32 * 1024 * 1024),
+		grpc.MaxSendMsgSize(32 * 1024 * 1024),
+		grpc.InitialWindowSize(64 * 1024 * 1024),
+		grpc.InitialConnWindowSize(128 * 1024 * 1024),
+		grpc.ReadBufferSize(8 * 1024 * 1024),
+		grpc.WriteBufferSize(8 * 1024 * 1024),
+	}
+
+	// Create GRPC server
+	grpcServer := grpc.NewServer(serverOptions...)
+
 	// Create stream handler for metrics and commands
 	streamHandler := telemetry.NewStreamHandler(sys)
-	proto.RegisterStreamServiceServer(server, streamHandler)
+	proto.RegisterStreamServiceServer(grpcServer, streamHandler)
 
 	// create streamhandler for logs.
 	logHandler := telemetry.NewLogsHandler(sys)
-	proto.RegisterLogServiceServer(server, logHandler)
+	proto.RegisterLogServiceServer(grpcServer, logHandler)
 
 	if sys.Cfg.Debug.EnableReflection {
 		utils.Info("Enabling gRPC reflection")
-		reflection.Register(server)
+		reflection.Register(grpcServer)
 	}
 
 	return &GrpcServer{
@@ -103,7 +118,7 @@ func NewGRPCServer(sys *sys.SystemContext) (*GrpcServer, error) {
 		LogHandler:    logHandler,
 		StreamHandler: streamHandler,
 		Listener:      listener,
-		Server:        server,
+		Server:        grpcServer,
 	}, nil
 
 }

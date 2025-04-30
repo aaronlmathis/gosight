@@ -26,10 +26,13 @@ package metricsender
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // StartWorkerPool launches N workers and processes metric payloads with retries
@@ -58,17 +61,31 @@ func (s *MetricSender) trySendWithBackoff(payload *model.MetricPayload) error {
 	backoff := 500 * time.Millisecond
 	maxBackoff := 10 * time.Second
 
-	for retries := 0; retries < 5; retries++ {
+	for attempt := 1; attempt <= 5; attempt++ {
 		err = s.SendMetrics(payload)
 		if err == nil {
 			return nil
 		}
-		utils.Warn("Retrying in %v: %v", backoff, err)
+
+		st, ok := status.FromError(err)
+		if ok {
+			switch st.Code() {
+			case codes.Unavailable, codes.DeadlineExceeded, codes.ResourceExhausted:
+				utils.Warn("Transient error (%s) — retrying in %v [attempt %d/5]", st.Code(), backoff, attempt)
+			default:
+				utils.Error("Permanent send error (%s): %v", st.Code(), err)
+				return err // Do not retry permanent errors
+			}
+		} else {
+			utils.Warn("Unknown error — retrying in %v [attempt %d/5]: %v", backoff, attempt, err)
+		}
+
 		time.Sleep(backoff)
 		backoff *= 2
 		if backoff > maxBackoff {
 			backoff = maxBackoff
 		}
 	}
-	return err
+
+	return fmt.Errorf("send failed after 5 attempts: %w", err)
 }

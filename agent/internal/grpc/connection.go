@@ -9,6 +9,7 @@ import (
 	agentutils "github.com/aaronlmathis/gosight/agent/internal/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/keepalive"
 )
 
@@ -35,11 +36,24 @@ func GetGRPCConn(ctx context.Context, cfg *config.Config) (*grpc.ClientConn, err
 		ctx,
 		cfg.Agent.ServerURL,
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)),
+
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                2 * time.Minute,
 			Timeout:             20 * time.Second,
 			PermitWithoutStream: true,
 		}),
+
+		grpc.WithInitialWindowSize(64*1024*1024),
+		grpc.WithInitialConnWindowSize(128*1024*1024),
+
+		grpc.WithReadBufferSize(8*1024*1024),
+		grpc.WithWriteBufferSize(8*1024*1024),
+
+		grpc.WithDefaultCallOptions(
+			grpc.UseCompressor(gzip.Name),
+			grpc.MaxCallRecvMsgSize(32*1024*1024),
+			grpc.MaxCallSendMsgSize(32*1024*1024),
+		),
 	)
 
 	if err != nil {

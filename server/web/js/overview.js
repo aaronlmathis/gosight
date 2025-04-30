@@ -91,6 +91,7 @@ function appendMiniPoint(chart, timestamp, val) {
 }
 
 
+
 window.addEventListener("metrics", ({ detail: payload }) => {
     if (!payload?.metrics || !payload?.meta) return;
 
@@ -153,7 +154,11 @@ function updateMiniCharts(metrics) {
         const value = cpuVal !== null ? cpuVal : 0;
         appendMiniPoint(miniCharts.cpu, timestamp, value);
         latestCpuPercent = value;
-        document.getElementById("cpu-percent-label").textContent = `${value.toFixed(1)}%`;
+        if (typeof cpuVal === "number" && !isNaN(cpuVal)) {
+            document.getElementById("cpu-percent-label").textContent = cpuVal.toFixed(1) + "%";
+        } else {
+            document.getElementById("cpu-percent-label").textContent = "N/A";
+        }
     }
 
     if (miniCharts.memory && memVal !== null) {

@@ -27,6 +27,8 @@ package websocket
 import (
 	"context"
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/gorilla/websocket"
@@ -37,7 +39,9 @@ type Client struct {
 	EndpointID string
 	AgentID    string
 	HostID     string
-	Send       chan []byte // NEW
+	Send       chan []byte
+	ID         string
+	closeOnce  sync.Once
 }
 
 type HubManager struct {
@@ -81,14 +85,32 @@ var upgrader = websocket.Upgrader{
 }
 
 func (c *Client) writePump() {
-	defer func() {
-		c.Conn.Close()
-	}()
+	defer c.Close()
 
 	for msg := range c.Send {
-		err := c.Conn.WriteMessage(websocket.TextMessage, msg)
-		if err != nil {
-			break
+		c.Conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+		if err := c.Conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+			return
 		}
+	}
+}
+
+func (c *Client) Close() {
+	c.closeOnce.Do(func() {
+		close(c.Send)      // signal writePump to exit
+		_ = c.Conn.Close() // forcefully close socket if not already closed
+	})
+}
+
+func safeSend(c *Client, msg []byte) bool {
+	defer func() {
+		recover() // recover if send panics because channel is closed
+	}()
+
+	select {
+	case c.Send <- msg:
+		return true
+	default:
+		return false
 	}
 }

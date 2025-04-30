@@ -32,6 +32,7 @@ import (
 	grpcserver "github.com/aaronlmathis/gosight/server/internal/grpc"
 	httpserver "github.com/aaronlmathis/gosight/server/internal/http"
 	"github.com/aaronlmathis/gosight/shared/utils"
+	"google.golang.org/grpc/encoding/gzip"
 )
 
 var Version = "dev" // default
@@ -68,6 +69,9 @@ func main() {
 			utils.Info("HTTP server started successfully")
 		}
 	}()
+
+	// register gzip codec for compression
+	_ = gzip.Name // This ensures the gzip codec is registered
 
 	grpcServer, err := grpcserver.NewGRPCServer(sys)
 

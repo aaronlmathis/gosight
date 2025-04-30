@@ -30,11 +30,14 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 )
 
 type LogHub struct {
@@ -59,23 +62,31 @@ func (h *LogHub) Run(ctx context.Context) {
 			data, _ := json.Marshal(payload)
 
 			h.lock.Lock()
+
+			var deadClients []*Client // NEW: list to track which clients to remove
+
 			for client := range h.clients {
 				if h.shouldDeliver(payload, client) {
-					select {
-					case client.Send <- data:
-					default:
-						client.Conn.Close()
-						delete(h.clients, client)
+					if !safeSend(client, data) {
+						utils.Warn("Client send failed, scheduling removal: endpoint=%s agent=%s", client.EndpointID, client.AgentID)
+						client.Close()
+						deadClients = append(deadClients, client)
 					}
 				}
 			}
+
+			// After loop: safely delete dead clients
+			for _, client := range deadClients {
+				delete(h.clients, client)
+			}
+
 			h.lock.Unlock()
 
 		case <-ctx.Done():
 			// Context cancelled — shut down cleanly
 			h.lock.Lock()
 			for client := range h.clients {
-				client.Conn.Close()
+				client.Close()
 				delete(h.clients, client)
 			}
 			h.lock.Unlock()
@@ -87,7 +98,6 @@ func (h *LogHub) Run(ctx context.Context) {
 }
 
 func (h *LogHub) ServeWS(w http.ResponseWriter, r *http.Request) {
-
 	// Authenticate the request
 	_, err := gosightauth.GetSessionClaims(r)
 	if err != nil {
@@ -98,6 +108,7 @@ func (h *LogHub) ServeWS(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
+		utils.Warn("WebSocket upgrade failed: %v", err)
 		return
 	}
 
@@ -105,12 +116,40 @@ func (h *LogHub) ServeWS(w http.ResponseWriter, r *http.Request) {
 	meta, _ := h.metaTracker.Get(endpointID)
 
 	client := &Client{
+		ID:         uuid.NewString(),
 		Conn:       conn,
 		EndpointID: endpointID,
 		AgentID:    meta.AgentID,
 		Send:       make(chan []byte, 100),
 	}
 
+	// Heartbeat: read timeout + pong handler
+	conn.SetReadLimit(512)
+	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		return nil
+	})
+
+	// Background ping ticker
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			time.Sleep(30 * time.Second)
+			client.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			if err := client.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				client.Close()
+				h.lock.Lock()
+				delete(h.clients, client)
+				h.lock.Unlock()
+				return
+			}
+		}
+	}()
+
+	// Register client
 	h.lock.Lock()
 	h.clients[client] = true
 	h.lock.Unlock()

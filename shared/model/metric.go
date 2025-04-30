@@ -40,15 +40,13 @@ type Point struct {
 // It includes the namespace, subnamespace, name, timestamp, value, and other data.
 
 type Metric struct {
-	Namespace    string `json:"namespace,omitempty"`
-	SubNamespace string `json:"subnamespace,omitempty"`
-	Name         string `json:"name"`
-
-	Timestamp       time.Time        `json:"timestamp,omitempty"`
-	Value           float64          `json:"value,omitempty"`
-	StatisticValues *StatisticValues `json:"stats,omitempty"`
-	Unit            string           `json:"unit,omitempty"`
-
+	Namespace         string            `json:"namespace,omitempty"`
+	SubNamespace      string            `json:"subnamespace,omitempty"`
+	Name              string            `json:"name"`
+	Timestamp         time.Time         `json:"timestamp"`
+	Value             float64           `json:"value"`
+	StatisticValues   *StatisticValues  `json:"stats"`
+	Unit              string            `json:"unit,omitempty"`
 	Dimensions        map[string]string `json:"dimensions,omitempty"`
 	StorageResolution int               `json:"resolution,omitempty"`
 	Type              string            `json:"type,omitempty"`

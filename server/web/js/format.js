@@ -32,3 +32,9 @@ export function escapeHTML(str) {
     })[m];
   });
 }
+
+
+export function formatGB(bytes) {
+  if (bytes == null || isNaN(bytes)) return "--";
+  return (bytes / 1024 / 1024 / 1024).toFixed(1);
+}

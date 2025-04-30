@@ -20,8 +20,8 @@
               <p class="text-[10px] text-gray-400 dark:text-gray-500">percent</p>
             </div>
           </div>
-          <div class="relative h-48 w-full">
-            <canvas id="cpuUsageChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+          <div class="relative w-full">
+            <div id="cpuUsageChart" class="w-full h-[250px]"></div>
 
           </div>
         </div>
@@ -41,8 +41,8 @@
               </p>
             </div>
           </div>
-          <div class="relative h-48 w-full">
-            <canvas id="cpuLoadChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+          <div class="relative  w-full">
+            <div id="cpuLoadChart" class="w-full h-[250px]"></div>
 
           </div>
         </div>
@@ -50,25 +50,57 @@
 
       <!-- Right side: CPU donut (1/4 width) -->
       <div class="col-span-1">
-        <div
-          class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm h-full">
-          <div class="flex flex-col h-full">
-            <div class="flex justify-between items-center mb-4">
-              <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                CPU Time Breakdown
-              </h4>
-              <select id="cpu-time-unit"
-                class="text-xs border dark:bg-gray-900 border-gray-300 dark:border-gray-700 px-2 py-1 rounded">
-                <option value="ticks">Ticks</option>
-                <option value="seconds">Seconds</option>
-              </select>
+        <!-- CPU Time Counters -->
+        <!-- CPU Time Counters (Styled to match CPU Info Card) -->
+        <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+          <h4
+            class="text-sm font-semibold text-gray-700 dark:text-gray-100 mb-4 border-b pb-1 border-gray-200 dark:border-gray-700">
+            ⏱ CPU Time Counters
+          </h4>
+          <dl class="divide-y divide-gray-200 dark:divide-gray-700 text-sm text-gray-700 dark:text-gray-300">
+            <div class="grid grid-cols-2 gap-x-4 px-2 py-2">
+              <dt class="font-medium text-gray-500 dark:text-gray-400">User</dt>
+              <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-user">--</dd>
             </div>
-
-            <div class="flex-1 relative">
-              <canvas id="cpuDonutChart" class="absolute inset-0 w-full h-full"></canvas>
+            <div class="grid grid-cols-2 gap-x-4 px-2 py-2 bg-gray-50 dark:bg-gray-800">
+              <dt class="font-medium text-gray-500 dark:text-gray-400">System</dt>
+              <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-system">--</dd>
             </div>
-          </div>
+            <div class="grid grid-cols-2 gap-x-4 px-2 py-2">
+              <dt class="font-medium text-gray-500 dark:text-gray-400">Idle</dt>
+              <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-idle">--</dd>
+            </div>
+            <div class="grid grid-cols-2 gap-x-4 px-2 py-2 bg-gray-50 dark:bg-gray-800">
+              <dt class="font-medium text-gray-500 dark:text-gray-400">Nice</dt>
+              <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-nice">--</dd>
+            </div>
+            <div class="grid grid-cols-2 gap-x-4 px-2 py-2">
+              <dt class="font-medium text-gray-500 dark:text-gray-400">Iowait</dt>
+              <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-iowait">--</dd>
+            </div>
+            <div class="grid grid-cols-2 gap-x-4 px-2 py-2 bg-gray-50 dark:bg-gray-800">
+              <dt class="font-medium text-gray-500 dark:text-gray-400">IRQ</dt>
+              <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-irq">--</dd>
+            </div>
+            <div class="grid grid-cols-2 gap-x-4 px-2 py-2">
+              <dt class="font-medium text-gray-500 dark:text-gray-400">SoftIRQ</dt>
+              <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-softirq">--</dd>
+            </div>
+            <div class="grid grid-cols-2 gap-x-4 px-2 py-2 bg-gray-50 dark:bg-gray-800">
+              <dt class="font-medium text-gray-500 dark:text-gray-400">Steal</dt>
+              <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-steal">--</dd>
+            </div>
+            <div class="grid grid-cols-2 gap-x-4 px-2 py-2">
+              <dt class="font-medium text-gray-500 dark:text-gray-400">Guest</dt>
+              <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-guest">--</dd>
+            </div>
+            <div class="grid grid-cols-2 gap-x-4 px-2 py-2 bg-gray-50 dark:bg-gray-800">
+              <dt class="font-medium text-gray-500 dark:text-gray-400">GuestNice</dt>
+              <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-guestnice">--</dd>
+            </div>
+          </dl>
         </div>
+
       </div>
     </div>
 
@@ -123,57 +155,16 @@
       </div>
 
 
-      <!-- CPU Time Counters -->
-      <!-- CPU Time Counters (Styled to match CPU Info Card) -->
       <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
-        <h4
-          class="text-sm font-semibold text-gray-700 dark:text-gray-100 mb-4 border-b pb-1 border-gray-200 dark:border-gray-700">
-          ⏱ CPU Time Counters
-        </h4>
-        <dl class="divide-y divide-gray-200 dark:divide-gray-700 text-sm text-gray-700 dark:text-gray-300">
-          <div class="grid grid-cols-2 gap-x-4 px-2 py-2">
-            <dt class="font-medium text-gray-500 dark:text-gray-400">User</dt>
-            <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-user">--</dd>
-          </div>
-          <div class="grid grid-cols-2 gap-x-4 px-2 py-2 bg-gray-50 dark:bg-gray-800">
-            <dt class="font-medium text-gray-500 dark:text-gray-400">System</dt>
-            <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-system">--</dd>
-          </div>
-          <div class="grid grid-cols-2 gap-x-4 px-2 py-2">
-            <dt class="font-medium text-gray-500 dark:text-gray-400">Idle</dt>
-            <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-idle">--</dd>
-          </div>
-          <div class="grid grid-cols-2 gap-x-4 px-2 py-2 bg-gray-50 dark:bg-gray-800">
-            <dt class="font-medium text-gray-500 dark:text-gray-400">Nice</dt>
-            <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-nice">--</dd>
-          </div>
-          <div class="grid grid-cols-2 gap-x-4 px-2 py-2">
-            <dt class="font-medium text-gray-500 dark:text-gray-400">Iowait</dt>
-            <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-iowait">--</dd>
-          </div>
-          <div class="grid grid-cols-2 gap-x-4 px-2 py-2 bg-gray-50 dark:bg-gray-800">
-            <dt class="font-medium text-gray-500 dark:text-gray-400">IRQ</dt>
-            <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-irq">--</dd>
-          </div>
-          <div class="grid grid-cols-2 gap-x-4 px-2 py-2">
-            <dt class="font-medium text-gray-500 dark:text-gray-400">SoftIRQ</dt>
-            <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-softirq">--</dd>
-          </div>
-          <div class="grid grid-cols-2 gap-x-4 px-2 py-2 bg-gray-50 dark:bg-gray-800">
-            <dt class="font-medium text-gray-500 dark:text-gray-400">Steal</dt>
-            <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-steal">--</dd>
-          </div>
-          <div class="grid grid-cols-2 gap-x-4 px-2 py-2">
-            <dt class="font-medium text-gray-500 dark:text-gray-400">Guest</dt>
-            <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-guest">--</dd>
-          </div>
-          <div class="grid grid-cols-2 gap-x-4 px-2 py-2 bg-gray-50 dark:bg-gray-800">
-            <dt class="font-medium text-gray-500 dark:text-gray-400">GuestNice</dt>
-            <dd class="font-semibold text-gray-800 dark:text-white" id="cpu-time-guestnice">--</dd>
-          </div>
-        </dl>
+        <div class="flex justify-between items-start mb-2">
+          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+            CPU Activity Breakdown
+          </h3>
+        </div>
+        <div class="relative min-h-[300px] w-full">
+          <div id="cpuActivityDonutChart" class="absolute inset-0"></div>
+        </div>
       </div>
-
       <!-- Per-Core Usage Grid -->
       <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg p-4 shadow-sm">
         <h4
@@ -261,7 +252,7 @@
               </select>
             </div>
             <div class="flex-1 relative">
-              <canvas id="memoryDonutChart" class="absolute inset-0 w-full h-full"></canvas>
+              <div id="memoryDonutChart" class="absolute inset-0 w-full h-full"></div>
             </div>
           </div>
         </div>
@@ -279,8 +270,8 @@
               <p class="text-[10px] text-gray-400 dark:text-gray-500">percent</p>
             </div>
           </div>
-          <div class="relative h-48 w-full">
-            <canvas id="memoryUsageChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+          <div class="relative w-full">
+            <div id="memoryUsageChart" class="w-full h-[250px]"></div>
 
           </div>
         </div>
@@ -295,8 +286,8 @@
               <p class="text-[10px] text-gray-400 dark:text-gray-500">percent</p>
             </div>
           </div>
-          <div class="relative h-48 w-full">
-            <canvas id="swapUsageChart" class="absolute top-0 left-0 w-full h-full"></canvas>
+          <div class="relative  w-full">
+            <div id="swapUsageChart" class="w-full h-[250px]"></div>
 
           </div>
         </div>

@@ -29,11 +29,14 @@ import (
 	"encoding/json"
 	"net/http"
 	"sync"
+	"time"
 
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 )
 
 type AlertsHub struct {
@@ -43,6 +46,7 @@ type AlertsHub struct {
 	metaTracker *metastore.MetaTracker
 }
 
+// NewAlertsHub creates a new AlertsHub instance.
 func NewAlertsHub(metaTracker *metastore.MetaTracker) *AlertsHub {
 	return &AlertsHub{
 		clients:     make(map[*Client]bool),
@@ -58,35 +62,36 @@ func (h *AlertsHub) Run(ctx context.Context) {
 			data, _ := json.Marshal(payload)
 
 			h.lock.Lock()
+			var deadClients []*Client
 			for client := range h.clients {
 				if h.shouldDeliver(payload, client) {
-					select {
-					case client.Send <- data:
-					default:
-						client.Conn.Close()
-						delete(h.clients, client)
+					if !safeSend(client, data) {
+						utils.Warn("Client send failed, scheduling removal: endpoint=%s agent=%s", client.EndpointID, client.AgentID)
+						client.Close()
+						deadClients = append(deadClients, client)
 					}
 				}
+			}
+			for _, client := range deadClients {
+				delete(h.clients, client)
 			}
 			h.lock.Unlock()
 
 		case <-ctx.Done():
-			// Context cancelled — shut down cleanly
 			h.lock.Lock()
 			for client := range h.clients {
-				client.Conn.Close()
+				client.Close()
 				delete(h.clients, client)
 			}
 			h.lock.Unlock()
-			utils.Info("WebSocketHub: AlertHub shutdown complete")
+			utils.Info("WebSocketHub: AlertsHub shutdown complete")
 			return
 		}
 	}
 }
 
 func (h *AlertsHub) ServeWS(w http.ResponseWriter, r *http.Request) {
-
-	// Authenticate the request
+	// Authenticate
 	_, err := gosightauth.GetSessionClaims(r)
 	if err != nil {
 		utils.Warn("Unauthorized WebSocket attempt: %v", err)
@@ -96,6 +101,7 @@ func (h *AlertsHub) ServeWS(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
+		utils.Warn("WebSocket upgrade failed: %v", err)
 		return
 	}
 
@@ -103,11 +109,37 @@ func (h *AlertsHub) ServeWS(w http.ResponseWriter, r *http.Request) {
 	meta, _ := h.metaTracker.Get(endpointID)
 
 	client := &Client{
+		ID:         uuid.NewString(),
 		Conn:       conn,
 		EndpointID: endpointID,
 		AgentID:    meta.AgentID,
 		Send:       make(chan []byte, 50),
 	}
+
+	// Heartbeat setup
+	conn.SetReadLimit(512)
+	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		return nil
+	})
+
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			time.Sleep(30 * time.Second)
+			client.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			if err := client.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				client.Close()
+				h.lock.Lock()
+				delete(h.clients, client)
+				h.lock.Unlock()
+				return
+			}
+		}
+	}()
 
 	h.lock.Lock()
 	h.clients[client] = true
