@@ -8,7 +8,7 @@ service CommandService {
 }
 
 message CommandRequest {
-  string endpoint_id = 1;
+  string agent_id = 1;
   string command_type = 2;  // "shell" or "ansible"
   string command = 3;       // Shell command (if type = shell) or playbook content (if type = ansible)
   repeated string args = 4; // Optional extra args

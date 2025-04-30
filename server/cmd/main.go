@@ -89,10 +89,10 @@ func main() {
 	<-ctx.Done()
 	utils.Info("🧹 Shutting down GoSight...")
 
-	grpcServer.Server.GracefulStop()
 	if err := srv.Shutdown(); err != nil {
 		utils.Warn("Failed to shutdown HTTP server: %v", err)
 	}
+	grpcServer.Server.GracefulStop()
 	if err := sys.Stores.Metrics.Close(); err != nil {
 		utils.Warn("Failed to close metric store: %v", err)
 	}

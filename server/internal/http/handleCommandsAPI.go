@@ -26,40 +26,62 @@ package httpserver
 import (
 	"encoding/json"
 	"net/http"
+	"runtime/debug"
 
 	"github.com/aaronlmathis/gosight/shared/model"
 	pb "github.com/aaronlmathis/gosight/shared/proto"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func (s *HttpServer) handleCommandsAPI(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) HandleCommandsAPI(w http.ResponseWriter, r *http.Request) {
+	utils.Debug("HandleCommandsAPI called")
 	var req model.CommandRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.Debug("Failed to decode request: %v", err)
 		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
+	utils.Debug("Request decoded: agentID=%s commandType=%s commandData=%s args=%v", req.AgentID, req.CommandType, req.CommandData, req.Args)
 
-	session, _ := s.Sys.Tracker.GetAgentSession(req.AgentID)
-	if session == nil {
+	_, ok := s.Sys.Tracker.GetAgentSession(req.AgentID)
+	utils.Debug("🔍 Session found: %v", ok)
+
+	if !ok {
+		utils.Debug("❌ agent session not found for %s", req.AgentID)
 		http.Error(w, "agent not available", http.StatusServiceUnavailable)
 		return
 	}
 
 	cmdReq := &pb.CommandRequest{
-		EndpointId:  req.AgentID,
+		AgentId:     req.AgentID,
 		CommandType: req.CommandType,
 		Command:     req.CommandData,
 		Args:        req.Args,
 	}
 
-	s.Sys.Tracker.EnqueueCommand(req.AgentID, cmdReq)
+	utils.Debug("📤 Attempting to enqueue command")
 
-	utils.Info("Enqueued command for agent %s: type=%s command=%s", req.AgentID, req.CommandType, req.CommandData)
+	defer func() {
+		if r := recover(); r != nil {
+			utils.Error("🔥 Panic while enqueueing command for agent %s: %v", req.AgentID, r)
+			debug.PrintStack() // optional
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+		}
+	}()
+
+	if !s.Sys.Tracker.EnqueueCommand(req.AgentID, cmdReq) {
+		utils.Debug("❌ Failed to enqueue command for %s", req.AgentID)
+		http.Error(w, "failed to enqueue command", http.StatusServiceUnavailable)
+		return
+	}
+
+	utils.Info("✅ Enqueued command for agent %s: type=%s command=%s", req.AgentID, req.CommandType, req.CommandData)
 
 	w.WriteHeader(http.StatusAccepted)
 	json.NewEncoder(w).Encode(map[string]string{
 		"status":  "queued",
 		"message": "command will be delivered to agent shortly",
 	})
+
 }

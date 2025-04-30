@@ -24,65 +24,62 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package command
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
 
-	pb "github.com/aaronlmathis/gosight/shared/proto"
+	agentutils "github.com/aaronlmathis/gosight/agent/internal/utils"
+	"github.com/aaronlmathis/gosight/shared/proto"
 )
 
 // runShellCommand executes a shell command with arguments and returns the result.
-func runShellCommand(cmd string, args ...string) (*pb.CommandResponse, error) {
-	allowedCommands := []string{"docker", "podman", "systemctl", "ls", "uptime", "reboot", "shutdown"}
-	allowed := false
-	for _, allowedCmd := range allowedCommands {
-		if cmd == allowedCmd {
-			allowed = true
-			break
-		}
+func runShellCommand(ctx context.Context, cmd string, args ...string) *proto.CommandResponse {
+	allowed := map[string]bool{
+		"docker": true, "podman": true, "systemctl": true,
+		"ls": true, "uptime": true, "reboot": true, "shutdown": true,
 	}
-	if !allowed {
-		return &pb.CommandResponse{Success: false, ErrorMessage: "command not allowed"}, nil
+	if !allowed[cmd] {
+		msg := fmt.Sprintf("command not allowed: %s. Allowed: %v", cmd, agentutils.Keys(allowed))
+		return &proto.CommandResponse{Success: false, ErrorMessage: msg}
 	}
 
-	command := exec.Command(cmd, args...)
-	out, err := command.CombinedOutput()
+	execCmd := exec.CommandContext(ctx, cmd, args...)
+	output, err := execCmd.CombinedOutput()
 
-	return &pb.CommandResponse{
-		Success: err == nil,
-		Output:  string(out),
-		ErrorMessage: func() string {
-			if err != nil {
-				return err.Error()
-			}
-			return ""
-		}(),
-	}, nil
+	success := err == nil
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		success = exitErr.ExitCode() == 0
+	}
+
+	return &proto.CommandResponse{
+		Success:      success,
+		Output:       string(output),
+		ErrorMessage: agentutils.ErrMsg(err),
+	}
 }
 
 // runAnsiblePlaybook executes an Ansible playbook from a string and returns the result.
-func runAnsiblePlaybook(playbookContent string) (*pb.CommandResponse, error) {
-	tmpDir := os.TempDir()
-	tmpFile := filepath.Join(tmpDir, "gosight-playbook-"+time.Now().Format("20060102-150405")+".yml")
+func runAnsiblePlaybook(ctx context.Context, playbookContent string) *proto.CommandResponse {
+	tmpFile := filepath.Join(os.TempDir(), "gosight-playbook-"+time.Now().Format("20060102-150405")+".yml")
 
 	err := os.WriteFile(tmpFile, []byte(playbookContent), 0644)
 	if err != nil {
-		return &pb.CommandResponse{Success: false, ErrorMessage: "failed to write playbook: " + err.Error()}, nil
+		return &proto.CommandResponse{
+			Success:      false,
+			ErrorMessage: "failed to write playbook: " + err.Error(),
+		}
 	}
 	defer os.Remove(tmpFile)
 
-	cmd := exec.Command("ansible-playbook", tmpFile)
+	cmd := exec.CommandContext(ctx, "ansible-playbook", tmpFile)
 	out, err := cmd.CombinedOutput()
 
-	return &pb.CommandResponse{
-		Success: err == nil,
-		Output:  string(out),
-		ErrorMessage: func() string {
-			if err != nil {
-				return err.Error()
-			}
-			return ""
-		}(),
-	}, nil
+	return &proto.CommandResponse{
+		Success:      err == nil,
+		Output:       string(out),
+		ErrorMessage: agentutils.ErrMsg(err),
+	}
 }

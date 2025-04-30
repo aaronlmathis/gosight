@@ -45,6 +45,7 @@ type Agent struct {
 	AgentVersion string
 	LogRunner    *logrunner.LogRunner
 	Meta         *model.Meta
+	Ctx          context.Context
 }
 
 func NewAgent(ctx context.Context, cfg *config.Config, agentVersion string) (*Agent, error) {
@@ -67,6 +68,7 @@ func NewAgent(ctx context.Context, cfg *config.Config, agentVersion string) (*Ag
 		return nil, fmt.Errorf("failed to create log runner: %v", err)
 	}
 	return &Agent{
+		Ctx:          ctx,
 		Config:       cfg,
 		MetricRunner: metricRunner,
 		AgentID:      agentID,

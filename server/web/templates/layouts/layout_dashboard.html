@@ -153,10 +153,14 @@
         });
     </script>
     <div id="permissions-data" data-permissions='{{ marshal .Permissions }}'></div>
+    <div id="endpoint-metadata" data-meta='{{ marshal .Meta }}'></div>
 
     <script>
         const permissions = JSON.parse(document.getElementById('permissions-data').dataset.permissions);
         window.permissions = permissions;
+
+        const endpointMetadata = JSON.parse(document.getElementById('endpoint-metadata').dataset.meta);
+        window.endpointMetadata = endpointMetadata 
     </script>
     <script src="/js/global-search.js" type="module"></script>
     {{/* -- Additional scripts -- */}}

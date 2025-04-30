@@ -1,5 +1,6 @@
 import { formatBytes, formatUptime } from "./format.js";
 import { registerTabInitializer } from "./tabs.js";
+import { gosightFetch } from "./api.js";
 
 const miniCharts = {
     cpu: null,
@@ -235,6 +236,22 @@ function logLevelColorClass(level) {
         default: return "text-gray-700 dark:text-gray-300";
     }
 }
+
+async function fetchRecentLogs() {
+    try {
+        const url = `/api/v1/logs?endpointID=${encodeURIComponent(window.endpointID)}&limit=${maxLogLines}`;
+        const res = await gosightFetch(`/api/v1/logs?endpointID=${encodeURIComponent(window.endpointID)}&limit=10`);
+        console.log("Fetching recent logs from:", url);
+        if (!res.ok) throw new Error("Failed to fetch recent logs");
+        const logs = await res.json();
+        console.log("[Logs] Loaded:", logs);
+        for (const log of logs) {
+            appendLogLine(log);
+        }
+    } catch (err) {
+        console.error("Failed to preload logs:", err);
+    }
+}
 // END LOG STREAMING
 ///
 /// ACTIVITY TAB SECTION
@@ -245,22 +262,7 @@ function logLevelColorClass(level) {
 //// END ACTIVITY TAB
 /////
 
-async function fetchRecentLogs() {
-    try {
-        const res = await fetch(`/api/v1/logs?endpointID=${encodeURIComponent(window.endpointID)}&limit=10`);
-        if (!res.ok) throw new Error("Failed to fetch recent logs");
-        const payload = await res.json();
 
-        if (payload?.Logs?.length > 0) {
-            for (const log of payload.Logs) {
-                appendLogLine(log);
-                appendActivityRow(log);
-            }
-        }
-    } catch (err) {
-        console.error("Failed to fetch initial logs:", err);
-    }
-}
 
 function extractHostSummary(metrics, meta) {
     const summary = {
@@ -356,6 +358,7 @@ function setupContainerFilters() {
     runtimeFilter.addEventListener("change", applyContainerFilters);
     hostFilter.addEventListener("input", applyContainerFilters);
 }
+
 function renderOverviewSummary(summary) {
 
     document.getElementById("uptime").textContent = formatUptime(summary.uptime);
@@ -462,18 +465,9 @@ function updateContainerTable(payload) {
 //
 
 async function initOverviewTab() {
-
-
-    document.getElementById("overview-content")?.classList.remove("hidden");
-
-
     await renderMiniCharts();
     await fetchRecentLogs();
-
     setupContainerFilters();
-
-
-
 }
 
 

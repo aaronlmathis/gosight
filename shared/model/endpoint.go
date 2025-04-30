@@ -31,9 +31,9 @@ type Endpoint struct {
 	Hostname      string            `json:"hostname"`
 	ContainerName string            `json:"container_name,omitempty"` // Only for containers
 	IP            string            `json:"ip"`
-	OS            string            `json:"os", omitempty`
-	Arch          string            `json:"arch", omitempty`
-	Version       string            `json:"version", omitempty`
+	OS            string            `json:"os,omitempty"`
+	Arch          string            `json:"arch,omitempty"`
+	Version       string            `json:"version,omitempty"`
 	Labels        map[string]string `json:"labels"`
 	ContainerID   string            `json:"container_id,omitempty"` // Only for containers
 	Name          string            `json:"name,omitempty"`         // Only for containers

@@ -66,8 +66,8 @@ type Meta struct {
 	Namespace          string `json:"namespace,omitempty"` // K8s namespace
 	ClusterName        string `json:"cluster_name,omitempty"`
 	NodeName           string `json:"node_name,omitempty"`
-	ContainerImageID   string `json:"image_id,omitempty"`   // Docker image ID
-	ContainerImageName string `json:"image_name,omitempty"` // Docker image name
+	ContainerImageID   string `json:"contianer_image_id,omitempty"` // Docker image ID
+	ContainerImageName string `json:"image_name,omitempty"`         // Docker image name
 
 	// Application Specific
 	Application  string `json:"application,omitempty"`

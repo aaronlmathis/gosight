@@ -24,10 +24,9 @@
 {{ block "page-scripts" .}}
 <script>
     window.endpointID = "{{ .Meta.EndpointID }}";
-
     window.hostID = "{{ .Meta.HostID }}";
 </script>
-</script>
+
 <script type="module" src="/js/init.js"></script>
 <script type="module" src="/js/singleEndpoint.js"></script>
 <script type="module" src="/js/tabs.js"></script>
@@ -37,24 +36,6 @@
 <script type="module" src="/js/network.js"></script>
 <script type="module" src="/js/logs.js"></script>
 <script type="module" src="/js/overview.js"></script>
+<script type="module" src="/js/console.js"></script>
 
-<script>
-    const inputEl = document.getElementById("console-input");
-    const fakeCommand = "uptime";
-    let idx = 0;
-
-    const typeCommand = () => {
-        if (idx < fakeCommand.length) {
-            inputEl.classList.remove("animate-pulse");
-            inputEl.innerText = fakeCommand.slice(0, idx + 1);
-            idx++;
-            setTimeout(typeCommand, 120);
-        } else {
-            inputEl.classList.add("animate-pulse");
-        }
-    };
-
-    // Trigger typing after a short delay
-    setTimeout(typeCommand, 1000);
-</script>
 {{ end }}

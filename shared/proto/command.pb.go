@@ -23,7 +23,7 @@ const (
 
 type CommandRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	EndpointId    string                 `protobuf:"bytes,1,opt,name=endpoint_id,json=endpointId,proto3" json:"endpoint_id,omitempty"`
+	AgentId       string                 `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
 	CommandType   string                 `protobuf:"bytes,2,opt,name=command_type,json=commandType,proto3" json:"command_type,omitempty"` // "shell" or "ansible"
 	Command       string                 `protobuf:"bytes,3,opt,name=command,proto3" json:"command,omitempty"`                            // Shell command (if type = shell) or playbook content (if type = ansible)
 	Args          []string               `protobuf:"bytes,4,rep,name=args,proto3" json:"args,omitempty"`                                  // Optional extra args
@@ -61,9 +61,9 @@ func (*CommandRequest) Descriptor() ([]byte, []int) {
 	return file_command_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *CommandRequest) GetEndpointId() string {
+func (x *CommandRequest) GetAgentId() string {
 	if x != nil {
-		return x.EndpointId
+		return x.AgentId
 	}
 	return ""
 }
@@ -153,10 +153,9 @@ var File_command_proto protoreflect.FileDescriptor
 
 const file_command_proto_rawDesc = "" +
 	"\n" +
-	"\rcommand.proto\x12\x05proto\"\x82\x01\n" +
-	"\x0eCommandRequest\x12\x1f\n" +
-	"\vendpoint_id\x18\x01 \x01(\tR\n" +
-	"endpointId\x12!\n" +
+	"\rcommand.proto\x12\x05proto\"|\n" +
+	"\x0eCommandRequest\x12\x19\n" +
+	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12!\n" +
 	"\fcommand_type\x18\x02 \x01(\tR\vcommandType\x12\x18\n" +
 	"\acommand\x18\x03 \x01(\tR\acommand\x12\x12\n" +
 	"\x04args\x18\x04 \x03(\tR\x04args\"h\n" +

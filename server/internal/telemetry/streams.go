@@ -25,6 +25,8 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package telemetry
 
 import (
+	"time"
+
 	"github.com/aaronlmathis/gosight/server/internal/sys"
 	"github.com/aaronlmathis/gosight/shared/model"
 	pb "github.com/aaronlmathis/gosight/shared/proto"
@@ -50,7 +52,15 @@ func (h *StreamHandler) Stream(stream pb.StreamService_StreamServer) error {
 	var registered bool
 	var agentID string
 
+	go func() {
+		for {
+			time.Sleep(5 * time.Second)
+			utils.Debug("🧭 server Stream handler alive...")
+		}
+	}()
+
 	for {
+		utils.Debug("📥 Waiting for next message on gRPC stream...")
 		req, err := stream.Recv()
 		if err != nil {
 			utils.Error("Stream receive error: %v", err)
@@ -69,6 +79,8 @@ func (h *StreamHandler) Stream(stream pb.StreamService_StreamServer) error {
 				}
 
 				converted := ConvertToModelPayload(&metricPayload)
+
+				utils.Debug("Received MetricPayload from agent %s: %s", converted.EndpointID, converted.Meta.AgentID)
 
 				// Register agent session
 				if !registered && converted.Meta != nil && converted.Meta.AgentID != "" {
@@ -121,7 +133,18 @@ func (h *StreamHandler) Stream(stream pb.StreamService_StreamServer) error {
 			utils.Info("Received CommandResponse: success=%v output=%s error=%s",
 				v.CommandResponse.Success, v.CommandResponse.Output, v.CommandResponse.ErrorMessage)
 
-			// TODO: Later store command results in audit log
+			if endpointID, ok := h.Sys.Tracker.GetEndpointIdByAgentId(agentID); ok {
+				h.Sys.WSHub.Commands.Broadcast(&model.CommandResult{
+
+					EndpointID:   endpointID,
+					Output:       v.CommandResponse.Output,
+					Success:      v.CommandResponse.Success,
+					ErrorMessage: v.CommandResponse.ErrorMessage,
+					Timestamp:    time.Now().Format(time.RFC3339),
+				})
+			} else {
+				utils.Warn("No endpoint ID found for agent %s", agentID)
+			}
 
 		case *pb.StreamPayload_CommandRequest:
 			// Server shouldn't receive CommandRequests — log it
@@ -137,18 +160,25 @@ func (h *StreamHandler) Stream(stream pb.StreamService_StreamServer) error {
 			StatusCode: 0,
 		}
 
-		// Check if there is a pending command for this agent
+		utils.Debug("Agent ID: %s", agentID)
+		var pendingCmd *pb.CommandRequest
 		if agentID != "" {
-			pendingCmd := h.Sys.Tracker.DequeueCommand(agentID)
-			if pendingCmd != nil {
-				resp.Command = pendingCmd
-				utils.Info("Injecting pending CommandRequest into StreamResponse for agent %s", agentID)
-			}
+			pendingCmd = h.Sys.Tracker.DequeueCommand(agentID) // Copy command reference outside of lock
 		}
-
-		if err := stream.Send(resp); err != nil {
-			utils.Warn("Failed to send StreamResponse: %v", err)
-			return err
+		if pendingCmd != nil {
+			resp.Command = pendingCmd
+			utils.Info("Injecting pending CommandRequest into StreamResponse for agent %s", agentID)
+		}
+		utils.Debug("📤 Sending StreamResponse to %s", agentID)
+		if session, ok := h.Sys.Tracker.GetAgentSession(agentID); ok {
+			select {
+			case session.SendQueue <- resp:
+				// sent successfully
+			default:
+				utils.Warn("SendQueue full for agent %s — dropping response", agentID)
+			}
+		} else {
+			utils.Warn("No live session found for agent %s", agentID)
 		}
 	}
 }

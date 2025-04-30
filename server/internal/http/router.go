@@ -240,7 +240,7 @@ func (s *HttpServer) setupAPIRoutes() {
 	// Search
 	api.Handle("/search", secure("gosight:api:search", http.HandlerFunc(s.HandleGlobalSearchAPI))).Methods("GET")
 
-	api.Handle("/command", secure("gosight:api:command:send", http.HandlerFunc(s.handleCommandsAPI))).Methods("POST")
+	api.Handle("/command", secure("gosight:api:command:execute", http.HandlerFunc(s.HandleCommandsAPI))).Methods("POST")
 	// Tags
 	// Tag management
 	api.Handle("/tags/keys", secure("gosight:api:tags:view", http.HandlerFunc(s.HandleTagKeys))).Methods("GET")
@@ -289,4 +289,5 @@ func (s *HttpServer) setupWebSocketRoutes() {
 	s.Router.HandleFunc("/ws/alerts", s.Sys.WSHub.Alerts.ServeWS)
 	s.Router.HandleFunc("/ws/events", s.Sys.WSHub.Events.ServeWS)
 	s.Router.HandleFunc("/ws/logs", s.Sys.WSHub.Logs.ServeWS)
+	s.Router.HandleFunc("/ws/command", s.Sys.WSHub.Commands.ServeWS)
 }

@@ -73,3 +73,19 @@ func GetHostname() string {
 	}
 	return h
 }
+
+// ErrMsg returns the error message if err is not nil, otherwise returns an empty string.
+func ErrMsg(err error) string {
+	if err != nil {
+		return err.Error()
+	}
+	return ""
+}
+
+func Keys(m map[string]bool) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}

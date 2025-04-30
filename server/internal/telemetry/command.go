@@ -29,13 +29,13 @@ import (
 	"github.com/aaronlmathis/gosight/shared/proto"
 )
 
-func (h *StreamHandler) EnqueueCommandToAgent(ctx context.Context, endpointID string, commandType, command string, args []string) error {
+func (h *StreamHandler) EnqueueCommandToAgent(ctx context.Context, agentID string, commandType, command string, args []string) error {
 	cmdReq := &proto.CommandRequest{
-		EndpointId:  endpointID,
+		AgentId:     agentID,
 		CommandType: commandType,
 		Command:     command,
 		Args:        args,
 	}
-	h.Sys.Tracker.EnqueueCommand(endpointID, cmdReq)
+	h.Sys.Tracker.EnqueueCommand(agentID, cmdReq)
 	return nil
 }

@@ -25,10 +25,7 @@ package metricsender
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -51,6 +48,7 @@ type MetricSender struct {
 	stream proto.StreamService_StreamClient
 	wg     sync.WaitGroup
 	cfg    *config.Config
+	ctx    context.Context
 }
 
 // NewSender establishes a gRPC connection
@@ -73,6 +71,7 @@ func NewSender(ctx context.Context, cfg *config.Config) (*MetricSender, error) {
 	}
 
 	sender := &MetricSender{
+		ctx:    ctx,
 		client: client,
 		cc:     clientConn,
 		stream: stream,
@@ -170,23 +169,30 @@ func (s *MetricSender) receiveResponses() {
 	for {
 		resp, err := s.stream.Recv()
 		if err != nil {
-			utils.Error("Stream receive error: %v", err)
-
-			// Attempt to reconnect
-			if recErr := s.reconnectStream(); recErr != nil {
-				utils.Error("Failed to reconnect stream: %v", recErr)
-				// Optional: fatal reconnect failure - exit?
+			select {
+			case <-s.ctx.Done():
+				utils.Info("Context canceled, exiting receive loop cleanly")
 				return
+			default:
+				utils.Error("Stream receive error: %v", err)
+
+				if recErr := s.reconnectStream(); recErr != nil {
+					utils.Error("Failed to reconnect stream: %v", recErr)
+					return
+				}
+				utils.Info("Successfully reconnected stream after failure")
+				continue
 			}
-			utils.Info("Successfully reconnected stream after failure")
-			continue // Try to receive again
 		}
 
 		utils.Debug("Received StreamResponse: status=%s", resp.Status)
-
+		utils.Debug("Response Payload: %v", resp)
 		if resp.Command != nil {
 			utils.Info("Received CommandRequest: type=%s command=%s", resp.Command.CommandType, resp.Command.Command)
-			command.HandleCommand(resp.Command)
+			result := command.HandleCommand(s.ctx, resp.Command)
+			if result != nil {
+				s.sendCommandResponseWithRetry(result)
+			}
 		}
 	}
 }
@@ -198,7 +204,7 @@ func (s *MetricSender) reconnectStream() error {
 		_ = s.cc.Close()
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(s.ctx, 10*time.Second)
 	defer cancel()
 
 	// Rebuild gRPC client connection
@@ -219,23 +225,40 @@ func (s *MetricSender) reconnectStream() error {
 	return nil
 }
 
-func AppendMetricsToFile(payload *model.MetricPayload, filename string) error {
-	dir := filepath.Dir(filename)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
+// sendCommandResponseWithRetry attempts to send a CommandResponse with retries
+
+func (s *MetricSender) sendCommandResponseWithRetry(resp *proto.CommandResponse) {
+	const maxAttempts = 3
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		sendCtx, cancel := context.WithTimeout(s.ctx, 5*time.Second)
+		defer cancel()
+
+		done := make(chan error, 1)
+		go func() {
+			done <- s.stream.Send(&proto.StreamPayload{
+				Payload: &proto.StreamPayload_CommandResponse{
+					CommandResponse: resp,
+				},
+			})
+		}()
+
+		select {
+		case err := <-done:
+			if err != nil {
+				utils.Warn("Send attempt %d failed: %v", attempt, err)
+				_ = s.reconnectStream()
+				time.Sleep(time.Duration(attempt) * time.Second)
+				continue
+			}
+			utils.Debug("CommandResponse sent on attempt %d", attempt)
+			return
+		case <-sendCtx.Done():
+			utils.Warn("Send attempt %d timed out", attempt)
+			_ = s.reconnectStream()
+			time.Sleep(time.Duration(attempt) * time.Second)
+		}
 	}
 
-	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-
-	_, err = file.Write(append(data, '\n')) // newline-delimited JSON
-	return err
+	utils.Error("Failed to send CommandResponse after %d attempts: %v", maxAttempts, resp)
 }

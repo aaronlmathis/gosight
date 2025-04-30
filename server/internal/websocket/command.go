@@ -7,7 +7,7 @@ This file is part of GoSight.
 
 GoSight is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
+ the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
 GoSight is distributed in the hope that it will be useful,
@@ -19,16 +19,13 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// server/internal/http/websocket/metrichub.go
-// Description: This file contains the WebSocket hub implementation for the GoSight server.
-
+// server/internal/http/websocket/commandhub.go
 package websocket
 
 import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -39,76 +36,66 @@ import (
 	"github.com/google/uuid"
 )
 
-type MetricHub struct {
+type CommandHub struct {
 	clients     map[*Client]bool
-	broadcast   chan model.MetricPayload
+	broadcast   chan *model.CommandResult // command results
 	lock        sync.Mutex
 	metaTracker *metastore.MetaTracker
 }
 
-func NewMetricHub(metaTracker *metastore.MetaTracker) *MetricHub {
-	return &MetricHub{
+func NewCommandHub(metaTracker *metastore.MetaTracker) *CommandHub {
+	return &CommandHub{
 		clients:     make(map[*Client]bool),
-		broadcast:   make(chan model.MetricPayload, 2000), // high buffer for frequent metric bursts
+		broadcast:   make(chan *model.CommandResult, 100),
 		metaTracker: metaTracker,
 	}
 }
 
-// Run starts the MetricHub's broadcast loop.
-func (h *MetricHub) Run(ctx context.Context) {
+func (h *CommandHub) Run(ctx context.Context) {
 	for {
 		select {
-		case payload := <-h.broadcast:
-			data, _ := json.Marshal(payload)
+		case result := <-h.broadcast:
+			data, _ := json.Marshal(result)
 
 			h.lock.Lock()
-
-			var deadClients []*Client // NEW: list to track which clients to remove
-
+			var dead []*Client
 			for client := range h.clients {
-				if h.shouldDeliver(payload, client) {
+				if h.shouldDeliver(result, client) {
 					if !safeSend(client, data) {
-						utils.Warn("Client send failed, scheduling removal: endpoint=%s agent=%s", client.EndpointID, client.AgentID)
+						utils.Warn("Command client send failed, removing: %s", client.EndpointID)
 						client.Close()
-						deadClients = append(deadClients, client)
+						dead = append(dead, client)
 					}
 				}
 			}
-
-			// After loop: safely delete dead clients
-			for _, client := range deadClients {
-				delete(h.clients, client)
+			for _, c := range dead {
+				delete(h.clients, c)
 			}
-
 			h.lock.Unlock()
 
 		case <-ctx.Done():
-			// Graceful shutdown
 			h.lock.Lock()
-			for client := range h.clients {
-				client.Close()
-				delete(h.clients, client)
+			for c := range h.clients {
+				c.Close()
+				delete(h.clients, c)
 			}
 			h.lock.Unlock()
-			utils.Info("WebSocketHub: MetricHub shutdown complete")
+			utils.Info("CommandHub shutdown complete")
 			return
 		}
 	}
 }
 
-// ServeWS upgrades HTTP to WebSocket and registers client to MetricHub.
-func (h *MetricHub) ServeWS(w http.ResponseWriter, r *http.Request) {
-	// Authenticate the request
+func (h *CommandHub) ServeWS(w http.ResponseWriter, r *http.Request) {
 	_, err := gosightauth.GetSessionClaims(r)
 	if err != nil {
-		utils.Warn("Unauthorized WebSocket attempt: %v", err)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		utils.Warn("WebSocket upgrade failed: %v", err)
+		utils.Warn("Command WebSocket upgrade failed: %v", err)
 		return
 	}
 
@@ -116,14 +103,13 @@ func (h *MetricHub) ServeWS(w http.ResponseWriter, r *http.Request) {
 	meta, _ := h.metaTracker.Get(endpointID)
 
 	client := &Client{
-		ID:         uuid.NewString(), // optional, useful for logging
+		ID:         uuid.NewString(),
 		Conn:       conn,
 		EndpointID: endpointID,
 		AgentID:    meta.AgentID,
-		Send:       make(chan []byte, 100),
+		Send:       make(chan []byte, 50),
 	}
 
-	// Configure heartbeat/pong handling
 	conn.SetReadLimit(512)
 	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	conn.SetPongHandler(func(string) error {
@@ -131,11 +117,9 @@ func (h *MetricHub) ServeWS(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 
-	// Background ping ticker
 	go func() {
 		ticker := time.NewTicker(30 * time.Second)
 		defer ticker.Stop()
-
 		for {
 			time.Sleep(30 * time.Second)
 			if !safeSend(client, []byte(`{"type":"ping"}`)) {
@@ -148,7 +132,6 @@ func (h *MetricHub) ServeWS(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	// Register client
 	h.lock.Lock()
 	h.clients[client] = true
 	h.lock.Unlock()
@@ -156,29 +139,14 @@ func (h *MetricHub) ServeWS(w http.ResponseWriter, r *http.Request) {
 	go client.writePump()
 }
 
-// Broadcast sends a pre-serialized metric payload to all MetricHub clients.
-func (h *MetricHub) Broadcast(payload model.MetricPayload) {
+func (h *CommandHub) Broadcast(result *model.CommandResult) {
 	select {
-	case h.broadcast <- payload:
+	case h.broadcast <- result:
 	default:
-		// drop message if buffer full
+		// drop if full
 	}
 }
 
-func (h *MetricHub) shouldDeliver(payload model.MetricPayload, client *Client) bool {
-	if client.EndpointID == "" {
-		return true
-	}
-
-	if payload.EndpointID == client.EndpointID {
-		return true
-	}
-
-	if strings.HasPrefix(payload.EndpointID, "ctr-") &&
-		payload.Meta != nil &&
-		payload.Meta.AgentID == client.AgentID {
-		return true
-	}
-
-	return false
+func (h *CommandHub) shouldDeliver(result *model.CommandResult, c *Client) bool {
+	return result.EndpointID == c.EndpointID
 }

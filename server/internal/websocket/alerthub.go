@@ -36,7 +36,6 @@ import (
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 )
 
 type AlertsHub struct {
@@ -130,8 +129,7 @@ func (h *AlertsHub) ServeWS(w http.ResponseWriter, r *http.Request) {
 
 		for {
 			time.Sleep(30 * time.Second)
-			client.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
-			if err := client.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+			if !safeSend(client, []byte(`{"type":"ping"}`)) {
 				client.Close()
 				h.lock.Lock()
 				delete(h.clients, client)

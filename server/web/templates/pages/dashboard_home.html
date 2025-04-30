@@ -35,7 +35,7 @@
                 <div
                     class="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm h-44 flex items-center justify-between transition duration-200 hover:shadow-md hover:border-gray-200 dark:hover:border-gray-600">
                     <div class="pl-3 flex flex-col justify-center text-sm w-full truncate">
-                        <div class="font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap">Agents</div>
+                        <div class="font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap">Host Endpoints</div>
                         <div id="agent-health-status"
                             class="text-gray-600 dark:text-gray-400 mt-1 text-base font-semibold">
                             —</div>
@@ -52,7 +52,8 @@
                 <div
                     class="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm h-44 flex items-center justify-between transition duration-200 hover:shadow-md hover:border-gray-200 dark:hover:border-gray-600">
                     <div class="pl-3 flex flex-col justify-center text-sm w-full truncate">
-                        <div class="font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap">Containers</div>
+                        <div class="font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap">Container Endpoints
+                        </div>
                         <div class="text-gray-600 dark:text-gray-400 mt-1 text-base font-semibold">Running</div>
                     </div>
                     <div class="w-[220px] h-[180px]">
@@ -95,7 +96,7 @@
             <div class="font-semibold border-b border-gray-100 text-gray-800 dark:text-gray-100 mb-2">Recent Events
             </div>
             <div id="event-log"
-                class="max-h-[300px] overflow-y-auto space-y-2 text-sm text-gray-800 dark:text-gray-300">
+                class="min-h-[300px] overflow-y-auto space-y-2 text-sm text-gray-800 dark:text-gray-300">
                 <!-- JS populates here -->
             </div>
         </div>

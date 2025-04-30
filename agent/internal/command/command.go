@@ -24,34 +24,27 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package command
 
 import (
+	"context"
+
 	"github.com/aaronlmathis/gosight/shared/proto"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 // HandleCommand processes incoming command requests based on their type.
-func HandleCommand(cmd *proto.CommandRequest) {
+func HandleCommand(ctx context.Context, cmd *proto.CommandRequest) *proto.CommandResponse {
+
 	switch cmd.CommandType {
 	case "shell":
-		response, err := runShellCommand(cmd.Command, cmd.Args...)
-		if err != nil {
-			utils.Warn("Shell command execution error: %v", err)
-		}
-		utils.Info("Shell Command Output: %s", response.Output)
-		if response.ErrorMessage != "" {
-			utils.Warn("Shell Command Error: %s", response.ErrorMessage)
-		}
-
+		return runShellCommand(ctx, cmd.Command, cmd.Args...)
 	case "ansible":
-		response, err := runAnsiblePlaybook(cmd.Command)
-		if err != nil {
-			utils.Warn("Ansible playbook execution error: %v", err)
-		}
-		utils.Info("Ansible Output: %s", response.Output)
-		if response.ErrorMessage != "" {
-			utils.Warn("Ansible Error: %s", response.ErrorMessage)
-		}
-
+		return runAnsiblePlaybook(ctx, cmd.Command)
 	default:
 		utils.Warn("Unknown command type: %s", cmd.CommandType)
+		return &proto.CommandResponse{
+			Success:      false,
+			Output:       "",
+			ErrorMessage: "unknown command type",
+		}
 	}
+
 }

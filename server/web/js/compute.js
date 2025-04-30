@@ -40,10 +40,8 @@ let memoryTotal = null;
 let memoryAvailable = null;
 
 
-
 function updateCpuActivityChart(metrics) {
     const current = {};
-
     for (const m of metrics) {
         if (!m.name.startsWith("time_")) continue;
         const key = m.name.replace("time_", "");
@@ -58,7 +56,6 @@ function updateCpuActivityChart(metrics) {
 
     const deltas = {};
     let total = 0;
-
     for (const key of cpuTimeKeys) {
         const prev = prevCpuTimes[key] ?? 0;
         const curr = current[key] ?? 0;
@@ -68,25 +65,23 @@ function updateCpuActivityChart(metrics) {
     }
 
     prevCpuTimes = current;
-
-    if (total === 0 || !cpuActivityChart) return;
-
-    const user = deltas["user"] ?? 0;
-    const system = deltas["system"] ?? 0;
-    const idle = deltas["idle"] ?? 0;
-    const iowait = deltas["iowait"] ?? 0;
-    const other = total - user - system - idle - iowait;
+    if (!cpuActivityChart || total === 0) return;
 
     const series = [
-        (user / total) * 100,
-        (system / total) * 100,
-        (idle / total) * 100,
-        (iowait / total) * 100,
-        (other / total) * 100
+        (deltas["user"] ?? 0) / total * 100,
+        (deltas["system"] ?? 0) / total * 100,
+        (deltas["idle"] ?? 0) / total * 100,
+        (deltas["iowait"] ?? 0) / total * 100,
+        (total -
+            ((deltas["user"] ?? 0) +
+                (deltas["system"] ?? 0) +
+                (deltas["idle"] ?? 0) +
+                (deltas["iowait"] ?? 0))) / total * 100
     ];
 
-    cpuActivityChart.updateSeries(series);
+    cpuActivityChart.updateSeries([{ name: "CPU Time", data: series }]);
 }
+
 
 
 function renderPerCoreGrid() {
@@ -162,54 +157,73 @@ function updateSwapUsage(timestamp, value) {
 
 
 
-function createCpuActivityChart(id) {
+export function createCpuActivityChart(id) {
     const options = {
         chart: {
-            type: "donut",
-            height: 300,
+            type: "bar",
+            height: 350,
+            stacked: true,
+            toolbar: { show: false },
             animations: {
                 enabled: true,
                 easing: "easeinout",
-                speed: 300
+                speed: 400
             }
         },
         plotOptions: {
-            pie: {
-                donut: {
-                    size: "75%",  // ⬅️ Bigger hole = thinner ring
-                    labels: {
-                        show: true,
-                        total: {
-                            show: true,
-                            label: "CPU",
-                            fontSize: "14px",
-                            fontWeight: 600
-                        }
-                    }
+            bar: {
+                horizontal: false,
+                columnWidth: "45%",
+                borderRadius: 4
+            }
+        },
+        dataLabels: {
+            enabled: true,
+            style: { colors: ["#ffffff"] },
+            formatter: val => `${val.toFixed(1)}%`
+        },
+        series: [
+            {
+                name: "CPU Activity",
+                data: [0, 0, 0, 0, 0] // User, System, Idle, IOWait, Other
+            }
+        ],
+        xaxis: {
+            categories: ["User", "System", "Idle", "I/O Wait", "Other"],
+            labels: {
+                style: {
+                    fontSize: "12px",
+                    colors: "#6b7280"
                 }
             }
         },
-        labels: ["User", "System", "Idle", "I/O Wait", "Other"],
-        series: [0, 0, 0, 0, 0],
-        colors: [
-            "#3b82f6", // blue
-            "#10b981", // green
-            "#9ca3af", // gray for idle
-            "#f59e0b", // amber
-            "#f87171"  // red
-        ],
+        yaxis: {
+            max: 100,
+            labels: {
+                formatter: val => `${val.toFixed(0)}%`,
+                style: {
+                    fontSize: "11px",
+                    colors: "#6b7280"
+                }
+            },
+            title: {
+                text: "Time (%)",
+                style: { fontSize: "12px", color: "#9ca3af" }
+            }
+        },
+        fill: {
+            opacity: 0.9
+        },
+        colors: ["#3b82f6", "#10b981", "#9ca3af", "#f59e0b", "#f87171"],
+        legend: { show: false },
         tooltip: {
             y: {
                 formatter: val => `${val.toFixed(1)}%`
             }
         },
-        legend: {
-            position: "bottom",
-            horizontalAlign: "center",
-            fontSize: "12px",
-            labels: {
-                colors: ["#374151"]
-            }
+        grid: {
+            borderColor: "#e5e7eb",
+            strokeDashArray: 4
         },
         theme: {
             mode: document.documentElement.classList.contains("dark") ? "dark" : "light"
@@ -309,21 +323,15 @@ window.cpuMetricHandler = function (metrics) {
             case "system.memory.swap_total":
                 swapTotalBytes = metric.value;
                 tryUpdateSwapPercentFromUsed();
-                console.log("[Swap Debug]", {
-                    used: swapUsedBytes,
-                    total: swapTotalBytes
-                });
+
                 updateMemoryAndSwapStats();
                 break;
 
             case "system.memory.swap_used":
-                console.log("🔥 Received swap_used metric", metric.value);
+
                 swapUsedBytes = metric.value;
                 tryUpdateSwapPercentFromUsed();
-                console.log("[Swap Debug]", {
-                    used: swapUsedBytes,
-                    total: swapTotalBytes
-                });
+
                 updateMemoryAndSwapStats();
                 break;
 
@@ -500,9 +508,10 @@ function initComputeCharts() {
     });
 
 
-    waitForElement("cpuActivityDonutChart", () => {
-        cpuActivityChart = createCpuActivityChart("cpuActivityDonutChart");
+    waitForElement("cpuActivityChart", () => {
+        cpuActivityChart = createCpuActivityChart("cpuActivityChart");
     });
+
 
     waitForElement("memoryUsageChart", () => {
         memoryUsageChart = createApexAreaChart("memoryUsageChart", "Memory Usage %", ["Used"]);

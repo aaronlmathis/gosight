@@ -1,8 +1,11 @@
 import { registerTabInitializer } from "./tabs.js";
+import { gosightFetch } from "./api.js";
 console.log("logs.js loaded");
 // logs.js
 export function initLogsTab() {
     try {
+        renderLogsTableShell();
+
         const logsTableBody = document.getElementById("logs-table-body");
         const logsFilterLevel = document.getElementById("logs-filter-level");
         const logsFilterSearch = document.getElementById("logs-filter-search");
@@ -51,12 +54,13 @@ export function initLogsTab() {
                 const ts = new Date(log.timestamp).toLocaleString();
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
+                          <td class="px-4 py-2">${ts}</td>
           <td class="px-4 py-2">
             <span class="inline-block text-xs font-medium px-2 py-0.5 rounded ${levelClass}">${log.level}</span>
           </td>
           <td class="px-4 py-2">${log.source}</td>
           <td class="px-4 py-2">${log.category}</td>
-          <td class="px-4 py-2">${ts}</td>
+
           <td class="px-4 py-2">${log.message}</td>
         `;
                 logsTableBody.appendChild(tr);
@@ -81,7 +85,7 @@ export function initLogsTab() {
                 params = new URLSearchParams({ endpointID: window.endpointID, level, contains, start, end, limit: 1000 });
             }
 
-            fetch("/api/v1/logs?" + params.toString())
+            gosightFetch("/api/v1/logs?" + params.toString())
                 .then(res => res.json())
                 .then(logs => {
                     allLogs = Array.isArray(logs) ? logs : [];
@@ -115,6 +119,40 @@ export function initLogsTab() {
             allLogs.sort((a, b) => (a[field] > b[field] ? 1 : -1));
             logsCurrentPage = 1;
             renderLogsPage(logsCurrentPage);
+        }
+
+        function renderLogsTableShell(containerId = "logs-table-container") {
+            const container = document.getElementById(containerId);
+            if (!container) {
+                console.error(`❌ Container #${containerId} not found`);
+                return;
+            }
+
+            container.innerHTML = `
+            <div class="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+              <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm text-left">
+                <thead class="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-semibold text-xs uppercase">
+                  <tr>
+                    <th scope="col" class="px-4 py-2">Time</th>
+                    <th scope="col" class="px-4 py-2">Level</th>
+                    <th scope="col" class="px-4 py-2">Source</th>
+                    <th scope="col" class="px-4 py-2">Category</th>
+                    <th scope="col" class="px-4 py-2">Message</th>
+                  </tr>
+                </thead>
+                <tbody id="logs-table-body" class="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800 text-gray-900 dark:text-gray-200">
+                  <!-- Log rows will be inserted here -->
+                </tbody>
+              </table>
+            </div>
+            `;
+
+            container.querySelectorAll("[data-sort]").forEach(th => {
+                th.addEventListener("click", () => {
+                    const field = th.getAttribute("data-sort");
+                    if (field) sortLogsBy(field);
+                });
+            });
         }
 
         function bindEventListeners() {
@@ -164,7 +202,7 @@ export function initLogsTab() {
                 const observer = new MutationObserver(() => {
                     const isVisible = !tab.classList.contains("hidden");
                     if (isVisible) {
-                        console.log("📥 Logs tab became visible — fetching logs");
+                        console.log("Logs tab became visible — fetching logs");
                         fetchLogs();
                     }
                 });
@@ -172,9 +210,12 @@ export function initLogsTab() {
             }
         }
 
+
         bindEventListeners();
+        fetchLogs(); // preload logs immediately when the tab loads
+
     } catch (err) {
-        console.error("❌ logs.js init failed:", err);
+        console.error("logs.js init failed:", err);
     }
 }
 

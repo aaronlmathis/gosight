@@ -12,7 +12,7 @@ export async function loadAgentCard() {
     console.log("Agents:", agents);
 
     if (!Array.isArray(agents) || agents.length === 0) {
-      console.warn("⚠️ No agent data available");
+      console.warn("No agent data available");
       return;
     }
 
@@ -136,31 +136,42 @@ export async function loadSystemLoadRadial() {
   const now = new Date().toISOString();
   const start = new Date(Date.now() - 10 * 60 * 1000).toISOString(); // 10 minutes ago
 
-  const url = `/api/v1/query?metric=system.cpu.usage_percent&scope=total&start=${encodeURIComponent(start)}&end=${encodeURIComponent(now)}`;
-  console.log(url)
+  const cpuURL = `/api/v1/query?metric=system.cpu.usage_percent&scope=total&start=${encodeURIComponent(start)}&end=${encodeURIComponent(now)}`;
+  const memURL = `/api/v1/query?metric=system.memory.used_percent&start=${encodeURIComponent(start)}&end=${encodeURIComponent(now)}`;
+
   try {
-    const rows = await fetchJson(url);
-    console.log("Raw metric rows: ", rows);
+    const [cpuRows, memRows] = await Promise.all([
+      fetchJson(cpuURL),
+      fetchJson(memURL)
+    ]);
 
-    if (!Array.isArray(rows) || rows.length === 0) throw new Error("No CPU data");
+    const cpuValues = cpuRows.map(r => r.value).filter(v => typeof v === "number");
+    const memValues = memRows.map(r => r.value).filter(v => typeof v === "number");
 
-    const values = rows.map(r => r.value).filter(v => typeof v === "number");
-    const avg = values.reduce((sum, v) => sum + v, 0) / values.length;
+    if (cpuValues.length === 0 || memValues.length === 0) throw new Error("Missing data");
+
+    const cpuAvg = cpuValues.reduce((sum, v) => sum + v, 0) / cpuValues.length;
+    const memAvg = memValues.reduce((sum, v) => sum + v, 0) / memValues.length;
 
     const chartEl = document.getElementById("radial-load");
     if (!chartEl) throw new Error("Chart element not found");
 
     new ApexCharts(chartEl, {
-      chart: { type: "radialBar", height: 200 },
-      series: [avg],
-      labels: ["CPU Load"],
-      colors: ["#f59e0b"],
+      chart: { type: "radialBar", height: 250 },
+      series: [cpuAvg, memAvg],
+      labels: ["CPU Load", "Memory Load"],
+      colors: ["#f59e0b", "#10b981"],
       plotOptions: {
         radialBar: {
-          hollow: { size: "60%" },
+          offsetY: 0,
+          hollow: { size: "45%" },
           dataLabels: {
             name: { fontSize: "12px" },
-            value: { fontSize: "10px", fontWeight: 600, formatter: v => `${v.toFixed(1)}%` },
+            value: {
+              fontSize: "11px",
+              fontWeight: 600,
+              formatter: v => `${v.toFixed(1)}%`,
+            },
           },
         },
       },
@@ -169,6 +180,7 @@ export async function loadSystemLoadRadial() {
     console.error("loadSystemLoadRadial failed:", err);
   }
 }
+
 
 //
 // load Top Containers by CPU
@@ -285,7 +297,7 @@ export async function loadTrend(url, elId, label) {
 //
 export async function updateAlertSummary() {
   try {
-    const res = await gosightFetch("/api/v1/alerts");
+    const res = await gosightFetch("/api/v1/alerts/active");
     const alerts = await res.json();
     console.log("Alerts:", alerts);
 

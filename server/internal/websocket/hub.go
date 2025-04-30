@@ -34,6 +34,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+var _ = NewCommandHub
+
 type Client struct {
 	Conn       *websocket.Conn
 	EndpointID string
@@ -45,19 +47,21 @@ type Client struct {
 }
 
 type HubManager struct {
-	Metrics *MetricHub
-	Logs    *LogHub
-	Alerts  *AlertsHub
-	Events  *EventsHub
+	Metrics  *MetricHub
+	Logs     *LogHub
+	Alerts   *AlertsHub
+	Events   *EventsHub
+	Commands *CommandHub
 }
 
 // NewHubManager creates a new HubManager with initialized hubs.
 func NewHubManager(metaTracker *metastore.MetaTracker) *HubManager {
 	return &HubManager{
-		Metrics: NewMetricHub(metaTracker),
-		Logs:    NewLogHub(metaTracker),
-		Alerts:  NewAlertsHub(metaTracker),
-		Events:  NewEventsHub(metaTracker),
+		Metrics:  NewMetricHub(metaTracker),
+		Logs:     NewLogHub(metaTracker),
+		Alerts:   NewAlertsHub(metaTracker),
+		Events:   NewEventsHub(metaTracker),
+		Commands: NewCommandHub(metaTracker),
 	}
 }
 
@@ -67,6 +71,7 @@ func (h *HubManager) StartAll(ctx context.Context) {
 	go h.Logs.Run(ctx)
 	go h.Alerts.Run(ctx)
 	go h.Events.Run(ctx)
+	go h.Commands.Run(ctx)
 }
 
 // shared WebSocket upgrader used by all hubs

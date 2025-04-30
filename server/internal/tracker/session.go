@@ -25,23 +25,45 @@ import (
 	"time"
 
 	"github.com/aaronlmathis/gosight/shared/proto"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 type LiveAgentSession struct {
 	Stream        proto.StreamService_StreamServer
 	ConnectedAt   time.Time
 	LastHeartbeat time.Time
+	SendQueue     chan *proto.StreamResponse
 }
 
 // RegisterAgentSession registers a live connected agent
 func (t *EndpointTracker) RegisterAgentSession(agentID string, client proto.StreamService_StreamServer) {
 	t.mu.Lock()
-	defer t.mu.Unlock()
-	t.sessions[agentID] = &LiveAgentSession{
+	session := &LiveAgentSession{
 		Stream:        client,
 		ConnectedAt:   time.Now(),
 		LastHeartbeat: time.Now(),
+		SendQueue:     make(chan *proto.StreamResponse, 10),
 	}
+	t.sessions[agentID] = session
+	t.mu.Unlock()
+
+	utils.Info("🔌 Registered agent session: %s", agentID)
+
+	// Start dedicated send loop
+	go func() {
+		for resp := range session.SendQueue {
+			err := session.Stream.Send(resp)
+			if err != nil {
+				utils.Warn("❌ Failed to send StreamResponse to agent %s: %v", agentID, err)
+				// optional: remove the session and cleanup if the stream is broken
+				t.mu.Lock()
+				delete(t.sessions, agentID)
+				t.mu.Unlock()
+				return
+			}
+			utils.Debug("StreamResponse sent to %s", agentID)
+		}
+	}()
 }
 
 // GetAgentSession retrieves a live agent session
@@ -49,6 +71,7 @@ func (t *EndpointTracker) GetAgentSession(agentID string) (*LiveAgentSession, bo
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	sess, ok := t.sessions[agentID]
+	utils.Debug("GetAgentSession: %v", t.sessions)
 	return sess, ok
 }
 
@@ -57,4 +80,12 @@ func (t *EndpointTracker) RemoveAgentSession(agentID string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	delete(t.sessions, agentID)
+}
+
+// HasLiveSession checks if an agent has a live session
+func (t *EndpointTracker) HasLiveSession(agentID string) bool {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	_, ok := t.sessions[agentID]
+	return ok
 }

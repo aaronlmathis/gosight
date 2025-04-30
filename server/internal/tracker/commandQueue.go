@@ -21,13 +21,16 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 
 package tracker
 
-import "github.com/aaronlmathis/gosight/shared/proto"
+import (
+	"github.com/aaronlmathis/gosight/shared/proto"
+	"github.com/aaronlmathis/gosight/shared/utils"
+)
 
 type CommandQueue struct {
 	Pending []*proto.CommandRequest
 }
 
-func (t *EndpointTracker) EnqueueCommand(agentID string, cmd *proto.CommandRequest) {
+func (t *EndpointTracker) EnqueueCommand(agentID string, cmd *proto.CommandRequest) bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -42,6 +45,8 @@ func (t *EndpointTracker) EnqueueCommand(agentID string, cmd *proto.CommandReque
 	}
 
 	q.Pending = append(q.Pending, cmd)
+	utils.Debug("✅ Enqueued command for %s (queue length: %d)", agentID, len(q.Pending))
+	return true
 }
 
 func (t *EndpointTracker) DequeueCommand(agentID string) *proto.CommandRequest {

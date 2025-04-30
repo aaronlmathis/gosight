@@ -93,21 +93,8 @@
         </div>
 
         <!-- Table -->
-        <div class="overflow-x-auto">
-            <table class="min-w-full table-auto text-sm text-left text-gray-700 dark:text-gray-300">
-                <thead class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                    <tr class="text-sm font-semibold">
-                        <th class="px-4 py-2 cursor-pointer" onclick="sortLogsBy('level')">Level</th>
-                        <th class="px-4 py-2 cursor-pointer" onclick="sortLogsBy('source')">Source</th>
-                        <th class="px-4 py-2 cursor-pointer" onclick="sortLogsBy('category')">Category</th>
-                        <th class="px-4 py-2 cursor-pointer" onclick="sortLogsBy('timestamp')">Time</th>
-                        <th class="px-4 py-2 cursor-pointer" onclick="sortLogsBy('message')">Message</th>
-                    </tr>
-                </thead>
-                <tbody id="logs-table-body" class="divide-y divide-gray-100 dark:divide-gray-800">
-                    <!-- Rows go here -->
-                </tbody>
-            </table>
+        <div id="logs-table-container" class="overflow-x-auto">
+
         </div>
 
         <!-- Pagination -->

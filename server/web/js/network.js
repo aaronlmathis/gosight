@@ -500,11 +500,11 @@ window.networkMetricHandler = function (metrics) {
             const errIn = lastMetrics[iface]["err_in"];
             const errOut = lastMetrics[iface]["err_out"];
 
-            const inPct = (errIn != null && packetsRecv != null)
-                ? (errIn / (packetsRecv + errIn)) * 100
+            const inPct = (errIn != null && pktIn != null)
+                ? (errIn / (pktIn + errIn)) * 100
                 : null;
-            const outPct = (errOut != null && packetsSent != null)
-                ? (errOut / (packetsSent + errOut)) * 100
+            const outPct = (errOut != null && pktOut != null)
+                ? (errOut / (pktOut + errOut)) * 100
                 : null;
 
             const errInElem = document.getElementById("stat-errors-in");

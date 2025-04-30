@@ -515,3 +515,13 @@ func (t *EndpointTracker) ListEndpoints() []model.Endpoint {
 
 	return endpoints
 }
+
+func (t *EndpointTracker) GetEndpointIdByAgentId(agentID string) (string, bool) {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	if agent, ok := t.agents[agentID]; ok {
+		return agent.EndpointID, true
+	}
+	return "", false
+}

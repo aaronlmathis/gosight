@@ -8,12 +8,15 @@ export let metricsSocket = null;
 export let logsSocket = null;
 export let eventsSocket = null;
 export let alertsSocket = null;
+export let commandSocket = null;
+
 
 // === Status badge tracking ===
 let metricsBadge = document.getElementById("metrics-ws-status");
 let logsBadge = document.getElementById("logs-ws-status");
 let eventsBadge = document.getElementById("events-ws-status");
 let alertsBadge = document.getElementById("alerts-ws-status");
+let commandBadge = document.getElementById("command-ws-status");
 
 // === Connection logic per socket ===
 function connectMetricsSocket() {
@@ -24,11 +27,30 @@ function connectMetricsSocket() {
     metricsSocket.addEventListener("error", (e) => console.error("Metrics WebSocket error:", e));
 
     metricsSocket.addEventListener("message", (event) => {
+        if (!event.data || event.data === "ping") return; // ignore dummy pings
         try {
             const payload = JSON.parse(event.data);
             window.dispatchEvent(new CustomEvent("metrics", { detail: payload }));
         } catch (err) {
             console.error("Failed to parse metrics WS JSON:", err);
+        }
+    });
+}
+
+function connectCommandSocket() {
+    commandSocket = new WebSocket(`wss://${location.host}/ws/command?endpointID=${encodeURIComponent(window.endpointID)}`);
+
+    commandSocket.addEventListener("open", () => updateWsStatus(commandBadge, true));
+    commandSocket.addEventListener("close", () => updateWsStatus(commandBadge, false));
+    commandSocket.addEventListener("error", (e) => console.error("Command WebSocket error:", e));
+
+    commandSocket.addEventListener("message", (event) => {
+        if (!event.data || event.data === "ping") return; // ignore dummy pings
+        try {
+            const payload = JSON.parse(event.data);
+            window.dispatchEvent(new CustomEvent("command", { detail: payload }));
+        } catch (err) {
+            console.error("Failed to parse command WS JSON:", err);
         }
     });
 }
@@ -41,6 +63,7 @@ function connectLogsSocket() {
     logsSocket.addEventListener("error", (e) => console.error("Logs WebSocket error:", e));
 
     logsSocket.addEventListener("message", (event) => {
+        if (!event.data || event.data === "ping") return; // ignore dummy pings
         try {
             const payload = JSON.parse(event.data);
             window.dispatchEvent(new CustomEvent("logs", { detail: payload }));
@@ -61,6 +84,7 @@ function connectEventsSocket() {
     eventsSocket.addEventListener("error", (e) => console.error("Events WebSocket error:", e));
 
     eventsSocket.addEventListener("message", (event) => {
+        if (!event.data || event.data === "ping") return; // ignore dummy pings
         try {
             const payload = JSON.parse(event.data);
             window.dispatchEvent(new CustomEvent("events", { detail: payload }));
@@ -78,6 +102,7 @@ function connectAlertsSocket() {
     eventsSocket.addEventListener("error", (e) => console.error("Events WebSocket error:", e));
 
     eventsSocket.addEventListener("message", (event) => {
+        if (!event.data || event.data === "ping") return; // ignore dummy pings
         try {
             const payload = JSON.parse(event.data);
             window.dispatchEvent(new CustomEvent("alerts", { detail: payload }));
@@ -100,6 +125,7 @@ function updateWsStatus(badge, connected) {
 export function initWebSockets(endpointID) {
     window.endpointID = endpointID;
     connectMetricsSocket();
+    connectCommandSocket();
     connectLogsSocket();
     connectEventsSocket();
     connectAlertsSocket();
