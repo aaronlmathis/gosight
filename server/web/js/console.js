@@ -6,7 +6,17 @@ registerTabInitializer("console", () => {
     const input = document.getElementById("console-command");
     const output = document.getElementById("console-output");
     const responsesEl = document.getElementById("console-responses");
+    const promptEl = document.getElementById("console-prompt");
 
+    const username = window.userData?.username || "user";
+    const hostname = window.endpointMetadata?.hostname || "host";
+
+    promptEl.innerHTML = `<span class="text-blue-400">${username}</span>@<span class="text-purple-400">${hostname}</span>:<span class="text-red-400">~</span><span class="text-white">$</span><span class="blink-cursor"></span>`;
+
+
+    document.getElementById("console-output").addEventListener("click", () => {
+        document.getElementById("console-command")?.focus();
+    });
     const history = [];
     let historyIndex = -1;
 
@@ -57,7 +67,8 @@ registerTabInitializer("console", () => {
 
         // Echo command
         const echo = document.createElement("div");
-        echo.innerHTML = `<span class="text-blue-400">user</span>@<span class="text-purple-400">host</span>:<span class="text-red-400">~</span>$ <span class="text-green-400">${cmd}</span>`;
+
+        echo.innerHTML = `<span class="text-blue-400">${window.userData.username}</span>@<span class="text-purple-400">${window.endpointMetadata.hostname}</span>:<span class="text-red-400">~</span>$ <span class="text-green-400">${cmd}</span>`;
         responsesEl.appendChild(echo);
 
         // Show placeholder while waiting
@@ -79,7 +90,7 @@ registerTabInitializer("console", () => {
             })
                 .then(res => res.json())
                 .then(data => {
-                    console.log("Command response:", data); // ✅ This
+                    console.log("Command response:", data);
                 })
                 .catch(err => console.error("Command request failed:", err));
             // response will arrive via websocket

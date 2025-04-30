@@ -29,6 +29,7 @@ import (
 
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
 	"github.com/aaronlmathis/gosight/server/internal/http/templates"
+	"github.com/aaronlmathis/gosight/server/internal/usermodel"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
@@ -52,9 +53,17 @@ func (s *HttpServer) HandleActivityPage(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "failed to load user", http.StatusInternalServerError)
 		return
 	}
+	// Build SafeUser model to pass user dat to expose to JS.
+	safeUser := usermodel.SafeUser{
+		Username:  user.Username,
+		Email:     user.Email,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+	}
 	pageData := templates.TemplateData{
-		Title: "Activity",
-		User:  user,
+		Title:    "Activity",
+		User:     user,
+		UserData: safeUser,
 		Breadcrumbs: []templates.Breadcrumb{
 			{Label: "Unified Activity Stream", URL: "/activity"},
 		},

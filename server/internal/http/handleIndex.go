@@ -29,6 +29,7 @@ import (
 
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
 	"github.com/aaronlmathis/gosight/server/internal/http/templates"
+	"github.com/aaronlmathis/gosight/server/internal/usermodel"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
@@ -52,9 +53,19 @@ func (s *HttpServer) HandleIndexPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to load user", http.StatusInternalServerError)
 		return
 	}
+
+	// Build SafeUser model to pass user dat to expose to JS.
+	safeUser := usermodel.SafeUser{
+		Username:  user.Username,
+		Email:     user.Email,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+	}
+	utils.Debug("Loaded user: %s", user.Username)
 	pageData := templates.TemplateData{
 		Title:       "Home",
 		User:        user,
+		UserData:    safeUser,
 		Breadcrumbs: []templates.Breadcrumb{},
 	}
 

@@ -47,14 +47,14 @@ func (t *EndpointTracker) RegisterAgentSession(agentID string, client proto.Stre
 	t.sessions[agentID] = session
 	t.mu.Unlock()
 
-	utils.Info("🔌 Registered agent session: %s", agentID)
+	utils.Info("Registered agent session: %s", agentID)
 
 	// Start dedicated send loop
 	go func() {
 		for resp := range session.SendQueue {
 			err := session.Stream.Send(resp)
 			if err != nil {
-				utils.Warn("❌ Failed to send StreamResponse to agent %s: %v", agentID, err)
+				utils.Warn("Failed to send StreamResponse to agent %s: %v", agentID, err)
 				// optional: remove the session and cleanup if the stream is broken
 				t.mu.Lock()
 				delete(t.sessions, agentID)

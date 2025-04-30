@@ -38,7 +38,8 @@ import (
 // runShellCommand executes a shell command with arguments and returns the result.
 func runShellCommand(ctx context.Context, cmd string, args ...string) *proto.CommandResponse {
 	allowed := map[string]bool{
-		"docker": true, "podman": true, "systemctl": true,
+		"docker": true, "podman": true, "systemctl": true, "cd": true, "pwd": true, "cp": true, "mv": true, "touch": true,
+		"grep": true, "awk": true, "sed": true, "cat": true, "echo": true, "chmod": true, "chown": true,
 		"ls": true, "uptime": true, "reboot": true, "shutdown": true,
 	}
 	if !allowed[cmd] {

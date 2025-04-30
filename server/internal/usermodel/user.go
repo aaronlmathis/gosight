@@ -20,6 +20,12 @@ type User struct {
 	LastLogin     time.Time
 	Scopes        map[string][]string
 }
+type SafeUser struct {
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+}
 
 type Role struct {
 	ID          string

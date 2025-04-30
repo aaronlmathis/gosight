@@ -29,6 +29,7 @@ import (
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
 	"github.com/aaronlmathis/gosight/server/internal/http/templates"
+	"github.com/aaronlmathis/gosight/server/internal/usermodel"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
@@ -95,10 +96,17 @@ func (s *HttpServer) HandleAddAlertRulePage(w http.ResponseWriter, r *http.Reque
 	}
 
 	permissions := gosightauth.FlattenPermissions(user.Roles)
-
+	// Build SafeUser model to pass user dat to expose to JS.
+	safeUser := usermodel.SafeUser{
+		Username:  user.Username,
+		Email:     user.Email,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+	}
 	pageData := templates.TemplateData{
 		Title:       "Add Alert",
 		User:        user,
+		UserData:    safeUser,
 		Permissions: permissions,
 		Breadcrumbs: []templates.Breadcrumb{
 			{Label: "Alerts", URL: "/alerts"},

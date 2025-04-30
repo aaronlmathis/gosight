@@ -1,20 +1,20 @@
 {{ define "partials/tabs/console_tab" }}
+
+
 <div class="hidden p-4 bg-gray-50 dark:bg-gray-800" id="console" role="tabpanel" aria-labelledby="console-tab">
   <div id="console-output"
-    class="bg-black text-green-400 font-mono text-sm leading-relaxed whitespace-pre-wrap border border-gray-700 dark:border-gray-600 shadow-inner h-96 rounded-md flex flex-col p-4">
+    class="bg-black text-green-400 font-mono text-sm leading-relaxed whitespace-pre-wrap border border-gray-700 dark:border-gray-600 shadow-inner h-96 rounded-md flex flex-col p-4"
+    style="cursor: text;">
 
-    <div id="console-responses" class="flex-1 overflow-y-auto flex flex-col space-y-1 pr-1">
+    <div id="console-responses"
+      class="flex-1 overflow-y-auto flex flex-col space-y-1 pr-1 scrollbar-thin scrollbar-dark">
 
-      <div id="console-responses" class="...">
-        <!-- responses go here -->
-        <div id="console-scroll-anchor"></div>
-      </div>
+
     </div>
 
     <div id="console-input-row" class="flex items-center space-x-1 mt-2 shrink-0">
-      <span class="text-blue-400">user</span>@<span class="text-purple-400">hostname123</span>:<span
-        class="text-red-400">~</span><span class="text-white">$</span>
-      <input id="console-command"
+      <div id="console-prompt" class="flex-shrink-0 whitespace-nowrap flex items-center"></div><input
+        id="console-command" style="outline: none;       caret-color: #000;"
         class="text-sm !bg-black !text-green-400 !placeholder-gray-500 !border-0 !border-b focus:outline-none focus:ring-0 focus:ring-transparent !border-gray-700 !focus:outline-none !focus:ring-0 !focus:border-gray-600 ml-5 w-full px-2 py-1"
         type="text" placeholder="Enter command..." autocomplete="off" />
     </div>

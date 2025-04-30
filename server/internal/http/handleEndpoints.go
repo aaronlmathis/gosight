@@ -37,6 +37,7 @@ import (
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
 	"github.com/aaronlmathis/gosight/server/internal/http/templates"
+	"github.com/aaronlmathis/gosight/server/internal/usermodel"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/gorilla/mux"
@@ -84,9 +85,18 @@ func (s *HttpServer) HandleEndpointPage(w http.ResponseWriter, r *http.Request) 
 
 	permissions := gosightauth.FlattenPermissions(user.Roles)
 
+	// Build SafeUser model to pass user dat to expose to JS.
+	safeUser := usermodel.SafeUser{
+		Username:  user.Username,
+		Email:     user.Email,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+	}
+
 	pageData := templates.TemplateData{
 		Title:       "Endpoints",
 		User:        user,
+		UserData:    safeUser,
 		Permissions: permissions,
 		Breadcrumbs: []templates.Breadcrumb{
 			{Label: "Endpoints"},
@@ -132,11 +142,18 @@ func (s *HttpServer) HandleEndpointDetail(w http.ResponseWriter, r *http.Request
 	permissions := gosightauth.FlattenPermissions(user.Roles)
 
 	meta, _ := s.Sys.Tele.Meta.Get(endpointID)
-
+	// Build SafeUser model to pass user dat to expose to JS.
+	safeUser := usermodel.SafeUser{
+		Username:  user.Username,
+		Email:     user.Email,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+	}
 	// Build Template data based on endpoint_id
 	pageData := templates.TemplateData{
 		Title:       "Endpoints",
 		User:        user,
+		UserData:    safeUser,
 		Permissions: permissions,
 		Labels:      map[string]string{"endpoint_id": endpointID},
 		Breadcrumbs: []templates.Breadcrumb{

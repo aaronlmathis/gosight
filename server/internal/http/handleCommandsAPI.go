@@ -48,7 +48,7 @@ func (s *HttpServer) HandleCommandsAPI(w http.ResponseWriter, r *http.Request) {
 	utils.Debug("🔍 Session found: %v", ok)
 
 	if !ok {
-		utils.Debug("❌ agent session not found for %s", req.AgentID)
+		utils.Debug("agent session not found for %s", req.AgentID)
 		http.Error(w, "agent not available", http.StatusServiceUnavailable)
 		return
 	}
@@ -60,23 +60,23 @@ func (s *HttpServer) HandleCommandsAPI(w http.ResponseWriter, r *http.Request) {
 		Args:        req.Args,
 	}
 
-	utils.Debug("📤 Attempting to enqueue command")
+	utils.Debug("Attempting to enqueue command")
 
 	defer func() {
 		if r := recover(); r != nil {
-			utils.Error("🔥 Panic while enqueueing command for agent %s: %v", req.AgentID, r)
+			utils.Error("Panic while enqueueing command for agent %s: %v", req.AgentID, r)
 			debug.PrintStack() // optional
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 		}
 	}()
 
 	if !s.Sys.Tracker.EnqueueCommand(req.AgentID, cmdReq) {
-		utils.Debug("❌ Failed to enqueue command for %s", req.AgentID)
+		utils.Debug("Failed to enqueue command for %s", req.AgentID)
 		http.Error(w, "failed to enqueue command", http.StatusServiceUnavailable)
 		return
 	}
 
-	utils.Info("✅ Enqueued command for agent %s: type=%s command=%s", req.AgentID, req.CommandType, req.CommandData)
+	utils.Info("Enqueued command for agent %s: type=%s command=%s", req.AgentID, req.CommandType, req.CommandData)
 
 	w.WriteHeader(http.StatusAccepted)
 	json.NewEncoder(w).Encode(map[string]string{

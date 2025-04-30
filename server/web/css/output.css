@@ -341,6 +341,9 @@
   .relative {
     position: relative;
   }
+  .static {
+    position: static;
+  }
   .sticky {
     position: sticky;
   }
@@ -758,9 +761,6 @@
   .flex-col {
     flex-direction: column;
   }
-  .flex-col-reverse {
-    flex-direction: column-reverse;
-  }
   .flex-wrap {
     flex-wrap: wrap;
   }
@@ -836,11 +836,6 @@
       --tw-space-y-reverse: 0;
       margin-block-start: calc(calc(var(--spacing) * 8) * var(--tw-space-y-reverse));
       margin-block-end: calc(calc(var(--spacing) * 8) * calc(1 - var(--tw-space-y-reverse)));
-    }
-  }
-  .space-y-reverse {
-    :where(& > :not(:last-child)) {
-      --tw-space-y-reverse: 1;
     }
   }
   .gap-x-4 {
@@ -959,10 +954,6 @@
     border-style: var(--tw-border-style);
     border-width: 1px;
   }
-  .border-0 {
-    border-style: var(--tw-border-style);
-    border-width: 0px;
-  }
   .border-2 {
     border-style: var(--tw-border-style);
     border-width: 2px;
@@ -1022,23 +1013,11 @@
   .border-gray-800 {
     border-color: var(--color-gray-800);
   }
-  .border-gray-900 {
-    border-color: var(--color-gray-900);
-  }
   .border-red-300 {
     border-color: var(--color-red-300);
   }
-  .\!bg-\[\#0d0d0d\] {
-    background-color: #0d0d0d !important;
-  }
   .\!bg-black {
     background-color: var(--color-black) !important;
-  }
-  .bg-\[\#0d0d0d\] {
-    background-color: #0d0d0d;
-  }
-  .bg-\[\#0f0f0f\] {
-    background-color: #0f0f0f;
   }
   .bg-black {
     background-color: var(--color-black);
@@ -1138,9 +1117,6 @@
   }
   .bg-yellow-400 {
     background-color: var(--color-yellow-400);
-  }
-  .bg-zinc-950 {
-    background-color: var(--color-zinc-950);
   }
   .object-cover {
     object-fit: cover;
@@ -1478,11 +1454,6 @@
       color: var(--color-gray-400);
     }
   }
-  .placeholder-gray-500 {
-    &::placeholder {
-      color: var(--color-gray-500);
-    }
-  }
   .accent-blue-500 {
     accent-color: var(--color-blue-500);
   }
@@ -1804,11 +1775,6 @@
   .focus\:border-blue-500 {
     &:focus {
       border-color: var(--color-blue-500);
-    }
-  }
-  .focus\:border-gray-600 {
-    &:focus {
-      border-color: var(--color-gray-600);
     }
   }
   .focus\:ring-0 {

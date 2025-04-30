@@ -51,6 +51,7 @@ var (
 type TemplateData struct {
 	Title       string
 	User        *usermodel.User
+	UserData    usermodel.SafeUser
 	Permissions []string
 	Metrics     map[string]float64
 	Timeseries  map[string][]model.MetricPoint
