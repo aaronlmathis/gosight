@@ -55,6 +55,10 @@ func NewRegistry(cfg *config.Config) *LogRegistry {
 			}
 			reg.LogCollectors["journald"] = linuxcollector.NewJournaldCollector(cfg)
 		case "security":
+			if runtime.GOOS != "linux" {
+				utils.Warn("journald collector is only supported on Linux (skipping) \n")
+				continue
+			}
 			reg.LogCollectors["security"] = linuxcollector.NewSecurityLogCollector(cfg)
 		default:
 			utils.Warn("Unknown collector: %s (skipping) \n", name)
