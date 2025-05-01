@@ -22,9 +22,11 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 // server/internal/http/template.go
 // Handle loading of template files
 
-package templates
+package gosighttemplate
 
 import (
+	"context"
+	"fmt"
 	"html/template"
 	"net/http"
 	"os"
@@ -40,141 +42,228 @@ import (
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/fsnotify/fsnotify"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
-var (
-	mu   sync.RWMutex
-	Tmpl *template.Template
-	fmap template.FuncMap
-)
+type GoSightTemplate struct {
+	ctx         context.Context
+	Cfg         *config.Config
+	mu          sync.RWMutex
+	Tmpl        *template.Template
+	fmap        *template.FuncMap
+	MetricStore metricstore.MetricStore
+	MetricIndex *metricindex.MetricIndex
+	UserStore   userstore.UserStore
+}
 
+// TemplateData holds the data passed to templates for rendering.
 type TemplateData struct {
 	Title       string
 	User        *usermodel.User
 	UserData    usermodel.SafeUser
 	Permissions []string
-	Metrics     map[string]float64
+	Metrics     map[string]float64 // TODO: Revaluate need.
 	Timeseries  map[string][]model.MetricPoint
 	Tags        map[string]string
 	Labels      map[string]string
-	Meta        model.Meta
-	MetricStore metricstore.MetricStore
-	MetricIndex *metricindex.MetricIndex
-	UserStore   userstore.UserStore
+	Meta        *model.Meta
 	Breadcrumbs []Breadcrumb
+	CurrentPath string
 }
 
+// Breadcrumb represents a single breadcrumb in the navigation trail.
 type Breadcrumb struct {
 	Label string
 	URL   string
 }
 
-func InitTemplates(cfg *config.Config, funcMap template.FuncMap) error {
-	fmap = funcMap // store for reload use
-	err := loadTemplates(cfg.Web.TemplateDir)
-	if err != nil {
-		return err
+// NewGoSightTemplate creates a new GoSightTemplate instance, loading templates and setting up file watchers.
+
+func NewGoSightTemplate(
+	ctx context.Context,
+	cfg *config.Config,
+	metricStore metricstore.MetricStore,
+	metricIndex *metricindex.MetricIndex,
+	userStore userstore.UserStore) (*GoSightTemplate, error) {
+
+	fmap := createTemplateFunctionMap()
+	t := &GoSightTemplate{
+		ctx:         ctx,
+		Cfg:         cfg,
+		mu:          sync.RWMutex{},
+		fmap:        fmap,
+		MetricStore: metricStore,
+		MetricIndex: metricIndex,
+		UserStore:   userStore,
 	}
-	go watchForChanges(cfg.Web.TemplateDir)
-	return nil
+
+	if err := t.loadTemplates(); err != nil {
+		return nil, err
+	}
+	t.watchForChanges()
+
+	return t, nil
 }
 
-func loadTemplates(baseDir string) error {
-	mu.Lock()
-	defer mu.Unlock()
-
-	newTmpl := template.New("layout").Funcs(fmap)
-	counter := 0
-
-	layoutDirs := []string{
-		filepath.Join(baseDir, "layouts"),
-		filepath.Join(baseDir, "partials"),
+// createTemplateFunctionMap initializes the function map for templates.
+func createTemplateFunctionMap() *template.FuncMap {
+	return &template.FuncMap{
+		"hasPermission": HasPermission,
+		"safeHTML":      SafeHTML,
+		"title":         cases.Title(language.English).String,
+		"marshal":       Marshal,
+		"since":         Since,
+		"uptime":        FormatUptime,
+		"trim":          strings.TrimSpace,
+		"div":           Div,
+		"seq":           Seq,
+		"hasPrefix":     HasPrefix,
 	}
+}
 
+// loadTemplates loads all HTML templates from the configured directory.
+
+func (t *GoSightTemplate) loadTemplates() error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	newTmpl := template.New("layout").Funcs(*t.fmap)
+
+	// Load layout/partials
+	layoutDirs := []string{
+		filepath.Join(t.Cfg.Web.TemplateDir, "layouts"),
+		filepath.Join(t.Cfg.Web.TemplateDir, "partials"),
+	}
 	for _, dir := range layoutDirs {
 		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 			if err != nil || info.IsDir() || !strings.HasSuffix(path, ".html") {
 				return nil
 			}
-
 			_, err = newTmpl.ParseFiles(path)
-			if err != nil {
-				utils.Error("error parsing template %v: %v", path, err)
-				return err
-			}
-			counter++
-			return nil
+			return err
 		})
 		if err != nil {
-			utils.Error("error walking templates in %s: %v", dir, err)
-			return err
+			return fmt.Errorf("error parsing templates in %s: %w", dir, err)
 		}
 	}
 
-	Tmpl = newTmpl
-	//utils.Debug("Loaded %d base layout/partial templates from %s", counter, baseDir)
+	t.Tmpl = newTmpl
 	return nil
 }
 
-func watchForChanges(baseDir string) {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		utils.Error("fsnotify error: %v", err)
-		return
-	}
-	defer watcher.Close()
+// watchForChanges sets up a file watcher to reload templates when changes are detected.
 
-	err = filepath.Walk(baseDir, func(path string, info os.FileInfo, err error) error {
-		if info != nil && info.IsDir() {
-			return watcher.Add(path)
+func (t *GoSightTemplate) watchForChanges() {
+	go func() {
+		watcher, err := fsnotify.NewWatcher()
+		if err != nil {
+			utils.Error("failed to create template watcher: %v", err)
+			return
 		}
-		return nil
-	})
-	if err != nil {
-		utils.Error("Watcher setup failed: %v", err)
-		return
-	}
+		defer watcher.Close()
 
-	for {
-		select {
-		case event := <-watcher.Events:
-			if filepath.Ext(event.Name) == ".html" {
-				//utils.Debug("Template changed: %s", event.Name)
-				loadTemplates(baseDir)
+		err = filepath.Walk(t.Cfg.Web.TemplateDir, func(path string, info os.FileInfo, err error) error {
+			if info != nil && info.IsDir() {
+				return watcher.Add(path)
 			}
-		case err := <-watcher.Errors:
-			utils.Error("Watcher error: %v", err)
+			return nil
+		})
+		if err != nil {
+			utils.Error("watcher setup failed: %v", err)
+			return
 		}
+
+		for {
+			select {
+			case event := <-watcher.Events:
+				if filepath.Ext(event.Name) == ".html" {
+					utils.Debug("Reloading templates due to change: %s", event.Name)
+					if err := t.loadTemplates(); err != nil {
+						utils.Error("template reload failed: %v", err)
+					}
+				}
+			case err := <-watcher.Errors:
+				utils.Error("template watcher error: %v", err)
+			case <-t.ctx.Done():
+				utils.Info("Template watcher shutting down")
+				return
+			}
+		}
+	}()
+}
+
+// BuildPageData constructs the TemplateData for rendering a page.
+func (t *GoSightTemplate) BuildPageData(user *usermodel.User, breadcrumbs, labels map[string]string, path, title string,
+	meta *model.Meta, permissions []string) *TemplateData {
+
+	safeUser := usermodel.SafeUser{}
+	if user != nil {
+		safeUser = usermodel.SafeUser{
+			Username:  user.Username,
+			Email:     user.Email,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+		}
+	} else {
+		utils.Debug("No user provided, using empty SafeUser")
+	}
+
+	breadCrumbs := make([]Breadcrumb, 0, len(breadcrumbs))
+	for name, url := range breadcrumbs {
+		bc := Breadcrumb{
+			Label: name,
+		}
+		if url != "" {
+			bc.URL = url
+		}
+
+		breadCrumbs = append(breadCrumbs, bc)
+	}
+
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+
+	return &TemplateData{
+		Title:       title,
+		User:        user,
+		UserData:    safeUser,
+		Permissions: permissions,
+		Metrics:     make(map[string]float64),
+		Timeseries:  make(map[string][]model.MetricPoint),
+		Tags:        make(map[string]string),
+		Labels:      labels,
+		Meta:        meta,
+		CurrentPath: path,
+		Breadcrumbs: breadCrumbs,
 	}
 }
 
-func RenderTemplate(w http.ResponseWriter, layout, page string, data any) error {
-	mu.RLock()
-	base := Tmpl
-	mu.RUnlock()
+// RenderTemplate renders a template with the given layout and page, passing in the provided data.
+func (t *GoSightTemplate) RenderTemplate(w http.ResponseWriter, layout, page string, data any) error {
+	t.mu.RLock()
+	base := t.Tmpl
+	t.mu.RUnlock()
 
 	tmpl, err := base.Clone()
 	if err != nil {
-		utils.Error("Clone failed: %v", err)
 		http.Error(w, "Template error", http.StatusInternalServerError)
-		return err
+		return fmt.Errorf("failed to clone template: %w", err)
 	}
 
-	pagePath := filepath.Join("web/templates/pages", page+".html") // TODO use config.
+	pagePath := filepath.Join(t.Cfg.Web.TemplateDir, "pages", page+".html")
 	tmpl, err = tmpl.ParseFiles(pagePath)
 	if err != nil {
-		utils.Error("❌ ParseFiles failed for %s: %v", pagePath, err)
 		http.Error(w, "Template parse error", http.StatusInternalServerError)
-		return err
+		return fmt.Errorf("failed to parse page template: %w", err)
 	}
-	utils.Debug("Parsed page template: %s", pagePath)
 
-	layoutPath := "layouts/" + layout
+	layoutPath := filepath.Join("layouts", layout)
 	err = tmpl.ExecuteTemplate(w, layoutPath, data)
 	if err != nil {
-		utils.Error("ExecuteTemplate failed: %v", err)
 		http.Error(w, "Render error", http.StatusInternalServerError)
-		return err
+		return fmt.Errorf("failed to execute template: %w", err)
 	}
 
 	return nil

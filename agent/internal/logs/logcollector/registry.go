@@ -28,6 +28,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"runtime"
 	"strings"
 
 	"github.com/aaronlmathis/gosight/agent/internal/config"
@@ -48,6 +49,10 @@ func NewRegistry(cfg *config.Config) *LogRegistry {
 	for _, name := range cfg.Agent.LogCollection.Sources {
 		switch name {
 		case "journald":
+			if runtime.GOOS != "linux" {
+				utils.Warn("journald collector is only supported on Linux (skipping) \n")
+				continue
+			}
 			reg.LogCollectors["journald"] = linuxcollector.NewJournaldCollector(cfg)
 		case "security":
 			reg.LogCollectors["security"] = linuxcollector.NewSecurityLogCollector(cfg)

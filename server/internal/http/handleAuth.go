@@ -32,7 +32,6 @@ import (
 
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
-	"github.com/aaronlmathis/gosight/server/internal/http/templates"
 	"github.com/aaronlmathis/gosight/server/internal/usermodel"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
@@ -85,7 +84,7 @@ func (s *HttpServer) HandleCallback(w http.ResponseWriter, r *http.Request) {
 
 	user, err = s.Sys.Stores.Users.GetUserWithPermissions(r.Context(), user.ID)
 	if err != nil {
-		utils.Error("❌ Failed to load roles for user %s: %v", user.Email, err)
+		utils.Error("Failed to load roles for user %s: %v", user.Email, err)
 		http.Error(w, "failed to load user roles", http.StatusInternalServerError)
 		return
 	}
@@ -96,7 +95,7 @@ func (s *HttpServer) HandleCallback(w http.ResponseWriter, r *http.Request) {
 			ctx := InjectUserContext(r.Context(), user)
 			s.createFinalSessionAndRedirect(w, r.WithContext(ctx), user)
 
-			// 🔥 Always emit login success event here (centralized)
+			// Always emit login success event here (centralized)
 			s.Sys.Tele.Emitter.Emit(r.Context(), model.EventEntry{
 				Timestamp: time.Now(),
 				Type:      "user.login.success",
@@ -179,8 +178,8 @@ func (s *HttpServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	utils.Debug("Auth providers: %v", providers)
 	utils.Debug("Template Data: %v", data)
 
-	if err := templates.RenderTemplate(w, "layout_auth", "login", data); err != nil {
-		utils.Error("❌ Failed to execute template: %v", err)
+	if err := s.Tmpl.RenderTemplate(w, "layout_auth", "login", data); err != nil {
+		utils.Error("Failed to execute template: %v", err)
 		http.Error(w, "template execution error", http.StatusInternalServerError)
 	}
 }
@@ -273,7 +272,7 @@ func (s *HttpServer) HandleMFAPage(w http.ResponseWriter, r *http.Request) {
 		"Flash": flash,
 	}
 
-	if err := templates.RenderTemplate(w, "layout_auth", "mfa", data); err != nil {
+	if err := s.Tmpl.RenderTemplate(w, "layout_auth", "mfa", data); err != nil {
 		utils.Error("❌ Failed to execute template: %v", err)
 		http.Error(w, "template execution error", http.StatusInternalServerError)
 	}
@@ -317,7 +316,7 @@ func (s *HttpServer) createFinalSessionAndRedirect(w http.ResponseWriter, r *htt
 
 	token, err := gosightauth.GenerateToken(user.ID, roles, traceID)
 	if err != nil {
-		utils.Error("❌ Failed to generate session token: %v", err)
+		utils.Error("Failed to generate session token: %v", err)
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return
 	}

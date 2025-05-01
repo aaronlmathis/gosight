@@ -25,26 +25,20 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package httpserver
 
 import (
-	"encoding/json"
-	"fmt"
-	"html/template"
 	"net/http"
-	"strings"
-	"time"
 
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
-	"github.com/aaronlmathis/gosight/server/internal/http/templates"
+	gosighttemplate "github.com/aaronlmathis/gosight/server/internal/http/templates"
 	"github.com/aaronlmathis/gosight/server/internal/sys"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/gorilla/mux"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 type HttpServer struct {
 	httpServer *http.Server
 	Router     *mux.Router
 	Sys        *sys.SystemContext
+	Tmpl       *gosighttemplate.GoSightTemplate
 }
 
 // NewServer creates a new HTTP server instance with the provided system context.
@@ -96,10 +90,13 @@ func (s *HttpServer) Start() error {
 	)
 	s.setupRoutes()
 
-	err := templates.InitTemplates(s.Sys.Cfg, s.templateFuncs())
+	tmpl, err := gosighttemplate.NewGoSightTemplate(s.Sys.Ctx, s.Sys.Cfg, s.Sys.Stores.Metrics, s.Sys.Tele.Index, s.Sys.Stores.Users)
 	if err != nil {
 		utils.Fatal("template init failed: %v", err)
 	}
+
+	s.Tmpl = tmpl
+
 	utils.Info("HTTPS server running at %s", s.Sys.Cfg.Server.HTTPAddr)
 	if err := http.ListenAndServeTLS(s.Sys.Cfg.Server.HTTPAddr, s.Sys.Cfg.TLS.HttpsCertFile, s.Sys.Cfg.TLS.HttpsKeyFile, s.Router); err != nil {
 		utils.Error("HTTPS server failed: %v", err)
@@ -107,53 +104,13 @@ func (s *HttpServer) Start() error {
 	}
 	return nil
 }
+
 func getAuthProviderKeys(m map[string]gosightauth.AuthProvider) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)
 	}
 	return keys
-}
-func (s *HttpServer) templateFuncs() template.FuncMap {
-	return template.FuncMap{
-		"hasPermission": func(_, _ interface{}) bool { return true }, // stub or hook
-		"safeHTML":      func(s string) template.HTML { return template.HTML(s) },
-		"title":         cases.Title(language.English).String,
-		"marshal":       templates.Marshal,
-		"toJson": func(v interface{}) template.JS {
-			b, _ := json.Marshal(v)
-			return template.JS(b)
-		},
-		"since": func(ts string) string {
-			t, err := time.Parse(time.RFC3339, ts)
-			if err != nil {
-				return "unknown"
-			}
-			d := time.Since(t)
-			if d < time.Minute {
-				return fmt.Sprintf("%ds ago", int(d.Seconds()))
-			}
-			if d < time.Hour {
-				return fmt.Sprintf("%dm ago", int(d.Minutes()))
-			}
-			return fmt.Sprintf("%dh ago", int(d.Hours()))
-		},
-		"uptime": templates.FormatUptime,
-		"trim":   strings.TrimSpace,
-		"div": func(a, b float64) float64 {
-			if b == 0 {
-				return 0
-			}
-			return a / b
-		},
-		"seq": func(from, to int) []int {
-			s := make([]int, to-from+1)
-			for i := range s {
-				s[i] = from + i
-			}
-			return s
-		},
-	}
 }
 
 func (s *HttpServer) Shutdown() error {

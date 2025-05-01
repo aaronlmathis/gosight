@@ -244,7 +244,7 @@ func (s *HttpServer) setupAPIRoutes() {
 	// Tags
 	// Tag management
 	api.Handle("/tags/keys", secure("gosight:api:tags:view", http.HandlerFunc(s.HandleTagKeys))).Methods("GET")
-	api.Handle("/tags/keys", secure("gosight:api:tags:view", http.HandlerFunc(s.HandleTagKeys))).Methods("GET")
+
 	api.Handle("/tags/values", secure("gosight:api:tags:view", http.HandlerFunc(s.HandleTagValues))).Methods("GET")
 	api.Handle("/tags/{endpointID}", secure("gosight:api:tags:view", http.HandlerFunc(s.HandleGetTags))).Methods("GET")
 	api.Handle("/tags/{endpointID}", secure("gosight:api:tags:set", http.HandlerFunc(s.HandleSetTags))).Methods("POST")

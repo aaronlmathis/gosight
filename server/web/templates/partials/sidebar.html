@@ -92,6 +92,21 @@
 
                     <span class="ml-3">Alerts</span>
                 </a>
+                {{ if or (eq .CurrentPath "/alerts") (hasPrefix .CurrentPath "/alerts/") }}
+                <ul
+                    class="mt-2 space-y-1 text-sm pl-8 border-l border-gray-200 dark:border-gray-700 ml-10 mt-2 space-y-1 text-sm sidebar-submenu">
+                    <li><a href="/alerts"
+                            class="block px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Active Alerts</a>
+                    </li>
+                    <li><a href="/alerts/rules"
+                            class="block px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Rule Builder</a>
+                    </li>
+                    <li><a href="/alerts/routes"
+                            class="block px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Routes</a></li>
+                    <li><a href="/alerts/actions"
+                            class="block px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Actions</a></li>
+                </ul>
+                {{ end }}
             </li>
             <li>
                 <a href="/reports" data-tooltip="Reports"
@@ -104,6 +119,7 @@
 
                     <span class="ml-3">Reports</span>
                 </a>
+
             </li>
             <li>
                 <a href="/admin" data-tooltip="Admin"
@@ -116,6 +132,31 @@
                     </svg>
                     <span class="ml-3">Admin</span>
                 </a>
+            </li>
+            <li>
+                <button type="button"
+                    class="flex items-center w-full p-2 rounded-lg transition-all duration-200 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
+                    onclick="toggleSubmenu('settings-submenu')">
+                    <svg class="w-6 h-6 text-gray-800 dark:text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span class="ml-3 flex-1 text-left">Settings</span>
+                    <svg class="w-4 h-4 ml-auto transform transition-transform" id="settings-chevron"
+                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <ul id="settings-submenu" class="ml-10 mt-1 space-y-1 hidden">
+                    <li>
+                        <a href="/profile"
+                            class="block p-2 text-sm rounded hover:bg-gray-200 dark:hover:bg-gray-700">Profile</a>
+                    </li>
+                    <li>
+                        <a href="/settings"
+                            class="block p-2 text-sm rounded hover:bg-gray-200 dark:hover:bg-gray-700">Preferences</a>
+                    </li>
+                </ul>
             </li>
         </ul>
     </div>

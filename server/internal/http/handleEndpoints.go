@@ -36,8 +36,6 @@ import (
 
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
-	"github.com/aaronlmathis/gosight/server/internal/http/templates"
-	"github.com/aaronlmathis/gosight/server/internal/usermodel"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/gorilla/mux"
@@ -85,27 +83,15 @@ func (s *HttpServer) HandleEndpointPage(w http.ResponseWriter, r *http.Request) 
 
 	permissions := gosightauth.FlattenPermissions(user.Roles)
 
-	// Build SafeUser model to pass user dat to expose to JS.
-	safeUser := usermodel.SafeUser{
-		Username:  user.Username,
-		Email:     user.Email,
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-	}
+	bc := make(map[string]string, 0)
+	bc["Endpoints"] = ""
 
-	pageData := templates.TemplateData{
-		Title:       "Endpoints",
-		User:        user,
-		UserData:    safeUser,
-		Permissions: permissions,
-		Breadcrumbs: []templates.Breadcrumb{
-			{Label: "Endpoints"},
-		},
-	}
+	pageData := s.Tmpl.BuildPageData(user, bc, nil, r.URL.Path, "Endpoints", nil, permissions)
 
-	err = templates.RenderTemplate(w, "layout_dashboard", "dashboard_endpoints", pageData)
+	err = s.Tmpl.RenderTemplate(w, "layout_dashboard", "dashboard_endpoints", pageData)
 
 	if err != nil {
+		utils.Debug("Failed to render endpoints page: %v", err)
 		http.Error(w, "template error", 500)
 	}
 }
@@ -117,7 +103,6 @@ func (s *HttpServer) HandleEndpointDetail(w http.ResponseWriter, r *http.Request
 	vars := mux.Vars(r)
 	endpointID := vars["endpoint_id"]
 	ctx := r.Context()
-	utils.Debug("Endpoint ID: %s", endpointID)
 
 	// Check for forbidden access first
 	if forbidden, ok := ctx.Value("forbidden").(bool); ok && forbidden {
@@ -142,28 +127,15 @@ func (s *HttpServer) HandleEndpointDetail(w http.ResponseWriter, r *http.Request
 	permissions := gosightauth.FlattenPermissions(user.Roles)
 
 	meta, _ := s.Sys.Tele.Meta.Get(endpointID)
-	// Build SafeUser model to pass user dat to expose to JS.
-	safeUser := usermodel.SafeUser{
-		Username:  user.Username,
-		Email:     user.Email,
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-	}
-	// Build Template data based on endpoint_id
-	pageData := templates.TemplateData{
-		Title:       "Endpoints",
-		User:        user,
-		UserData:    safeUser,
-		Permissions: permissions,
-		Labels:      map[string]string{"endpoint_id": endpointID},
-		Breadcrumbs: []templates.Breadcrumb{
-			{Label: "Endpoints", URL: "/endpoints"},
-			{Label: endpointID},
-		},
-		Meta: meta,
-	}
 
-	err = templates.RenderTemplate(w, "layout_dashboard", "dashboard_endpoint_detail", pageData)
+	// Build Template data based on endpoint_id
+	labels := map[string]string{"endpoint_id": endpointID}
+	bc := map[string]string{"Endpoints": "/endpoints", endpointID: ""}
+
+	title := "Endpoint: " + endpointID
+	pageData := s.Tmpl.BuildPageData(user, bc, labels, r.URL.Path, title, &meta, permissions)
+
+	err = s.Tmpl.RenderTemplate(w, "layout_dashboard", "dashboard_endpoint_detail", pageData)
 	if err != nil {
 		utils.Error("Template error: %v", err)
 		http.Error(w, "template error", http.StatusInternalServerError)

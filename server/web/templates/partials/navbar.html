@@ -46,23 +46,33 @@
                         </svg>
                     </span>
                 </button>
-                <!-- Notification bell -->
-                <button type="button" class="relative text-gray-400 hover:text-white focus:outline-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                    </svg>
-                    <span
-                        class="absolute -top-1 -right-1 inline-flex items-center justify-center w-2 h-2 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full"></span>
-                </button>
+                <div class="relative">
+                    <button id="alert-bell" type="button"
+                        class="relative text-gray-400 hover:text-white focus:outline-none"
+                        data-dropdown-toggle="alert-dropdown" data-dropdown-placement="bottom-end"
+                        aria-expanded="false">
+
+                        <!-- Bell icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+
+                        <!-- Notification dot -->
+                        <span id="alert-indicator"
+                            class="absolute -top-1 -right-1 w-2 h-2 bg-red-600 rounded-full hidden"></span>
+                    </button>
+                </div>
                 <!-- User dropdown -->
+                </a>
                 <button id="dropdownUserAvatarButton" data-dropdown-toggle="dropdownUserAvatar"
                     class="w-11 h-11 rounded-full shadow-md object-cover" type="button">
                     <img class="w-11 h-11 rounded-full object-cover"
                         src="https://media.licdn.com/dms/image/v2/D5603AQE1pgfPkObY8w/profile-displayphoto-shrink_100_100/B56ZRr4qcDHsAU-/0/1736976804537?e=1749686400&v=beta&t=cIew9AT-j-UZnW_QUp9-e4SGRd3-6Utl--hKwIfLsOo"
                         alt="User avatar" />
                 </button>
+
                 <div id="dropdownUserAvatar"
                     class="z-50 hidden my-4 text-base list-none bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-800 dark:divide-gray-700 w-48">
                     <div class="px-4 py-3">

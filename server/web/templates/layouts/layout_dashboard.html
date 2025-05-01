@@ -120,11 +120,17 @@
                 opacity: 1;
             }
         }
+
+        @media (max-width: 1024px) {
+            #sidebar.hidden .sidebar-submenu {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 
 <body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-white font-sans antialiased">
-
+    <div id="alert-spacer" class="h-0 transition-all duration-300"></div>
     {{/* -- Top Navbar -- */}}
     {{ template "partials/navbar" . }}
 
@@ -156,10 +162,15 @@
             const sidebar = document.getElementById("sidebar");
             const backdrop = document.getElementById("sidebarBackdrop");
             const isMobile = window.innerWidth < 1024;
+            const submenus = document.querySelectorAll(".sidebar-submenu");
 
             if (isMobile) {
-                sidebar.classList.toggle("hidden");
+                const isNowHidden = sidebar.classList.toggle("hidden");
                 backdrop.classList.toggle("hidden");
+
+                submenus.forEach(ul => {
+                    ul.style.display = isNowHidden ? "none" : "";
+                });
             } else {
                 document.body.classList.toggle("sidebar-collapsed");
             }
@@ -225,6 +236,7 @@
 
     </script>
     <script src="/js/global-search.js" type="module"></script>
+    <script src="/js/alertWS.js" type="module"></script>
     {{/* -- Additional scripts -- */}}
     {{ block "page-scripts" . }} {{ end }}
 </body>

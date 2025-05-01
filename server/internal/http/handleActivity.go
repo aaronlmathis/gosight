@@ -27,12 +27,12 @@ package httpserver
 import (
 	"net/http"
 
+	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
-	"github.com/aaronlmathis/gosight/server/internal/http/templates"
-	"github.com/aaronlmathis/gosight/server/internal/usermodel"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
+// HandleActivityPage handles requests to the activity page.
 func (s *HttpServer) HandleActivityPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -53,23 +53,12 @@ func (s *HttpServer) HandleActivityPage(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "failed to load user", http.StatusInternalServerError)
 		return
 	}
-	// Build SafeUser model to pass user dat to expose to JS.
-	safeUser := usermodel.SafeUser{
-		Username:  user.Username,
-		Email:     user.Email,
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-	}
-	pageData := templates.TemplateData{
-		Title:    "Activity",
-		User:     user,
-		UserData: safeUser,
-		Breadcrumbs: []templates.Breadcrumb{
-			{Label: "Unified Activity Stream", URL: "/activity"},
-		},
-	}
 
-	err = templates.RenderTemplate(w, "layout_dashboard", "dashboard_activity", pageData)
+	bc := map[string]string{"Unified Activity Stream": ""}
+	permissions := gosightauth.FlattenPermissions(user.Roles)
+	pageData := s.Tmpl.BuildPageData(user, bc, nil, r.URL.Path, "Activity", nil, permissions)
+
+	err = s.Tmpl.RenderTemplate(w, "layout_dashboard", "dashboard_activity", pageData)
 
 	if err != nil {
 		http.Error(w, "template error", 500)

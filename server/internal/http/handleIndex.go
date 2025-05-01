@@ -27,9 +27,8 @@ package httpserver
 import (
 	"net/http"
 
+	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
-	"github.com/aaronlmathis/gosight/server/internal/http/templates"
-	"github.com/aaronlmathis/gosight/server/internal/usermodel"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
@@ -54,24 +53,16 @@ func (s *HttpServer) HandleIndexPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build SafeUser model to pass user dat to expose to JS.
-	safeUser := usermodel.SafeUser{
-		Username:  user.Username,
-		Email:     user.Email,
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-	}
-	utils.Debug("Loaded user: %s", user.Username)
-	pageData := templates.TemplateData{
-		Title:       "Home",
-		User:        user,
-		UserData:    safeUser,
-		Breadcrumbs: []templates.Breadcrumb{},
-	}
+	bc := make(map[string]string, 0)
 
-	err = templates.RenderTemplate(w, "layout_dashboard", "dashboard_home", pageData)
+	perms := gosightauth.FlattenPermissions(user.Roles)
+
+	pageData := *s.Tmpl.BuildPageData(user, bc, nil, r.URL.Path, "Home", nil, perms)
+
+	err = s.Tmpl.RenderTemplate(w, "layout_dashboard", "dashboard_home", pageData)
 
 	if err != nil {
+		utils.Error("Failed to render index page: %v", err)
 		http.Error(w, "template error", 500)
 	}
 }

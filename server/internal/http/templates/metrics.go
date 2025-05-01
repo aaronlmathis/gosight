@@ -1,16 +1,28 @@
-package templates
+/*
+SPDX-License-Identifier: GPL-3.0-or-later
+
+Copyright (C) 2025 Aaron Mathis aaron.mathis@gmail.com
+
+This file is part of GoSight.
+
+GoSight is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+GoSight is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with GoSight. If not, see https://www.gnu.org/licenses/.
+*/
+
+package gosighttemplate
 
 import (
-	"context"
-	"time"
-
-	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
-	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
-	"github.com/aaronlmathis/gosight/server/internal/store/metricstore"
-	"github.com/aaronlmathis/gosight/server/internal/usermodel"
-
 	"github.com/aaronlmathis/gosight/shared/model"
-	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 var HostMetrics = []model.MetricSelector{
@@ -116,90 +128,4 @@ func GetMetricNames(metrics []model.MetricSelector, instantOnly bool) []string {
 		}
 	}
 	return out
-}
-
-func BuildHostDashboardData(ctx context.Context, ms metricstore.MetricStore, metaTracker *metastore.MetaTracker, user *usermodel.User, endpointID string) (*TemplateData, error) {
-
-	utils.Debug("Building host dashboard data for endpoint: %s", endpointID)
-
-	// Basic labels
-	labels := map[string]string{
-		"endpoint_id": endpointID,
-	}
-
-	meta, _ := metaTracker.Get(endpointID)
-
-	utils.Debug("MetricStore concrete type: %T\n", ms)
-	// Pull all instant metrics for stat boxes
-	instantNames := GetMetricNames(HostMetrics, true)
-
-	instantRows, err := ms.QueryMultiInstant(instantNames, labels)
-	utils.Debug("instantRows: %v", instantRows)
-	if err != nil {
-		return nil, err
-	}
-
-	metrics := FlattenInstant(instantRows)
-
-	// Pull range metrics for charts (10 min window)
-	start := time.Now().Add(-10 * time.Minute)
-	end := time.Now()
-	rangeNames := GetMetricNames(HostMetrics, false)
-	step := "15s"
-	rangeRows, err := ms.QueryMultiRange(rangeNames, start, end, step, labels)
-	if err != nil {
-		return nil, err
-	}
-	timeseries := FlattenRange(rangeRows)
-
-	// Extract tags from the first metric row
-	tags := map[string]string{}
-	if len(instantRows) > 0 {
-		for k, v := range instantRows[0].Tags {
-			tags[k] = v
-		}
-	}
-
-	// 🔍 Determine latest timestamp to infer status
-	var latestTs int64
-	for _, row := range instantRows {
-		if row.Timestamp > latestTs {
-			latestTs = row.Timestamp
-		}
-	}
-
-	if latestTs > 0 {
-		age := time.Since(time.UnixMilli(latestTs))
-		if age > 60*time.Second {
-			labels["status"] = "offline"
-		} else {
-			labels["status"] = "online"
-		}
-		labels["last_report"] = time.UnixMilli(latestTs).Format(time.RFC3339)
-	} else {
-		labels["status"] = "unknown"
-		labels["last_report"] = ""
-	}
-
-	labels["platform"] = tags["platform"]
-	labels["platform_version"] = tags["platform_version"]
-	labels["os"] = tags["os"]
-	utils.Debug("Labels %v", labels)
-
-	breadcrumbs := []Breadcrumb{
-		{Label: "Endpoints", URL: "/endpoints"},
-		{Label: "Host Overview", URL: ""}, // No URL for current page
-	}
-
-	return &TemplateData{
-		Title:       "Host Dashboard",
-		User:        user,
-		Permissions: gosightauth.FlattenPermissions(user.Roles),
-		Labels:      labels,
-		Tags:        tags,
-		Metrics:     metrics,
-		Meta:        meta,
-		Timeseries:  timeseries,
-		Breadcrumbs: breadcrumbs,
-	}, nil
 }

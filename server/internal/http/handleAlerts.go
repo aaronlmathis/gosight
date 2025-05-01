@@ -28,8 +28,6 @@ import (
 
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
-	"github.com/aaronlmathis/gosight/server/internal/http/templates"
-	"github.com/aaronlmathis/gosight/server/internal/usermodel"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
@@ -57,22 +55,18 @@ func (s *HttpServer) HandleAlertsPage(w http.ResponseWriter, r *http.Request) {
 
 	permissions := gosightauth.FlattenPermissions(user.Roles)
 
-	pageData := templates.TemplateData{
-		Title:       "Alerts",
-		User:        user,
-		Permissions: permissions,
-		Breadcrumbs: []templates.Breadcrumb{
-			{Label: "Alerts"},
-		},
-	}
+	bc := map[string]string{"Alerts": ""}
 
-	err = templates.RenderTemplate(w, "layout_dashboard", "dashboard_alerts", pageData)
+	pageData := s.Tmpl.BuildPageData(user, bc, nil, r.URL.Path, "Alerts", nil, permissions)
+	err = s.Tmpl.RenderTemplate(w, "layout_dashboard", "dashboard_alerts", pageData)
 
 	if err != nil {
 		http.Error(w, "template error", 500)
 	}
 
 }
+
+// HandleAddAlertRulePage handles the page for adding a new alert rule.
 
 func (s *HttpServer) HandleAddAlertRulePage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -96,25 +90,11 @@ func (s *HttpServer) HandleAddAlertRulePage(w http.ResponseWriter, r *http.Reque
 	}
 
 	permissions := gosightauth.FlattenPermissions(user.Roles)
-	// Build SafeUser model to pass user dat to expose to JS.
-	safeUser := usermodel.SafeUser{
-		Username:  user.Username,
-		Email:     user.Email,
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-	}
-	pageData := templates.TemplateData{
-		Title:       "Add Alert",
-		User:        user,
-		UserData:    safeUser,
-		Permissions: permissions,
-		Breadcrumbs: []templates.Breadcrumb{
-			{Label: "Alerts", URL: "/alerts"},
-			{Label: "Add Alert"},
-		},
-	}
 
-	err = templates.RenderTemplate(w, "layout_dashboard", "alerts_add_alert", pageData)
+	bc := map[string]string{"Alerts": "/alerts", "Add Alert": ""}
+	pageData := s.Tmpl.BuildPageData(user, bc, nil, r.URL.Path, "Add Alert", nil, permissions)
+
+	err = s.Tmpl.RenderTemplate(w, "layout_dashboard", "alerts_add_alert", pageData)
 
 	if err != nil {
 		http.Error(w, "template error", 500)

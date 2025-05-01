@@ -48,7 +48,7 @@
 - id: "sudo-auth-failure"
   name: "Sudo Authentication Failure"
   description: "Triggers on incorrect sudo password attempts"
-  enabled: false
+  enabled: true
   type: "log"
   level: "error"
   message: "Sudo authentication failure"

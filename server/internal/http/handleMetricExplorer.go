@@ -27,8 +27,8 @@ package httpserver
 import (
 	"net/http"
 
+	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
 	"github.com/aaronlmathis/gosight/server/internal/contextutil"
-	"github.com/aaronlmathis/gosight/server/internal/http/templates"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
@@ -57,17 +57,18 @@ func (s *HttpServer) HandleMetricExplorerPage(w http.ResponseWriter, r *http.Req
 		http.Error(w, "failed to load user", http.StatusInternalServerError)
 		return
 	}
-	pageData := templates.TemplateData{
-		Title: "Metric Explorer",
-		User:  user,
-		Breadcrumbs: []templates.Breadcrumb{
-			{Label: "Metric Explorer", URL: "/metrics"},
-		},
-	}
 
-	err = templates.RenderTemplate(w, "layout_dashboard", "dashboard_metric_explorer", pageData)
+	bc := make(map[string]string, 0)
+	bc["Metric Explorer"] = "/metrics"
+
+	perms := gosightauth.FlattenPermissions(user.Roles)
+
+	pageData := *s.Tmpl.BuildPageData(user, bc, nil, r.URL.Path, "Metric Explorer", nil, perms)
+
+	err = s.Tmpl.RenderTemplate(w, "layout_dashboard", "dashboard_metric_explorer", pageData)
 
 	if err != nil {
+		utils.Error("Failed to render metric explorer page: %v", err)
 		http.Error(w, "template error", 500)
 	}
 }
