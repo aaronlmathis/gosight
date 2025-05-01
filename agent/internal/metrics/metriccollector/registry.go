@@ -58,7 +58,7 @@ func NewRegistry(cfg *config.Config) *MetricRegistry {
 		case "podman":
 			reg.Collectors["podman"] = container.NewPodmanCollectorWithSocket(cfg.Podman.Socket)
 		case "docker":
-			reg.Collectors["docker"] = container.NewDockerCollectorWithSocket(cfg.Docker.Socket)
+			reg.Collectors["docker"] = container.NewDockerCollector()
 		default:
 			utils.Warn(" Unknown collector: %s (skipping) \n", name)
 		}

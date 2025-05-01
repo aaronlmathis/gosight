@@ -30,47 +30,9 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/docker/docker/api/types"
 )
-
-// Common struct used by both Podman and Docker
-type PodmanStats struct {
-	Read string `json:"read"`
-	Name string `json:"name"`
-	ID   string `json:"id"`
-
-	CPUStats struct {
-		CPUUsage struct {
-			TotalUsage        uint64 `json:"total_usage"`
-			UsageInKernelmode uint64 `json:"usage_in_kernelmode"`
-			UsageInUsermode   uint64 `json:"usage_in_usermode"`
-		} `json:"cpu_usage"`
-		SystemCPUUsage uint64 `json:"system_cpu_usage"`
-		OnlineCPUs     int    `json:"online_cpus"`
-	} `json:"cpu_stats"`
-
-	PreCPUStats struct {
-		CPUUsage struct {
-			TotalUsage uint64 `json:"total_usage"`
-		} `json:"cpu_usage"`
-		SystemCPUUsage uint64 `json:"system_cpu_usage"`
-	} `json:"precpu_stats"`
-
-	MemoryStats struct {
-		Usage uint64 `json:"usage"`
-		Limit uint64 `json:"limit"`
-	} `json:"memory_stats"`
-
-	Networks map[string]struct {
-		RxBytes uint64 `json:"rx_bytes"`
-		TxBytes uint64 `json:"tx_bytes"`
-	} `json:"networks"`
-}
-
-type PortMapping struct {
-	PrivatePort int    `json:"PrivatePort"`
-	PublicPort  int    `json:"PublicPort"`
-	Type        string `json:"Type"`
-}
 
 func formatPorts(ports []PortMapping) string {
 	if len(ports) == 0 {
@@ -151,18 +113,16 @@ var prevStats = map[string]struct {
 	Timestamp time.Time
 }{}
 
-func calculateCPUPercent(containerID string, stats *PodmanStats) float64 {
+func calculateCPUPercent(containerID string, totalUsage, systemUsage uint64, onlineCPUs int) float64 {
 	now := time.Now()
 	prev, ok := prevStats[containerID]
-	currentCPU := stats.CPUStats.CPUUsage.TotalUsage
-	currentSystem := stats.CPUStats.SystemCPUUsage
 
 	var percent float64
 	if ok {
-		cpuDelta := float64(currentCPU - prev.CPUUsage)
-		sysDelta := float64(currentSystem - prev.SystemCPU)
-		if sysDelta > 0 && cpuDelta > 0 && stats.CPUStats.OnlineCPUs > 0 {
-			percent = (cpuDelta / sysDelta) * float64(stats.CPUStats.OnlineCPUs) * 100.0
+		cpuDelta := float64(totalUsage - prev.CPUUsage)
+		sysDelta := float64(systemUsage - prev.SystemCPU)
+		if sysDelta > 0 && cpuDelta > 0 && onlineCPUs > 0 {
+			percent = (cpuDelta / sysDelta) * float64(onlineCPUs) * 100.0
 		}
 	}
 
@@ -173,10 +133,10 @@ func calculateCPUPercent(containerID string, stats *PodmanStats) float64 {
 		NetTx     uint64
 		Timestamp time.Time
 	}{
-		CPUUsage:  currentCPU,
-		SystemCPU: currentSystem,
-		NetRx:     sumNetRxRaw(stats),
-		NetTx:     sumNetTxRaw(stats),
+		CPUUsage:  totalUsage,
+		SystemCPU: systemUsage,
+		NetRx:     0,
+		NetTx:     0,
 		Timestamp: now,
 	}
 
@@ -194,6 +154,22 @@ func calculateNetRate(containerID string, now time.Time, rx, tx uint64) (float64
 	}
 	rxRate := float64(rx-prev.NetRx) / seconds
 	txRate := float64(tx-prev.NetTx) / seconds
+
+	// update previous values
+	prevStats[containerID] = struct {
+		CPUUsage  uint64
+		SystemCPU uint64
+		NetRx     uint64
+		NetTx     uint64
+		Timestamp time.Time
+	}{
+		CPUUsage:  prev.CPUUsage,
+		SystemCPU: prev.SystemCPU,
+		NetRx:     rx,
+		NetTx:     tx,
+		Timestamp: now,
+	}
+
 	return rxRate, txRate
 }
 
@@ -209,6 +185,56 @@ func sumNetTxRaw(stats *PodmanStats) uint64 {
 	var total uint64
 	for _, net := range stats.Networks {
 		total += net.TxBytes
+	}
+	return total
+}
+
+func copyDims(src map[string]string) map[string]string {
+	dst := make(map[string]string, len(src))
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
+}
+func normalizeKey(k string) string {
+	return strings.ReplaceAll(strings.ToLower(k), " ", "_")
+}
+
+func fetchGenericJSON(socketPath, endpoint string, target interface{}) error {
+	client := &http.Client{
+		Transport: &http.Transport{
+			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+				return net.Dial("unix", socketPath)
+			},
+		},
+		Timeout: 5 * time.Second,
+	}
+
+	req, err := http.NewRequest("GET", "http://unix"+endpoint, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return json.NewDecoder(resp.Body).Decode(target)
+}
+
+func sumNetRxRawDocker(stats types.StatsJSON) uint64 {
+	var total uint64
+	for _, iface := range stats.Networks {
+		total += iface.RxBytes
+	}
+	return total
+}
+func sumNetTxRawDocker(stats types.StatsJSON) uint64 {
+	var total uint64
+	for _, iface := range stats.Networks {
+		total += iface.TxBytes
 	}
 	return total
 }
