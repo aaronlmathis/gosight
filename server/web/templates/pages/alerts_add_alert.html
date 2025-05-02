@@ -8,28 +8,56 @@
         <p class="text-sm text-gray-500 dark:text-gray-400">Define a new alert rule for metrics, logs, or events.</p>
     </div>
 
-    <div class="flex flex-col md:flex-row gap-8">
+    <!-- Main Layout: 3 Columns -->
+    <div class="grid grid-cols-4 gap-4 md:">
 
         <!-- Stepper (Left Column) -->
-        <div class="md:w-1/4">
-            <ol id="timeline-stepper" class="relative border-s border-gray-200 dark:border-gray-700 space-y-8">
-                <!-- Steps will be dynamically injected here -->
-            </ol>
+        <aside class="col-span-1 bg-white dark:bg-gray-900 p-4 space-y-6">
+            <div class="space-y-6">
+
+                <ol id="timeline-stepper" class="relative space-y-8">
+                    <!-- Steps injected by JS -->
+                </ol>
+            </div>
+        </aside>
+
+        <!-- Step Content (Middle Column) -->
+        <div class="col-span-2 bg-gray-50 dark:bg-gray-900  p-6">
+            <!-- Progress Bar -->
+            <div class="w-full bg-gray-200 rounded-full h-2.5 mb-6 dark:bg-gray-700">
+                <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 20%"></div>
+            </div>
+
+            <!-- Step Content -->
+            <div id="step-content" class="space-y-6">
+                <!-- Dynamic step form injected by JS -->
+            </div>
         </div>
 
-        <!-- Step Content (Right Column) -->
-        <div id="step-content" class="flex-1">
-            <!-- Dynamic form content loaded here -->
-        </div>
-
+        <!-- Info Box (Right Column) -->
+        <aside class="col-span-1 bg-gray-50 dark:bg-blue-900 text-blue-800 dark:text-blue-100 p-4 text-sm p-6">
+            <strong class="block mb-1">How to define a good alert:</strong>
+            <p>Here is some info on the current step. Maybe add links to a wiki or something her later</p>
+            <ul>
+                <li>Choose a relevant metric and narrow with filters (like hostname or container ID).</li>
+                <li>Use meaningful thresholds and select the right data type (e.g. Percent vs Numeric).</li>
+                <li>Review your scope and condition to avoid noisy alerts.</li>
+            </ul>
+        </aside>
     </div>
 
-    <!-- Buttons -->
-    <div class="flex justify-between mt-8">
-        <button id="prev-btn"
-            class="px-6 py-2 bg-gray-300 hover:bg-gray-400 text-black rounded hidden">Previous</button>
-        <button id="next-btn" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">Next</button>
+    <!-- Navigation Buttons -->
+    <div class="flex justify-between mt-6">
+        <button id="prev-btn" class="px-6 py-2 bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 text-black dark:text-white text-sm font-semibold rounded hidden">
+            ← Previous
+        </button>
+        <button id="next-btn" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded">
+            Next →
+        </button>
     </div>
+</section>
+
+
 
 
 

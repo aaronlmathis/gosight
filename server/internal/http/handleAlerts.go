@@ -91,8 +91,8 @@ func (s *HttpServer) HandleAddAlertRulePage(w http.ResponseWriter, r *http.Reque
 
 	permissions := gosightauth.FlattenPermissions(user.Roles)
 
-	bc := map[string]string{"Alerts": "/alerts", "Add Alert": ""}
-	pageData := s.Tmpl.BuildPageData(user, bc, nil, r.URL.Path, "Add Alert", nil, permissions)
+	bc := map[string]string{"Alerts": "/alerts", "Rule Builder": ""}
+	pageData := s.Tmpl.BuildPageData(user, bc, nil, r.URL.Path, "Rule Builder", nil, permissions)
 
 	err = s.Tmpl.RenderTemplate(w, "layout_dashboard", "alerts_add_alert", pageData)
 

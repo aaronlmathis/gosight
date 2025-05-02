@@ -41,7 +41,7 @@ type MetricIndex struct {
 	MetricNames      map[string]map[string]map[string]struct{} // ns → sub → metric names
 	Dimensions       map[string]map[string]struct{}            // dim key → value set
 	MetricDimensions map[string]map[string]string              // metricFullName → dim key → value
-
+	LabelValues      map[string]map[string]struct{}
 }
 
 func NewMetricIndex() *MetricIndex {
@@ -51,7 +51,7 @@ func NewMetricIndex() *MetricIndex {
 		MetricNames:      make(map[string]map[string]map[string]struct{}),
 		Dimensions:       make(map[string]map[string]struct{}),
 		MetricDimensions: make(map[string]map[string]string), // metricFullName → dim key → value
-
+		LabelValues:      make(map[string]map[string]struct{}),
 	}
 }
 
@@ -85,12 +85,18 @@ func (idx *MetricIndex) Add(namespace, sub, name string, dims map[string]string)
 		}
 		idx.Dimensions[k][v] = struct{}{}
 	}
+	for labelKey, labelValue := range dims {
+		if _, ok := idx.LabelValues[labelKey]; !ok {
+			idx.LabelValues[labelKey] = make(map[string]struct{})
+		}
+		idx.LabelValues[labelKey][labelValue] = struct{}{}
 
+	}
 	if idx.MetricDimensions == nil {
 		idx.MetricDimensions = make(map[string]map[string]string)
 	}
 	idx.MetricDimensions[fullName] = dims
-	//	utils.Debug("🔢 Indexed metric %s with dimensions: %+v", fullName, dims)
+
 }
 
 func (idx *MetricIndex) GetNamespaces() []string {
@@ -179,6 +185,28 @@ func (idx *MetricIndex) GetDimensionsForMetric(fullMetric string) ([]string, err
 	return keys, nil
 }
 
+func (idx *MetricIndex) GetLabelValues(label, contains string) []string {
+	utils.Debug("🔍 Searching for label values for label=%s contains=%s", label, contains)
+	idx.mu.RLock()
+	defer idx.mu.RUnlock()
+
+	values, ok := idx.LabelValues[label]
+	utils.Debug("🔍 Found values for label=%s: %v", label, values)
+	if !ok {
+		return nil
+	}
+
+	out := make([]string, 0, len(values))
+	for v := range values {
+		if contains == "" || strings.Contains(strings.ToLower(v), strings.ToLower(contains)) {
+			out = append(out, v)
+		}
+	}
+
+	sort.Strings(out)
+	return out
+}
+
 // FilterMetricNames returns all metric names that match given label filters
 func (idx *MetricIndex) FilterMetricNames(filters map[string]string) []string {
 	idx.mu.RLock()
@@ -219,4 +247,25 @@ func (idx *MetricIndex) matchesAnyDimension(name string, filters map[string]stri
 		}
 	}
 	return true
+}
+
+// ListLabelValues returns all known values for a given label key (optionally filtered)
+func (idx *MetricIndex) ListLabelValues(key, contains string) []string {
+	idx.mu.RLock()
+	defer idx.mu.RUnlock()
+
+	vals, ok := idx.Dimensions[key]
+	if !ok {
+		return nil
+	}
+
+	out := make([]string, 0, len(vals))
+	for v := range vals {
+		if contains == "" || strings.Contains(strings.ToLower(v), strings.ToLower(contains)) {
+			out = append(out, v)
+		}
+	}
+
+	sort.Strings(out)
+	return out
 }

@@ -128,25 +128,42 @@ async function renderStep() {
 }
 function renderTypeStep(container) {
     container.innerHTML = `
-      <h2 class="text-lg font-semibold mb-4">Alert Type, Name, and Description</h2>
-  
-      <div class="space-y-4">
-        <label class="font-semibold">Alert Type</label>
-        <div class="flex flex-col space-y-2">
-          <label><input type="radio" name="alert-type" value="metric" checked> Metric Alert</label>
-          <label><input type="radio" name="alert-type" value="log"> Log Alert</label>
-          <label><input type="radio" name="alert-type" value="event"> Event Alert</label>
-        </div>
-  
-        <label class="font-semibold mt-4">Alert Name</label>
-        <input id="alert-name-input" type="text" class="border rounded p-2 w-full" placeholder="e.g. High CPU Usage">
-  
-        <label class="font-semibold mt-4">Alert Description</label>
-        <textarea id="alert-description-input" class="border rounded p-2 w-full" placeholder="Short description of this alert..."></textarea>
+    <h2 class="text-lg font-semibold mb-4">Rule Type</h2><div id="scope-fields" class="space-y-4"></div>
+      
+      <div>
+        <label for="alert-name-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alert Name</label>
+        <input id="alert-name-input" type="text" placeholder="e.g. High CPU Usage"
+          class="w-full px-3 py-2 border rounded-md text-sm dark:bg-gray-900 border-gray-300 dark:border-gray-700 placeholder-gray-400 dark:placeholder-gray-500 text-gray-800 dark:text-gray-100" />
       </div>
-    `;
+  
+      <div>
+        <label for="alert-description-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+        <textarea id="alert-description-input" rows="3" placeholder="Short description of this alert..."
+          class="w-full px-3 py-2 border rounded-md text-sm dark:bg-gray-900 border-gray-300 dark:border-gray-700 placeholder-gray-400 dark:placeholder-gray-500 text-gray-800 dark:text-gray-100"></textarea>
+      </div>
+    <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm space-y-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alert Type</label>
+        <div class="space-y-2">
+          <label class="flex items-center gap-2">
+            <input type="radio" name="alert-type" value="metric" class="text-blue-600 focus:ring-blue-500" checked />
+            <span class="text-sm text-gray-800 dark:text-gray-200">Metric Alert</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <input type="radio" name="alert-type" value="log" class="text-blue-600 focus:ring-blue-500" />
+            <span class="text-sm text-gray-800 dark:text-gray-200">Log Alert</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <input type="radio" name="alert-type" value="event" class="text-blue-600 focus:ring-blue-500" />
+            <span class="text-sm text-gray-800 dark:text-gray-200">Event Alert</span>
+          </label>
+        </div>
+      </div>
 
-    // ✨ Wire up Type selection
+    </div>
+  `;
+
+    // Wire up Type selection
     container.querySelectorAll('input[name="alert-type"]').forEach(radio => {
         radio.addEventListener("change", (e) => {
             alertData.type = e.target.value;
@@ -176,23 +193,167 @@ async function renderMetricScopeFields() {
     const fields = document.getElementById("scope-fields");
 
     fields.innerHTML = `
-      <label>Namespace</label>
-      <select id="namespace-select" class="border rounded p-2 w-full"></select>
+      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm space-y-6">
+        <!-- Namespace -->
+        <div>
+          <label for="namespace-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Namespace</label>
+          <select id="namespace-select" class="w-full px-3 py-2 border rounded text-sm dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-200">
+            <option>Loading...</option>
+          </select>
+        </div>
   
-      <label>SubNamespace</label>
-      <select id="subnamespace-select" class="border rounded p-2 w-full" disabled></select>
+        <!-- SubNamespace -->
+        <div>
+          <label for="subnamespace-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">SubNamespace</label>
+          <select id="subnamespace-select" class="w-full px-3 py-2 border rounded text-sm dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-200" disabled>
+            <option>Select Namespace first</option>
+          </select>
+        </div>
   
-      <label>Metric</label>
-      <select id="metric-select" class="border rounded p-2 w-full" disabled></select>
+        <!-- Metric -->
+        <div>
+          <label for="metric-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Metric</label>
+          <select id="metric-select" class="w-full px-3 py-2 border rounded text-sm dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-200" disabled>
+            <option>Select SubNamespace first</option>
+          </select>
+        </div>
   
-      <div id="filters-area" class="mt-6">
-        <h3 class="font-semibold mb-2">Filters (Optional)</h3>
-        <div id="filters-container" class="space-y-2"></div>
+        <!-- Filters -->
+        <div>
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Filters (Optional)</h3>
+            <div id="filter-builder" class="space-y-3"></div>
+            <button type="button" id="add-filter-btn"
+                class="mt-2 text-sm text-blue-600 hover:underline">+ Add Filter</button>
+        </div>
       </div>
     `;
+    document.getElementById("add-filter-btn").addEventListener("click", () => {
+        addFilterRow(); // optionally pass known dimensions
+    });
+
     setupScopeListeners();
     await loadNamespaces();
+}
+const labelCache = new Map(); // key::partial → array of values
 
+function addFilterRow() {
+    const container = document.getElementById("filter-builder");
+    const row = document.createElement("div");
+    row.className = "flex gap-2 items-center";
+
+    row.innerHTML = `
+      <div class="relative w-1/3">
+        <input type="text" placeholder="Key"
+          class="filter-key w-full px-2 py-1 text-sm border rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700"
+          list="dimension-options" />
+      </div>
+      <div class="relative w-1/2">
+        <input type="text" placeholder="Value"
+          class="filter-value w-full px-2 py-1 text-sm border rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
+      </div>
+      <button type="button" class="remove-filter text-red-600 text-sm">✕</button>
+    `;
+
+    container.appendChild(row);
+
+    const keyInput = row.querySelector(".filter-key");
+    const valueInput = row.querySelector(".filter-value");
+
+    // Key auto-suggestions using available dimensions
+    const dimensionKeys = alertData.availableDimensions || [];
+    if (dimensionKeys.length > 0) {
+        const datalistId = "dimension-options";
+        if (!document.getElementById(datalistId)) {
+            const datalist = document.createElement("datalist");
+            datalist.id = datalistId;
+            dimensionKeys.forEach(d => {
+                const opt = document.createElement("option");
+                opt.value = d;
+                datalist.appendChild(opt);
+            });
+            document.body.appendChild(datalist);
+        }
+        keyInput.setAttribute("list", "dimension-options");
+    }
+
+    // 🔁 Fetch and suggest values for the selected key
+    async function suggestValues() {
+        const key = keyInput.value.trim();
+        const partial = valueInput.value.trim();
+        if (!key) return;
+
+        const cacheKey = `${key}::${partial}`;
+        if (labelCache.has(cacheKey)) {
+            const values = labelCache.get(cacheKey);
+            injectValueSuggestions(values, key);
+            return;
+        }
+
+        try {
+            const res = await gosightFetch(
+                `/api/v1/labels/values?key=${encodeURIComponent(key)}&contains=${encodeURIComponent(partial)}&limit=30&sort=asc`
+            );
+            const values = await res.json();
+            labelCache.set(cacheKey, values);
+            injectValueSuggestions(values, key);
+        } catch (err) {
+            console.warn("Failed to fetch label values for key:", key, err);
+        }
+    }
+
+    function injectValueSuggestions(values, key) {
+        const datalistId = `datalist-${key}`;
+        let datalist = document.getElementById(datalistId);
+        if (!datalist) {
+            datalist = document.createElement("datalist");
+            datalist.id = datalistId;
+            document.body.appendChild(datalist);
+        }
+        datalist.innerHTML = values.map(v => `<option value="${v}">`).join("");
+        valueInput.setAttribute("list", datalistId);
+    }
+
+    // 🧠 Debounced input listener
+    const debouncedSuggest = debounce(suggestValues, 200);
+
+    valueInput.addEventListener("input", debouncedSuggest);
+
+    // ⚡ Suggest on focus too (even with empty string)
+    valueInput.addEventListener("focus", () => {
+        debouncedSuggest();
+    });
+
+    // Rebuild alertData.match.labels
+    function rebuildFilterObject() {
+        const rows = document.querySelectorAll("#filter-builder .filter-key");
+        alertData.match.labels = {};
+
+        rows.forEach((keyInput, idx) => {
+            const key = keyInput.value.trim();
+            const value = document.querySelectorAll("#filter-builder .filter-value")[idx].value.trim();
+            if (key && value) {
+                alertData.match.labels[key] = value;
+            }
+        });
+
+        updateStepperVisual();
+    }
+
+    keyInput.addEventListener("input", rebuildFilterObject);
+    valueInput.addEventListener("input", rebuildFilterObject);
+    row.querySelector(".remove-filter").addEventListener("click", () => {
+        container.removeChild(row);
+        rebuildFilterObject();
+    });
+}
+
+// Simple debounce
+function debounce(fn, delay = 250) {
+    let timeout;
+    return (...args) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fn(...args), delay);
+    };
 }
 
 function renderLogEventScopeFields() {
@@ -309,7 +470,7 @@ function renderActionsStep(container) {
       </div>
     `;
 
-    // ✨ Wire up actions input
+    // Wire up actions input
     document.getElementById("actions-input").addEventListener("input", (e) => {
         alertData.actions = e.target.value.split(",").map(a => a.trim()).filter(a => a.length > 0);
     });
@@ -397,7 +558,7 @@ async function submitAlert() {
         });
 
         if (res.ok) {
-            alert("✅ Alert created!");
+            alert("Alert created!");
             window.location.href = "/alerts";
         } else {
             const errorText = await res.text();
@@ -406,37 +567,25 @@ async function submitAlert() {
         }
     } catch (err) {
         console.error("Submit error:", err);
-        alert("❌ Network error submitting alert.");
+        alert("Network error submitting alert.");
     }
 }
 
 async function loadDimensions(namespace, subnamespace, metric) {
-    const container = document.getElementById("filters-container");
+    const container = document.getElementById("filter-builder");
     container.innerHTML = `Loading filters...`;
 
     try {
-
         const res = await gosightFetch(`/api/v1/${namespace}/${subnamespace}/${metric}/dimensions`);
         const dims = await res.json();
 
-        container.innerHTML = dims.map(dim => `
-        <div class="flex items-center space-x-2">
-          <label class="text-sm w-40">${dim}</label>
-          <input data-dim="${dim}" class="border p-1 rounded text-sm flex-1" placeholder="Value for ${dim}">
-        </div>
-      `).join("");
+        alertData.availableDimensions = dims;
+        container.innerHTML = "";  // clear "Loading..." message
 
-        document.querySelectorAll("#filters-container input[data-dim]").forEach(input => {
-            input.addEventListener("input", (e) => {
-                const key = e.target.dataset.dim;
-                const value = e.target.value.trim();
-                if (value) {
-                    alertData.match.labels[key] = value;
-                } else {
-                    delete alertData.match.labels[key];
-                }
-            });
-        });
+        // Only add a new row if no filters exist yet
+        if (container.children.length === 0) {
+            addFilterRow(dims);
+        }
     } catch (err) {
         console.error("Failed to load dimensions:", err);
         container.innerHTML = `<div class="text-red-500 text-sm">(Error loading filters)</div>`;

@@ -119,11 +119,16 @@ func (h *StreamHandler) Stream(stream pb.StreamService_StreamServer) error {
 				if err := h.Sys.Stores.Metrics.Write([]model.MetricPayload{converted}); err != nil {
 					utils.Warn("Failed to enqueue metrics from %s: %v", converted.EndpointID, err)
 				} else {
+
+					// TODO - Need to merge meta + dimensions before sending to metric store, that way it can be done once and sent to both metric index and metric store.
+					// This is a temporary fix.
 					if converted.Meta != nil && converted.Meta.EndpointID != "" {
 						h.Sys.Tele.Meta.Set(converted.Meta.EndpointID, *converted.Meta)
 					}
 					for _, m := range converted.Metrics {
-						h.Sys.Tele.Index.Add(m.Namespace, m.SubNamespace, m.Name, m.Dimensions)
+						merged := MergeDimensionsWithMeta(m.Dimensions, converted.Meta)
+						h.Sys.Tele.Index.Add(m.Namespace, m.SubNamespace, m.Name, merged)
+
 					}
 				}
 			})

@@ -5,8 +5,8 @@
     <div class="flex flex-col flex-1 px-3 py-4 overflow-visible">
         <ul class="space-y-2 text-sm font-normal text-gray-700 dark:text-gray-300">
             <li>
-                <a href="/" data-tooltip="Dashboard"
-                    class="flex items-center p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 relative">
+                <a href="/" data-tooltip="Dashboard" class="sidebar-link flex items-center p-2  hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 relative
+                    {{ if eq .CurrentPath "/" }} active {{ end }}">
                     <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
                         xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
                         viewBox="0 0 24 24">
@@ -15,12 +15,12 @@
                             clip-rule="evenodd" />
                     </svg>
 
-                    <span class="ml-3">Dashboard</span>
+                    <span class="ml-3">Overview</span>
                 </a>
             </li>
             <li>
-                <a href="/endpoints" data-tooltip="Endpoints"
-                    class="flex items-center p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 relative">
+                <a href="/endpoints" data-tooltip="Endpoints" class="sidebar-link flex items-center p-2  hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 relative
+                    {{ if hasPrefix .CurrentPath "/endpoints" }} active {{ end }}">
                     <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
                         xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -31,8 +31,8 @@
                 </a>
             </li>
             <li>
-                <a href="/metrics" data-tooltip="Metrics"
-                    class="flex items-center p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 relative  ">
+                <a href="/metrics" data-tooltip="Metrics" class="sidebar-link  flex items-center p-2  hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 relative  
+                    {{ if hasPrefix .CurrentPath "/metrics" }} active {{ end }}">
                     <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
                         xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
                         viewBox="0 0 24 24">
@@ -46,20 +46,21 @@
                 </a>
             </li>
             <li>
-                <a href="/activity" data-tooltip="Unified Activity Stream"
-                    class="flex items-center p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 relative ">
+                <a href="/activity" data-tooltip="Unified Activity Stream" class="sidebar-link flex items-center p-2  hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 relative 
+                    {{ if hasPrefix .CurrentPath "/events" }} active {{ end }}">
                     <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
                         xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M15 4h3a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3m0 3h6m-3 5h3m-6 0h.01M12 16h3m-6 0h.01M10 3v4h4V3h-4Z" />
                     </svg>
 
-                    <span class="ml-3">Activity Stream</span>
+                    <span class="ml-3">Events</span>
                 </a>
+
             </li>
             <li>
-                <a href="/logs" data-tooltip="Logs"
-                    class="flex items-center p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 relative ">
+                <a href="/logs" data-tooltip="Logs" class="sidebar-link flex items-center p-2  hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 relative
+                    {{ if hasPrefix .CurrentPath "/logs" }} active {{ end }}">
                     <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
                         xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -71,7 +72,7 @@
             </li><!--// 
             <li>
                 <a href="/events" data-tooltip="Events"
-                    class="flex items-center p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 relative ">
+                    class="flex items-center p-2  hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 relative ">
                     <svg class="w-6 h-6 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24"
                         xmlns="http://www.w3.org/2000/svg">
                         <path d="M5 3a2 2 0 00-2 2v1h18V5a2 2 0 00-2-2H5zm16 5H3v11a2 2 0 002 2h14a2 2 0 002-2V8z" />
@@ -80,8 +81,8 @@
                 </a>
             </li>-->
             <li>
-                <a href="/alerts" data-tooltip="Alerts"
-                    class="flex items-center p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 relative ">
+                <a href="/alerts" data-tooltip="Alerts" class="sidebar-link flex items-center p-2  mb-1 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 relative 
+                    {{ if hasPrefix .CurrentPath "/alerts" }} active {{ end }}">
                     <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
                         xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
                         viewBox="0 0 24 24">
@@ -92,25 +93,38 @@
 
                     <span class="ml-3">Alerts</span>
                 </a>
-                {{ if or (eq .CurrentPath "/alerts") (hasPrefix .CurrentPath "/alerts/") }}
-                <ul
-                    class="mt-2 space-y-1 text-sm pl-8 border-l border-gray-200 dark:border-gray-700 ml-10 mt-2 space-y-1 text-sm sidebar-submenu">
-                    <li><a href="/alerts"
-                            class="block px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Active Alerts</a>
+                {{ if hasPrefix .CurrentPath "/alerts" }}
+                <ul class="sidebar-submenu ml-6 mt-1 space-y-1 text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    <li>
+                      <a href="/alerts/rules"
+                         class="submenu-link relative block px-3 py-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-150
+                         {{ if hasPrefix .CurrentPath "/alerts/rules" }} active {{ end }}">
+                         <i class="fas fa-cog text-xs w-3 h-3"></i>
+                         Rule Builder
+                      </a>
                     </li>
-                    <li><a href="/alerts/rules"
-                            class="block px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Rule Builder</a>
+                    <li>
+                      <a href="/alerts/history"
+                         class="submenu-link relative block px-3 py-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-150
+                         {{ if hasPrefix .CurrentPath "/alerts/history" }} active {{ end }}">
+                         <i class="fas fa-history text-xs w-3 h-3"></i>
+                        Alert History
+                      </a>
                     </li>
-                    <li><a href="/alerts/routes"
-                            class="block px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Routes</a></li>
-                    <li><a href="/alerts/actions"
-                            class="block px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Actions</a></li>
-                </ul>
-                {{ end }}
+                    <li>
+                      <a href="/alerts/active"
+                         class="submenu-link relative block px-3 py-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-150
+                         {{ if hasPrefix .CurrentPath "/alerts/active" }} active {{ end }}">
+                         <i class="fas fa-bell text-xs w-3 h-3"></i>
+                        Active Alerts
+                      </a>
+                    </li>
+                  </ul>
+                  {{ end }}
             </li>
             <li>
-                <a href="/reports" data-tooltip="Reports"
-                    class="flex items-center p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 relative ">
+                <a href="/reports" data-tooltip="Reports" class="sidebar-link flex items-center p-2  hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 relative
+                    {{ if hasPrefix .CurrentPath "/reports" }} active {{ end }}">
                     <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
                         xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -122,8 +136,8 @@
 
             </li>
             <li>
-                <a href="/admin" data-tooltip="Admin"
-                    class="flex items-center p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 relative  ">
+                <a href="/admin" data-tooltip="Admin" class="sidebar-link flex items-center p-2  hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 relative  
+                    {{ if hasPrefix .CurrentPath "/admin" }} active {{ end }}">
                     <svg class="w-6 h-6 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20"
                         xmlns="http://www.w3.org/2000/svg">
                         <path fill-rule="evenodd"
@@ -133,31 +147,7 @@
                     <span class="ml-3">Admin</span>
                 </a>
             </li>
-            <li>
-                <button type="button"
-                    class="flex items-center w-full p-2 rounded-lg transition-all duration-200 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
-                    onclick="toggleSubmenu('settings-submenu')">
-                    <svg class="w-6 h-6 text-gray-800 dark:text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span class="ml-3 flex-1 text-left">Settings</span>
-                    <svg class="w-4 h-4 ml-auto transform transition-transform" id="settings-chevron"
-                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
-                <ul id="settings-submenu" class="ml-10 mt-1 space-y-1 hidden">
-                    <li>
-                        <a href="/profile"
-                            class="block p-2 text-sm rounded hover:bg-gray-200 dark:hover:bg-gray-700">Profile</a>
-                    </li>
-                    <li>
-                        <a href="/settings"
-                            class="block p-2 text-sm rounded hover:bg-gray-200 dark:hover:bg-gray-700">Preferences</a>
-                    </li>
-                </ul>
-            </li>
+
         </ul>
     </div>
     <div class="text-gray-500 text-center text-xs mt-6">

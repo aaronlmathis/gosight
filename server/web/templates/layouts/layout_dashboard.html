@@ -6,10 +6,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ .Title }}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <link rel="stylesheet" href="/css/output.css" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.css" rel="stylesheet" />
+    <style>
+        .sidebar-link::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background-color: transparent;
+            transition: background-color 0.2s ease;
+        }
+
+        .sidebar-link:hover::before {
+
+            background-color: #9ca3af;
+
+            /* gray-200 */
+        }
+
+        .sidebar-link.active::before {
+            background-color: #3b82f6;
+            /* blue-500 */
+        }
+
+        .sidebar-link.active:hover::before {
+            background-color: #3b82f6;
+            /* STAY blue on hover */
+        }
+
+        .sidebar-link.active {
+            background-color: #ffffff;
+            /* bg-gray-200 */
+            color: #1f2937;
+            /* text-gray-900 */
+        }
+    </style>
     <style>
         body.sidebar-collapsed #sidebar {
             width: 4rem;
@@ -64,6 +100,45 @@
         body.sidebar-collapsed #sidebar a[data-tooltip]:hover::after {
             opacity: 1;
         }
+    </style>
+    <style>
+        .sidebar-submenu {
+  border-left: 1px solid #e5e7eb; /* gray-200 */
+  margin-left: 1.25rem; /* match icon space */
+  padding-left: 0.75rem;
+}
+        /* Submenu left border and active styling */
+        .submenu-link::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background-color: transparent;
+        transition: background-color 0.2s ease;
+        }
+
+        .submenu-link:hover::before {
+        /* background-color: #cbd5e1; Tailwind slate-300 */
+        }
+
+        .submenu-link.active::before {
+        background-color: #60a5fa; /* Tailwind blue-400 */
+        }
+        .submenu-link:hover {
+            color: #3b82f6;
+        }
+        .submenu-link.active {
+        background-color: #f1f5f9; /* gray-100 */
+        color: #3b82f6; /* slate-800 */
+        }
+
+        /* Hide submenu entirely when collapsed */
+        body.sidebar-collapsed .sidebar-submenu {
+        display: none !important;
+        }
+
     </style>
     <style type="text/css">
         .scrollbar-thin {
@@ -149,15 +224,21 @@
                 <div class="flex-shrink-0">{{ template "partials/breadcrumbs" . }}</div>
                 {{ template "partials/search_bar" . }}
             </div>
-            <div class="pt-6">
+
                 {{/* -- Page content -- */}}
                 {{ block "page-content" . }}{{ end }}
-            </div>
+
         </div>
     </main>
 
 
     <script>
+        // Restore sidebar collapsed state on load
+        if (window.innerWidth >= 1024 && localStorage.getItem("sidebarCollapsed") === "true") {
+            document.body.classList.add("sidebar-collapsed");
+        }
+
+        // Persist collapsed state when toggled
         function toggleSidebar() {
             const sidebar = document.getElementById("sidebar");
             const backdrop = document.getElementById("sidebarBackdrop");
@@ -167,12 +248,10 @@
             if (isMobile) {
                 const isNowHidden = sidebar.classList.toggle("hidden");
                 backdrop.classList.toggle("hidden");
-
-                submenus.forEach(ul => {
-                    ul.style.display = isNowHidden ? "none" : "";
-                });
+                submenus.forEach(ul => ul.style.display = isNowHidden ? "none" : "");
             } else {
-                document.body.classList.toggle("sidebar-collapsed");
+                const collapsed = document.body.classList.toggle("sidebar-collapsed");
+                localStorage.setItem("sidebarCollapsed", collapsed);
             }
         }
 

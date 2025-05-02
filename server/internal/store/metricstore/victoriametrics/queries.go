@@ -413,3 +413,39 @@ func (v *VictoriaStore) FetchDimensionsForMetric(metric string) ([]string, error
 
 	return dims, nil
 }
+
+func (v *VictoriaStore) ListLabelValues(label string, contains string) ([]string, error) {
+	queryURL := fmt.Sprintf("%s/api/v1/label/%s/values", v.url, url.PathEscape(label))
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(queryURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query VictoriaMetrics: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("victoria metrics returned %s", resp.Status)
+	}
+
+	var parsed struct {
+		Status string   `json:"status"`
+		Data   []string `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
+		return nil, err
+	}
+
+	if contains != "" {
+		contains = strings.ToLower(contains)
+		filtered := make([]string, 0, len(parsed.Data))
+		for _, val := range parsed.Data {
+			if strings.Contains(strings.ToLower(val), contains) {
+				filtered = append(filtered, val)
+			}
+		}
+		return filtered, nil
+	}
+
+	return parsed.Data, nil
+}

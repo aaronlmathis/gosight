@@ -147,6 +147,18 @@ func (s *HttpServer) HandleTagValues(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to list tag values", http.StatusInternalServerError)
 		return
 	}
-	utils.JSON(w, http.StatusOK, values)
 
+	// Optional fuzzy filter
+	query := strings.ToLower(r.URL.Query().Get("contains"))
+	if query != "" {
+		filtered := make([]string, 0, len(values))
+		for _, val := range values {
+			if strings.Contains(strings.ToLower(val), query) {
+				filtered = append(filtered, val)
+			}
+		}
+		values = filtered
+	}
+
+	utils.JSON(w, http.StatusOK, values)
 }

@@ -9,7 +9,7 @@ const scopeFilter = document.getElementById("filter-scope");
 const searchInput = document.getElementById("search-input");
 
 let allActivity = [];
-const MAX_ROWS = 500;
+const MAX_ROWS = 100;
 const TIME_WINDOW_MS = 30 * 1000; // 30 seconds
 
 export async function loadActivity() {

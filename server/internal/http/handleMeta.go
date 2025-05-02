@@ -133,6 +133,7 @@ func (s *HttpServer) GetMetricData(w http.ResponseWriter, r *http.Request) {
 
 	utils.JSON(w, http.StatusOK, points)
 }
+
 func (s *HttpServer) GetMetricLatest(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	ns := strings.ToLower(vars["namespace"])

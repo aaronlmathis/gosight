@@ -1,15 +1,15 @@
-# 🤝 Contributing to GoSight
+# Contributing to GoSight
 
 Welcome to GoSight — a secure, modern observability platform for cloud-native systems. Whether you're a backend engineer, frontend designer, or DevOps wizard, we're excited to collaborate with you.
 
 ---
 
-## 📦 Project Overview
+## Project Overview
 
 GoSight is a modular observability tool written in Go. It includes:
 
 - **Agent**: Collects metrics/logs (Go, gRPC, systemd, gopsutil)
-- **Server**: Handles secure metric ingestion, stores data in VictoriaMetrics
+- **Server**: Handles secure metric, log ingestion, stores data in VictoriaMetrics, json, pgsql
 - **UI**: Admin dashboard (Tailwind, Flowbite, Chart.js, Go templates)
 - **Auth**: Local login + SSO + MFA + RBAC
 
@@ -40,7 +40,7 @@ Edit configs here:
 
 ---
 
-## 💡 Contributor Focus Areas
+## Contributor Focus Areas
 
 | Area              | Skills Needed              | Example Tasks                         |
 |-------------------|----------------------------|---------------------------------------|
@@ -52,7 +52,7 @@ Edit configs here:
 
 ---
 
-## 📁 Repo Structure
+## Repo Structure
 
 ```
 gosight/
@@ -64,7 +64,7 @@ gosight/
 
 ---
 
-## 🚀 Getting Involved
+## Getting Involved
 
 1. Fork and clone the repo
 2. Create a branch: `git checkout -b feat/your-feature`
@@ -73,16 +73,12 @@ gosight/
 
 ---
 
-## ✅ Good First Issues
+## See Issues
 
-- [ ] Convert dashboard table filters to Flowbite components
-- [ ] Add `/api/logs` endpoint for log ingestion
-- [ ] Improve structured logging with request trace IDs
-- [ ] Add test fixtures for metrics and logs
-
+[Issues](https://github.com/aaronlmathis/gosight/issues/1)
 ---
 
-## 🧪 Tips for Testing
+## Tips for Testing
 
 ```bash
 # Run agent
@@ -97,7 +93,7 @@ curl 'http://localhost:8428/api/v1/series?match[]=container.cpu.usage'
 
 ---
 
-## 🙏 Thanks
+## Thanks
 We appreciate your interest and contributions to GoSight. Join the mission to build a secure, pluggable, modern observability tool.
 
 > Maintainer: [@aaronlmathis](https://github.com/aaronlmathis)

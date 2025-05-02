@@ -128,7 +128,7 @@ func (s *HttpServer) setupIndexRoutes() {
 func (s *HttpServer) setupAlertsRoutes() {
 	// TODO permissions
 	// Add Alert Rule Page
-	s.Router.Handle("/alerts/add",
+	s.Router.Handle("/alerts/rules",
 		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
 			gosightauth.RequirePermission("gosight:dashboard:view",
 				gosightauth.AccessLogMiddleware(
@@ -241,6 +241,8 @@ func (s *HttpServer) setupAPIRoutes() {
 	api.Handle("/search", secure("gosight:api:search", http.HandlerFunc(s.HandleGlobalSearchAPI))).Methods("GET")
 
 	api.Handle("/command", secure("gosight:api:command:execute", http.HandlerFunc(s.HandleCommandsAPI))).Methods("POST")
+
+	api.Handle("/labels/values", secure("gosight:api:tags:view", http.HandlerFunc(s.HandleLabelValues))).Methods("GET")
 	// Tags
 	// Tag management
 	api.Handle("/tags/keys", secure("gosight:api:tags:view", http.HandlerFunc(s.HandleTagKeys))).Methods("GET")
