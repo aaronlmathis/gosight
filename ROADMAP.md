@@ -1,81 +1,110 @@
-# GoSight Roadmap 
+# GoSight UI Roadmap
 
-Built with Go. Driven by open standards. Aimed at replacing bloatware.
+This document outlines the UI development roadmap for GoSight. It is structured by feature area, with prioritized foundational work listed first.
 
----
+## Foundational UI
 
-## Phase 1: Core Foundations (Complete)
-> _“Build it right, not rushed.”_
+### Alerts
+- [ ] Alert Rule Builder
+  - [ ] Build the alert rule form (expression, scope, level, actions)
+  - [ ] Wire up to API (create, update)
+  - [ ] Validate required fields
+  - [ ] Add success/failure feedback
 
-- [x] Agent/Server gRPC Streaming
-- [x] TLS Encryption, MFA, and SSO (Google, AWS, Azure)
-- [x] Role-Based Access Control (RBAC)
-- [x] VictoriaMetrics backend (scalable time-series DB)
-- [x] Real-time dashboard with tabs, charts, container & host metrics
+- [ ] Alert History Page
+  - [ ] Create table with columns: Rule, Level, Status, FiredAt, ResolvedAt
+  - [ ] Add filters: time range, rule name, endpoint, status
+  - [ ] Paginate results
+  - [ ] Click-to-expand for detail view
 
----
+### Log Explorer
+- [ ] Build table: Timestamp, Level, Message, Source, Endpoint
+- [ ] Add filter inputs: date range, endpoint, level, message content
+- [ ] Pagination and search
+- [ ] Export to CSV and JSON
+- [ ] Backend: `/api/v1/logs` with filters
 
-## Phase 2: Logs + Metrics Fusion
-> _“Correlate the ‘why’ with the ‘when.’”_
+### Admin
+- [ ] IAM Center
+  - [ ] Users page: email, roles, status, MFA
+  - [ ] Roles page: name, description, permissions
+  - [ ] Permissions page: ID, description
+  - [ ] Assign roles to users
+  - [ ] Attach permissions to roles
 
-- [ ] Unified log ingestion (JSON, syslog, journald)
-- [ ] Pluggable log storage (disk/SQLite → Elastic or Loki)
-- [ ] Log query API (filter by time, severity, service)
-- [ ] Logs linked to metrics via `endpoint_id` and timestamp
-- [ ] `/logs` page: live search, filter, export, chart overlays
+- [ ] Audit Log Viewer
+  - [ ] Table with: User, Action, Resource, Timestamp
+  - [ ] Filters by user, action, time range
 
----
-
-## Phase 3: Visual Intelligence
-> _“Make data visible, filterable, and actionable.”_
-
-- [ ] Saved dashboards and queries
-- [ ] Dashboard filters (host, label, metric, etc.)
-- [ ] Multi-host comparisons (e.g. CPU/mem across agents)
-- [ ] Anomaly detection helpers (spikes, gaps)
-- [ ] (Optional) Drag-and-drop dashboard layout
-
----
-
-## Phase 4: Alerts + Actions
-> _“Observability isn’t useful if you’re not notified.”_
-
-- [ ] Threshold alert rules (e.g. `mem.used > 80% for 5m`)
-- [ ] Webhook + email alert delivery
-- [ ] `/alerts` view with dismiss/archive
-- [ ] Chart annotations showing alert triggers
+### General UI Cleanup
+- [ ] Unify color usage with Tailwind
+- [ ] Fix dark mode toggle and contrast
+- [ ] Extract reusable components (cards, tables, etc.)
+- [ ] Clean up unused CSS/JS
 
 ---
 
-## Phase 5: Multi-Tenant + Enterprise Readiness
-> _“Let teams run side by side.”_
+## Advanced UX
 
-- [ ] Organizations / Projects / Scoping
-- [ ] RBAC with resource ownership + audit log
-- [ ] API tokens (scopes, expiration)
-- [ ] User quotas / resource limits
-- [ ] Helm chart or containerized deployment
+### Incidents View
+- [ ] Create `/incidents` page
+- [ ] Show active alerts requiring review/remediation
+- [ ] Detail view with:
+  - [ ] Triggering rule and context
+  - [ ] Timeline (when it started)
+  - [ ] Related logs, metrics, events
+  - [ ] Optional remediation status
 
----
+### Endpoint Container Details
+- [ ] Build `/endpoints/{ctr-id}` view
+- [ ] Render metrics and logs like a host detail page
+- [ ] Include uptime, CPU, memory, status, runtime
 
-## Bonus Phase: Delight & Ecosystem
-> _“You had me at dark mode.”_
-
-- [x] Dark/light theme toggle
-- [ ] CLI / TUI client
-- [ ] WebSocket stream viewer (live payload inspector)
-- [ ] Embedded console / tmux log replay
-- [ ] Plugin/event hook system
-
----
-
-## North Star Goals
-
-- Secure, modular observability stack in Go
-- Simple, self-hosted alternative to Datadog/Splunk
-- Works offline or in air-gapped environments
-- No JVM, no vendor lock-in, no bloat
+### Container Actions Menu
+- [ ] Dropdown for Podman/Docker commands
+- [ ] Actions: restart, stop, inspect, stats
+- [ ] Send to backend securely (command allowlist)
 
 ---
 
-_Contributors welcome — especially for frontend, UX, and visualization!_
+## Global Site Search
+
+- [ ] Implement autosuggest dropdown with categories
+  - [ ] Agents, Containers, Metrics, Logs
+- [ ] Keyboard navigation for dropdown
+- [ ] Search results page with grouped results
+- [ ] Optional: fuzzy search or backend query
+
+---
+
+## Reports Page
+
+- [ ] Build `/reports` interface
+- [ ] Time range selector
+- [ ] Sectioned summaries:
+  - [ ] CPU, Memory, Disk, Network
+  - [ ] Logs and event stats
+- [ ] Export to PDF or printable HTML
+- [ ] Branding support (whitelabel logo/header)
+
+---
+
+## Admin Configuration and Whitelabeling
+
+- [ ] Global Config Editor
+  - [ ] Load current server config (YAML or JSON)
+  - [ ] Editable form or code editor
+  - [ ] Submit config changes via API
+
+- [ ] Whitelabeling
+  - [ ] Upload logo, favicon
+  - [ ] Custom app name and footer text
+  - [ ] Color theme overrides
+
+---
+
+## Notes
+
+- All UI must remain fully responsive and dark mode compatible.
+- Tailwind CSS and Flowbite are used for styling and components.
+- Prefer modular HTML templates and minimal JS for maintainability.
