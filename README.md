@@ -1,7 +1,4 @@
-![Go](https://img.shields.io/badge/built%20with-Go-blue)  
-![License](https://img.shields.io/github/license/aaronlmathis/gosight)  
-![Status](https://img.shields.io/badge/status-in--progress-yellow)  
-
+![Go](https://img.shields.io/badge/built%20with-Go-blue)  ![License](https://img.shields.io/github/license/aaronlmathis/gosight) ![Status](https://img.shields.io/badge/status-in--progress-yellow)  [![Go Report Card](https://goreportcard.com/badge/github.com/aaronlmathis/server)](https://goreportcard.com/report/github.com/aaronlmathis/server) [![Go Report Card](https://goreportcard.com/badge/github.com/aaronlmathis/agent)](https://goreportcard.com/report/github.com/aaronlmathis/agent) 
 # GoSight
 
 GoSight is a high-performance, modular, and vendor-agnostic observability platform written in Go. It includes a lightweight agent for collecting metrics and logs from Windows, macOS, and Linux systems (including Docker and Podman containers), and a server that aggregates, stores, and exposes those metrics securely over gRPC, with TLS/mTLS.
