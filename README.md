@@ -1,105 +1,130 @@
-![Go](https://img.shields.io/badge/built%20with-Go-blue)
-![License](https://img.shields.io/github/license/aaronlmathis/gosight)
-![Status](https://img.shields.io/badge/status-in--progress-yellow)
+![Go](https://img.shields.io/badge/built%20with-Go-blue)  
+![License](https://img.shields.io/github/license/aaronlmathis/gosight)  
+![Status](https://img.shields.io/badge/status-in--progress-yellow)  
+
 # GoSight
 
-GoSight is a high-performance, modular, and vendor-agnostic observability platform written in Go. It includes a lightweight agent for collecting metrics on Windows, macOS, and Linux systems and a server that aggregates, stores, and exposes those metrics securely over gRPC. The agent is designed for minimal overhead and high performance, making it ideal for servers.
+GoSight is a high-performance, modular, and vendor-agnostic observability platform written in Go. It includes a lightweight agent for collecting metrics and logs from Windows, macOS, and Linux systems (including Docker and Podman containers), and a server that aggregates, stores, and exposes those metrics securely over gRPC, with TLS/mTLS.
 
-In addition to system and container metrics, GoSight will support ingesting telemetry from third-party services by:
-- Exposing a flexible HTTP API for external collectors and custom integrations
-- Pulling metrics from cloud provider APIs (e.g. AWS CloudWatch, GCP Monitoring, Azure Monitor)
-- Listening to streaming sources like Amazon Kinesis, Google Pub/Sub, and Azure Event Hubs for real-time telemetry ingestion
-- This extensible model allows GoSight to act as a central observability hub for hybrid environments, whether you're monitoring bare-metal, VMs, containers, serverless workloads, or external systems.
+GoSight supports a full observability pipeline including:
+- System and container metrics (CPU, memory, disk, network, uptime, etc.)
+- Structured and unstructured log collection (journald, flat files, syslog)
+- Cloud-native metrics via extensible integrations (AWS CloudWatch, GCP Monitoring, Azure Monitor)
+- WebSocket-based live streaming of telemetry
+- Advanced alerting, filtering, and incident correlation
+- Remote-safe command dispatch and automation hooks (Ansible runbooks)
+
 ---
+
+## ✨ Core Features
+
+- Robust metric and log collection on Windows, Linux, and macOS  
+- Container observability via Docker and Podman  
+- Secure agent-server communication using TLS/mTLS  
+- Metric storage in VictoriaMetrics with in-memory indexing  
+- Rich API for querying logs and metrics  
+- Dynamic dashboard with tabs, charts, and filters (responsive UI)  
+- **Metric Explorer** for building complex multi-series graphs with filters, grouping, aggregation, and timespan  
+- **Alert Engine** supporting threshold-based and multi-condition rules with cooldowns and repeat intervals  
+- **Action Routes** to send alerts via Webhook, Email, or execute a local Script (configurable routing)  
+- **Incident View** with logs, metrics, and timeline context  
+- Support for **approved command execution** (e.g. podman/docker or scripts) with safety checks
+- Support for executing Ansible Runbooks on endpoints  
+- Full **IAM support**: roles, permissions, SSO, RBAC, session security  
+
+---
+
 > 🚧 **Development Status**
 >
-> GoSight is under active development and **not yet production-ready**... However, many core features are already working:
+> GoSight is under active development and **not yet production-ready**. However, many core features are implemented and functional:
 >
-> - Fully functional agent/server gRPC streaming  
-> - TLS + mutual TLS (mTLS) with certificate auth  
-> - Modular collector system (CPU, memory, disk, network, containers)  
-> - Basic web dashboard (dark mode, metric tabs, container/host table)  
-> - Auth package with SSO / RBAC + granular permissions
-> - Rich metric / Log collection and storage in Time Series and in-memory db
-> - Websocket broadcasting to live dashboard with charts
-> - Powerful api query engine for metrics
+> - Agent/server metric + log streaming via gRPC  
+> - Web dashboard with tabs, charts, and endpoint views  
+> - TLS/mTLS authentication, JWT session handling  
+> - Modular collectors: CPU, memory, disk, net, journald, podman, docker  
+> - Log and metric APIs for filtering and export  
+> - Metric Explorer with multi-series charting  
+> - Alerting system with flexible rule logic and route actions  
+> - Permission-based access control  
 >
-> _Next up: full historical visualization, alerting/notification engine, log filtering/search, and advanced observability workflows for distributed and hybrid systems._
->
-> 🔍 See [Project Status](https://github.com/aaronlmathis/gosight/blob/main/PROJECT_STATUS.md) for detailed progress.
+> See [Project Status](https://github.com/aaronlmathis/gosight/blob/main/PROJECT_STATUS.md) for detailed roadmap.
+
 ---
+
 ## 📚 Table of Contents
-- [Why GoSight?](#-why-gosight)
-- [Components](#-components)
-- [Quick Start (Dev)](#-quick-start-dev)
-- [Contributing](#-contributing)
-- [TLS / mTLS Setup](#-tls--mtls-setup)
-- [Build](#-build)
-- [Screenshots](#overview-page)
-- [License](#-license)
+- [Why GoSight?](#why-gosight)  
+- [Components](#components)  
+- [Quick Start (Dev)](#quick-start-dev)  
+- [Contributing](#contributing)  
+- [TLS / mTLS Setup](#tls--mtls-setup)  
+- [Build](#build)  
+- [Screenshots](#dashboard)  
+- [License](#license)  
 
 ---
 
-## ❓ Why GoSight?
+## Why GoSight?
 
-Observability tools are often bloated, vendor-locked, or lack flexibility for hybrid environments. GoSight aims to be:
+Observability tools are often bloated, vendor-locked, or inflexible. GoSight aims to be:
 
-- 🔓 **Vendor-agnostic** — works with any backend (VictoriaMetrics, InfluxDB, Timescale, etc.)
-- 🧩 **Modular** — easy to extend collectors or plug in new sources
-- 🏎️ **Efficient** — built in Go for minimal footprint and fast performance
-- 🔐 **Secure** — built-in mTLS, RBAC, and session-aware access control
-- 🌐 **Unified** — collect, stream, visualize, and query from a single stack
+- **Vendor-agnostic** — works with any backend (VictoriaMetrics, InfluxDB, Timescale)  
+- **Modular** — pluggable collectors and storage interfaces  
+- **Efficient** — fast Go-based agents with minimal overhead  
+- **Secure** — TLS/mTLS, signed JWTs, and RBAC  
+- **Unified** — logs, metrics, dashboards, and alerts from a single stack  
+
 ---
-## 🧪 Components
+
+## Components
 
 ### Agent
-- Collects system metrics and logs
-- Sends them over gRPC (TLS/mTLS) to the server
-- Configurable via YAML config file, ENV variables, or flags
+- Collects system metrics, container stats, and logs  
+- Sends telemetry via gRPC (TLS/mTLS)  
+- Supports runtime-safe command execution (whitelisted)  
+- Configurable via YAML, env, or flags  
 
 ### Server
-- Accepts incoming metrics / logs
-- Verifies client identity (mTLS)
-- Stores logs in Compressed JSON or VictoriaMetrics, via log store interface (allowing for other storage providers)
-- Stores metrics in VictoriaMetrics, via metric store interface (allowing for other storage providers)
-- Keeps in-memory cache of metric data in Metric Index
-- Exposes metrics and logs via live (webhook)/static dashboards
-- Configurable via YAML config file, ENV variables, or flags
-
----
-## 🤝 Contributing
-
-GoSight is early in its journey, and we’re actively looking for contributors to help shape it into a production-grade observability platform.
-
-We especially welcome help with:
-
-- 🖥️ **Frontend Development**  
-  JavaScript, HTML, CSS, modern frameworks (Vue/React), UX design
-
-- 🔧 **Backend Engineering**  
-  Go, gRPC, Database, Security, observability/monitoring stacks
-
-- 📊 **Data Visualization**  
-  Chart.js, metrics dashboards, log interfaces
-
-- 🧪 **Testing & QA**  
-  Load testing, CI/CD, integration tests
-
-If you're passionate about monitoring, metrics, or building high-performance systems in Go —  
-**open an issue or email**: [aaron@gosight.dev](mailto:aaron@gosight.dev)
-
----
-## 🚀 Quick Start (Dev)
-
-**See:** [CONTRIBUTING.md](https://github.com/aaronlmathis/gosight/blob/main/CONTRIBUTING.md) — full setup instructions and dev environment walkthrough.
-
-Ensure you’ve generated valid certificates before starting. Currently, user and role data is stored in PostgreSQL only. Run it via Docker or install locally — schema is included. Metric storage can be accomplished via Victoria Metrics container/install. 
+- Receives telemetry from agents  
+- Stores metrics (VictoriaMetrics) and logs (compressed JSON or pluggable backend)  
+- Hosts dashboards, WebSocket broadcasters, and API endpoints  
+- Evaluates alert rules and dispatches actions via routes (email, webhook, script)  
+- Exposes query endpoints for metric explorer and log search  
 
 ---
 
-## 🔐 TLS / mTLS Setup
+## Contributing
 
-Certs live in the `/certs` directory. You can regenerate everything using:
+GoSight is early-stage and actively evolving. Contributions are welcome in all areas:
+
+- Frontend: Tailwind UI, Flowbite, Charting (ApexCharts)  
+- Backend: Go, gRPC, Alert evaluation, API design  
+- Infra: Agent packaging, deployment, CI  
+- UX: Log explorer, incident view, global search, whitelabel  
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and task ideas.
+
+---
+
+## Quick Start (Dev)
+
+Clone the repo and run:
+
+```bash
+make dev
+```
+
+This will:
+- Start PostgreSQL and VictoriaMetrics containers  
+- Build and launch the GoSight server and agent  
+- Generate TLS/mTLS certificates in the right location  
+
+Access the dashboard at: `https://localhost:8443`
+
+---
+
+## TLS / mTLS Setup
+
+Certs live under `/certs`. To regenerate:
 
 ```bash
 # Linux/macOS
@@ -109,52 +134,41 @@ Certs live in the `/certs` directory. You can regenerate everything using:
 ./install/generate_certs_with_san.ps1
 ```
 
-Update paths in `config.yaml` files accordingly.
+Update `config.yaml` to match cert paths.
 
 ---
 
-## 📂 Folder Structure (Core)
-
-```
-/agent/         - Agent source code and CLI
-/server/        - Server source code and CLI
-/shared/        - Shared models and proto definitions
-/certs/         - TLS and mTLS certificates
-/install/       - Cert generation scripts
-```
-
----
-
-## 🛠 Build
+## Build
 
 ```bash
 go build -o gosight-agent ./agent/cmd
 go build -o gosight-server ./server/cmd
 ```
+
 ---
-## Dashboard (in current form)
 
-### Gosight Metric Explorer (live data)
-![Gosight Metric Explorer](images/gosight-dev-live-Metric-Explorer.png)
+## Dashboard
 
-### Gosight Home Dashboard (live data / Responsive)
-![GoSight Home Dashboard (live data / Responsive)](images/goSight-dev-live-dashboard-home.png)
-### Endpoint Detail Page (Disk tab / live data)
-![Endpoint Detail PAge (disk tab / live data)](images/goSight-dev-live-data-Disk-Endpoint-Detail-Page.jpeg)
-### Endpoint Detail Page (compute tab / live data)
-![Endpoint Detail Page (compute tab / live data)](images/gosight-endpoint-details-compute-tab-live-data.jpeg)
+### Metric Explorer  
+![Metric Explorer](images/gosight-dev-live-Metric-Explorer.png)
 
-### Endpoints Page (live data)
+### Home Dashboard  
+![Home Dashboard](images/goSight-dev-live-dashboard-home.png)
+
+### Endpoint Details (Disk Tab)  
+![Disk Tab](images/goSight-dev-live-data-Disk-Endpoint-Detail-Page.jpeg)
+
+### Compute Tab  
+![Compute Tab](images/gosight-endpoint-details-compute-tab-live-data.jpeg)
+
+### Endpoint Summary Table  
 ![Endpoints Page](images/gosight-dev-live-data-Endpoints-Page.png)
 
-### Endpoint Detail / Overview Tab (live data)
-![Endpoint Detail / Overview Tab (live data)](images/goSight-dev-live-data-Overview-Page.png)
-
+### Overview Tab  
+![Overview Tab](images/goSight-dev-live-data-Overview-Page.png)
 
 ---
 
-## 📋 License
+## License
 
 GoSight is licensed under the [GPL-3.0-or-later](https://www.gnu.org/licenses/gpl-3.0.html).
-
-
