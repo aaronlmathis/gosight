@@ -29,25 +29,68 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"time"
 
 	agentutils "github.com/aaronlmathis/gosight/agent/internal/utils"
 	"github.com/aaronlmathis/gosight/shared/proto"
 )
 
-// runShellCommand executes a shell command with arguments and returns the result.
+// hardened runShellCommand
 func runShellCommand(ctx context.Context, cmd string, args ...string) *proto.CommandResponse {
-	allowed := map[string]bool{
-		"docker": true, "podman": true, "systemctl": true, "cd": true, "pwd": true, "cp": true, "mv": true, "touch": true,
-		"grep": true, "awk": true, "sed": true, "cat": true, "echo": true, "chmod": true, "chown": true,
-		"ls": true, "uptime": true, "reboot": true, "shutdown": true,
+	var allowed map[string]bool
+	osType := runtime.GOOS
+
+	// Strict allowlists
+	allowedLinux := map[string]bool{
+		"docker": true, "podman": true, "uptime": true, "ls": true, "pwd": true,
+		"cat": true, "echo": true, "cp": true, "mv": true, "grep": true,
 	}
+	allowedWindows := map[string]bool{
+		"docker": true, "podman": true, "Get-Process": true, "Get-Service": true,
+		"Get-ChildItem": true, "Set-Location": true, "Get-Location": true,
+	}
+
+	if osType == "windows" {
+		allowed = allowedWindows
+	} else {
+		allowed = allowedLinux
+	}
+
+	// Disallow unapproved commands
 	if !allowed[cmd] {
 		msg := fmt.Sprintf("command not allowed: %s. Allowed: %v", cmd, agentutils.Keys(allowed))
 		return &proto.CommandResponse{Success: false, ErrorMessage: msg}
 	}
 
-	execCmd := exec.CommandContext(ctx, cmd, args...)
+	// Validate all args for dangerous characters
+	for _, a := range args {
+		if strings.ContainsAny(a, "&|;$><`\\") {
+			return &proto.CommandResponse{Success: false, ErrorMessage: "invalid characters in arguments"}
+		}
+	}
+
+	var execCmd *exec.Cmd
+
+	if osType == "windows" {
+		// Build sanitized command line
+		full := append([]string{cmd}, args...)
+		cmdline := strings.Join(full, " ")
+
+		// Extra check (redundant but safe)
+		if strings.ContainsAny(cmdline, "&|;$><`") {
+			return &proto.CommandResponse{Success: false, ErrorMessage: "unsafe characters in command line"}
+		}
+
+		// Use powershell with -NoProfile -Command
+		execCmd = exec.CommandContext(ctx, "powershell", "-NoProfile", "-Command", cmdline)
+	} else {
+		// Directly run the command on Unix
+		execCmd = exec.CommandContext(ctx, cmd, args...)
+	}
+
+	// Run the command and capture output
 	output, err := execCmd.CombinedOutput()
 
 	success := err == nil
