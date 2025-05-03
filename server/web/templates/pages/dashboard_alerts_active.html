@@ -1,0 +1,57 @@
+{{ define "page-content" }}
+<section class="p-6 space-y-6">
+  <div class="mb-6">
+    <h1 class="text-2xl font-semibold text-gray-800 dark:text-white">Active Alerts</h1>
+    <p class="text-sm text-gray-500 dark:text-gray-400">Unresolved alerts with incident investigation tools.</p>
+  </div>
+
+  <!-- Filters Row -->
+  <div class="flex flex-wrap items-center gap-4 mb-4">
+    <input id="alert-search" type="text" placeholder="Search alerts..."
+      class="text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 w-64" />
+
+    <select id="filter-state"
+      class="text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200">
+      <option value="">All States</option>
+      <option value="ALARM">ALARM</option>
+      <option value="INSUFFICIENT_DATA">INSUFFICIENT_DATA</option>
+    </select>
+
+    <select id="filter-level"
+      class="text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200">
+      <option value="">All Levels</option>
+      <option value="info">Info</option>
+      <option value="warning">Warning</option>
+      <option value="critical">Critical</option>
+    </select>
+
+    <button id="refresh-alerts" class="ml-auto text-blue-600 dark:text-blue-400 hover:underline text-sm">
+      ⟳ Refresh
+    </button>
+  </div>
+
+  <!-- Alerts Table -->
+  <div class="overflow-x-auto rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <table class="min-w-full text-sm text-left bg-white dark:bg-gray-900">
+      <thead class="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+        <tr>
+          <th class="px-4 py-3">Rule</th>
+          <th class="px-4 py-3">State</th>
+          <th class="px-4 py-3">Severity</th>
+          <th class="px-4 py-3">Scope</th>
+          <th class="px-4 py-3">Target</th>
+          <th class="px-4 py-3">Last Triggered</th>
+          <th class="px-4 py-3">Expand</th>
+        </tr>
+      </thead>
+      <tbody id="active-alerts-table" class="divide-y divide-gray-200 dark:divide-gray-700">
+        <!-- Alert rows injected via JS -->
+      </tbody>
+    </table>
+  </div>
+</section>
+{{ end }}
+
+{{ define "page-scripts" }}
+<script type="module" src="/js/alerts_active.js"></script>
+{{ end }}
