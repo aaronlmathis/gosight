@@ -27,6 +27,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+
+	"github.com/aaronlmathis/gosight/shared/model"
 )
 
 type SearchResult struct {
@@ -117,9 +119,11 @@ func (s *HttpServer) HandleGlobalSearchAPI(w http.ResponseWriter, r *http.Reques
 			}
 		}
 	}
-
+	filter := model.LogFilter{
+		Limit: 100,
+	}
 	// === 4. Fetch Logs (recent messages) ===
-	logs, err := s.Sys.Stores.Logs.GetRecentLogs(100) // Fetch last 100 logs
+	logs, err := s.Sys.Stores.Logs.GetRecentLogs(r.Context(), filter) // Fetch last 100 logs
 	if err == nil {
 		for _, log := range logs {
 			if strings.Contains(strings.ToLower(log.Message), term) {

@@ -19,15 +19,13 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// server/internal/http/handleAlertsContextAPI.go
-
-package http
+// File: server/internal/http/handleAlertContextAPI.go
+package httpserver
 
 import (
 	"net/http"
 	"time"
 
-	"github.com/aaronlmathis/gosight/server/internal/sys"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 	"github.com/gorilla/mux"
@@ -39,64 +37,75 @@ type AlertContextResponse struct {
 	Events []model.EventEntry  `json:"events"`
 }
 
-func AlertContextHandler(sys *sys.SystemContext) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		alertID := mux.Vars(r)["id"]
-		windowStr := r.URL.Query().Get("window")
-		if windowStr == "" {
-			windowStr = "30m"
-		}
-		window, err := time.ParseDuration(windowStr)
-		if err != nil {
-			http.Error(w, "invalid window", http.StatusBadRequest)
-			return
-		}
-
-		// Lookup alert instance
-		alert, err := sys.Stores.Alerts.GetByID(r.Context(), alertID)
-		if err != nil {
-			http.Error(w, "alert not found", http.StatusNotFound)
-			return
-		}
-
-		// Calculate time window
-		center := alert.FiredAt
-		start := center.Add(-window)
-		end := center.Add(window)
-
-		// Determine filters
-		var endpointID, target string
-		if alert.EndpointID != "" {
-			endpointID = alert.EndpointID
-		}
-		if alert.Target != "" {
-			target = alert.Target
-		}
-
-		// Fetch logs
-		logs, _ := sys.Stores.Logs.GetRecentLogs(r.Context(), model.LogFilter{
-			Start:      start,
-			End:        end,
-			EndpointID: endpointID,
-			Target:     target,
-			Limit:      1000,
-		})
-
-		// Fetch events
-		events, _ := sys.Stores.Events.GetRecentEvents(r.Context(), model.EventFilter{
-			Start:      start,
-			End:        end,
-			EndpointID: endpointID,
-			Target:     target,
-			Limit:      1000,
-		})
-
-		// Respond
-		resp := AlertContextResponse{
-			Alert:  alert,
-			Logs:   logs,
-			Events: events,
-		}
-		utils.SendJSON(w, resp)
+func (s *HttpServer) HandleAlertContext(w http.ResponseWriter, r *http.Request) {
+	// Extract the alert ID from the URL parameters
+	id := mux.Vars(r)["id"]
+	utils.Debug("Fetching context for alert ID: %s", id)
+	// Retrieve the alert by ID
+	alert, err := s.Sys.Stores.Alerts.GetByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "alert not found", http.StatusNotFound)
+		return
 	}
+
+	// Default window duration is 30 minutes if not provided
+	windowStr := r.URL.Query().Get("window")
+	if windowStr == "" {
+		windowStr = "30m"
+	}
+
+	// Parse the window duration
+	window, err := time.ParseDuration(windowStr)
+	if err != nil {
+		http.Error(w, "invalid time window", http.StatusBadRequest)
+		return
+	}
+
+	// Set the start and end time for the alert context window based on when the alert was fired
+	start := alert.FirstFired.Add(-window) // Start time is 30 minutes before the first fired time
+	end := alert.FirstFired.Add(window)    // End time is 30 minutes after the first fired time
+
+	// Create a log filter based on the alert's context
+	filter := model.LogFilter{
+		Start:      start,
+		End:        end,
+		EndpointID: alert.EndpointID,
+		Target:     alert.Target,
+		Limit:      1000,  // Limit to 1000 logs
+		Order:      "asc", // Order logs in ascending order by timestamp
+	}
+
+	// Fetch logs based on the filter
+	logs, err := s.Sys.Stores.Logs.GetRecentLogs(r.Context(), filter)
+	if err != nil {
+		http.Error(w, "failed to fetch logs", http.StatusInternalServerError)
+		return
+	}
+
+	// Create an event filter based on the alert's context
+	eventFilter := model.EventFilter{
+		Start:      &start,
+		End:        &end,
+		EndpointID: alert.EndpointID,
+		Target:     alert.Target,
+		Limit:      1000,  // Limit to 1000 events
+		SortOrder:  "asc", // Order events in ascending order by timestamp
+	}
+
+	// Fetch events based on the filter
+	events, err := s.Sys.Stores.Events.GetRecentEvents(r.Context(), eventFilter)
+	if err != nil {
+		http.Error(w, "failed to fetch events", http.StatusInternalServerError)
+		return
+	}
+
+	// Build the response structure
+	resp := AlertContextResponse{
+		Alert:  alert,  // Include the alert instance in the response
+		Logs:   logs,   // Include the fetched logs in the response
+		Events: events, // Include the fetched events in the response
+	}
+
+	// Send the response as JSON
+	utils.JSON(w, 200, resp)
 }

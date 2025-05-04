@@ -32,6 +32,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
@@ -48,6 +52,70 @@ func NewPGAlertStore(db *sql.DB) *PGAlertStore {
 	return &PGAlertStore{db: db}
 }
 
+// GetByID retrieves an alert by its ID from the PostgreSQL database.
+// GetByID retrieves an alert instance by ID from the PostgreSQL database.
+// GetByID retrieves an alert by its ID from the PostgreSQL database.
+func (s *PGAlertStore) GetByID(ctx context.Context, id string) (model.AlertInstance, error) {
+	// Ensure ID is not empty
+	if id == "" {
+		return model.AlertInstance{}, errors.New("invalid alert ID")
+	}
+
+	uuidID, err := uuid.Parse(id)
+	if err != nil {
+		return model.AlertInstance{}, fmt.Errorf("invalid UUID format: %v", err)
+	}
+
+	// Define the SQL query to fetch the alert
+	query := `
+		SELECT 
+			id, rule_id, state, previous, scope, target, first_fired, last_fired, 
+			last_ok, last_value, level, message, labels, resolved_at
+		FROM alerts WHERE id = $1::uuid
+	`
+
+	var alert model.AlertInstance
+	var resolvedAt sql.NullTime
+	var labelsBytes []byte
+
+	// Query the database using QueryRowContext for a single result
+	err = s.db.QueryRowContext(ctx, query, uuidID).Scan(
+		&alert.ID,
+		&alert.RuleID,
+		&alert.State,
+		&alert.Previous,
+		&alert.Scope,
+		&alert.Target,
+		&alert.FirstFired,
+		&alert.LastFired,
+		&alert.LastOK,
+		&alert.LastValue,
+		&alert.Level,
+		&alert.Message,
+		&labelsBytes,
+		&resolvedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return model.AlertInstance{}, fmt.Errorf("alert with ID %s not found", id)
+		}
+		return model.AlertInstance{}, fmt.Errorf("failed to retrieve alert: %v", err)
+	}
+
+	// Unmarshal the labels if they exist
+	if len(labelsBytes) > 0 {
+		if err := json.Unmarshal(labelsBytes, &alert.Labels); err != nil {
+			return model.AlertInstance{}, fmt.Errorf("failed to unmarshal labels: %v", err)
+		}
+	}
+
+	// Set resolved_at if the field is not null
+	if resolvedAt.Valid {
+		alert.ResolvedAt = &resolvedAt.Time
+	}
+
+	return alert, nil
+}
 func (s *PGAlertStore) ListAlerts(ctx context.Context) ([]model.AlertInstance, error) {
 	query := `
         SELECT 
@@ -226,4 +294,121 @@ func scanAlerts(rows *sql.Rows) ([]model.AlertInstance, error) {
 		out = append(out, a)
 	}
 	return out, rows.Err()
+}
+
+func (s *PGAlertStore) ListAlertsFiltered(ctx context.Context, q model.AlertQuery) ([]model.AlertInstance, error) {
+	where := []string{}
+	args := []interface{}{}
+	argIdx := 1
+
+	if q.RuleID != "" {
+		where = append(where, "rule_id = $"+strconv.Itoa(argIdx))
+		args = append(args, q.RuleID)
+		argIdx++
+	}
+	if q.State != "" {
+		where = append(where, "state = $"+strconv.Itoa(argIdx))
+		args = append(args, q.State)
+		argIdx++
+	}
+	if q.Level != "" {
+		where = append(where, "level = $"+strconv.Itoa(argIdx))
+		args = append(args, q.Level)
+		argIdx++
+	}
+	if q.Target != "" {
+		where = append(where, "target = $"+strconv.Itoa(argIdx))
+		args = append(args, q.Target)
+		argIdx++
+	}
+	if q.Scope != "" {
+		where = append(where, "scope = $"+strconv.Itoa(argIdx))
+		args = append(args, q.Scope)
+		argIdx++
+	}
+	for k, v := range q.Tags {
+		where = append(where, "labels->>$"+strconv.Itoa(argIdx)+" = $"+strconv.Itoa(argIdx+1))
+		args = append(args, k, v)
+		argIdx += 2
+	}
+	query := `
+        SELECT id, rule_id, state, previous, scope, target, first_fired, last_fired,
+               last_ok, resolved_at, last_value, level, message, labels
+        FROM alerts
+    `
+
+	if len(where) > 0 {
+		query += " WHERE " + strings.Join(where, " AND ")
+	}
+
+	// Sorting
+	sortField := "last_fired"
+	if q.Sort != "" {
+		switch q.Sort {
+		case "first_fired", "last_fired", "last_ok", "rule_id", "target", "state", "level":
+			sortField = q.Sort
+		}
+	}
+	order := "DESC"
+	if strings.ToLower(q.Order) == "asc" {
+		order = "ASC"
+	}
+	query += " ORDER BY " + sortField + " " + order
+
+	// Pagination
+	if q.Limit > 0 {
+		query += fmt.Sprintf(" LIMIT %d", q.Limit)
+	}
+	if q.Offset > 0 {
+		query += fmt.Sprintf(" OFFSET %d", q.Offset)
+	}
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanAlerts(rows)
+}
+
+func (s *PGAlertStore) CountAlertsFiltered(ctx context.Context, q model.AlertQuery) (int, error) {
+	where := []string{}
+	args := []interface{}{}
+	argIdx := 1
+
+	if q.RuleID != "" {
+		where = append(where, "rule_id = $"+strconv.Itoa(argIdx))
+		args = append(args, q.RuleID)
+		argIdx++
+	}
+	if q.State != "" {
+		where = append(where, "state = $"+strconv.Itoa(argIdx))
+		args = append(args, q.State)
+		argIdx++
+	}
+	if q.Level != "" {
+		where = append(where, "level = $"+strconv.Itoa(argIdx))
+		args = append(args, q.Level)
+		argIdx++
+	}
+	if q.Target != "" {
+		where = append(where, "target = $"+strconv.Itoa(argIdx))
+		args = append(args, q.Target)
+		argIdx++
+	}
+	if q.Scope != "" {
+		where = append(where, "scope = $"+strconv.Itoa(argIdx))
+		args = append(args, q.Scope)
+		argIdx++
+	}
+
+	query := `SELECT COUNT(*) FROM alerts`
+	if len(where) > 0 {
+		query += " WHERE " + strings.Join(where, " AND ")
+	}
+
+	var count int
+	err := s.db.QueryRowContext(ctx, query, args...).Scan(&count)
+	return count, err
 }

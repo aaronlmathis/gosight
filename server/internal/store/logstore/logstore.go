@@ -33,6 +33,5 @@ import (
 type LogStore interface {
 	Write(metrics []model.LogPayload, streamContext context.Context) error
 	Close() error
-
-	GetRecentLogs(limit int) ([]model.LogEntry, error)
+	GetRecentLogs(ctx context.Context, filter model.LogFilter) ([]model.LogEntry, error)
 }

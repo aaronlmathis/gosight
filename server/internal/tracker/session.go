@@ -47,7 +47,7 @@ func (t *EndpointTracker) RegisterAgentSession(agentID string, client proto.Stre
 	t.sessions[agentID] = session
 	t.mu.Unlock()
 
-	utils.Info("Registered agent session: %s", agentID)
+	//utils.Info("Registered agent session: %s", agentID)
 
 	// Start dedicated send loop
 	go func() {
@@ -61,7 +61,7 @@ func (t *EndpointTracker) RegisterAgentSession(agentID string, client proto.Stre
 				t.mu.Unlock()
 				return
 			}
-			utils.Debug("StreamResponse sent to %s", agentID)
+			//utils.Debug("StreamResponse sent to %s", agentID)
 		}
 	}()
 }
@@ -71,7 +71,7 @@ func (t *EndpointTracker) GetAgentSession(agentID string) (*LiveAgentSession, bo
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	sess, ok := t.sessions[agentID]
-	utils.Debug("GetAgentSession: %v", t.sessions)
+	//utils.Debug("GetAgentSession: %v", t.sessions)
 	return sess, ok
 }
 

@@ -320,3 +320,37 @@ CREATE TABLE tags (
 );
 
 CREATE INDEX idx_tags_endpoint_id ON tags(endpoint_id);
+
+
+CREATE TABLE process_snapshots (
+    id SERIAL PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    host_id TEXT NOT NULL,
+    hostname TEXT,
+    endpoint_id TEXT NOT NULL,
+    timestamp TIMESTAMPTZ NOT NULL,
+    meta JSONB,
+    UNIQUE(endpoint_id, timestamp)  -- Prevent duplicate snapshots
+);
+
+CREATE TABLE process_info (
+    id SERIAL PRIMARY KEY,
+    snapshot_id INT NOT NULL REFERENCES process_snapshots(id) ON DELETE CASCADE,
+    pid INT,
+    ppid INT,
+    username TEXT,
+    exe TEXT,
+    cmdline TEXT,
+    cpu_percent FLOAT,
+    mem_percent FLOAT,
+    threads INT,
+    start_time TIMESTAMPTZ,
+    tags JSONB,
+    timestamp TIMESTAMPTZ NOT NULL,  -- Redundant for indexing
+    endpoint_id TEXT NOT NULL        -- Redundant for filtering
+);
+
+-- Helpful indexes
+CREATE INDEX idx_procinfo_pid_time ON process_info (pid, timestamp);
+CREATE INDEX idx_procinfo_endpoint_time ON process_info (endpoint_id, timestamp);
+CREATE INDEX idx_snapshot_endpoint_time ON process_snapshots (endpoint_id, timestamp);

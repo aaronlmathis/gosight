@@ -126,6 +126,27 @@ func (s *HttpServer) setupIndexRoutes() {
 // setupMetricAlertsRoutes sets up the  alerts routes for the HTTP server.
 // This includes the alerts page as well as the rule builder page.
 func (s *HttpServer) setupAlertsRoutes() {
+
+	s.Router.Handle("/alerts/active",
+		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
+			gosightauth.RequirePermission("gosight:dashboard:view",
+				gosightauth.AccessLogMiddleware(
+					http.HandlerFunc(s.HandleAlertsActivePage),
+				),
+				s.Sys.Stores.Users,
+			),
+		),
+	)
+	s.Router.Handle("/alerts/history",
+		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
+			gosightauth.RequirePermission("gosight:dashboard:view",
+				gosightauth.AccessLogMiddleware(
+					http.HandlerFunc(s.HandleAlertsHistoryPage),
+				),
+				s.Sys.Stores.Users,
+			),
+		),
+	)
 	// TODO permissions
 	// Add Alert Rule Page
 	s.Router.Handle("/alerts/rules",
@@ -269,6 +290,7 @@ func (s *HttpServer) setupAPIRoutes() {
 	api.Handle("/alerts/rules", secure("gosight:api:events:view", http.HandlerFunc(s.HandleAlertRulesAPI))).Methods("GET")
 	api.Handle("/alerts/active", secure("gosight:api:events:view", http.HandlerFunc(s.HandleActiveAlertsAPI))).Methods("GET")
 	api.Handle("/alerts", secure("gosight:api:events:view", http.HandlerFunc(s.HandleAlertsAPI))).Methods("GET")
+	api.Handle("/alerts/{id}/context", secure("gosight:api:events:view", http.HandlerFunc(s.HandleAlertContext))).Methods("GET")
 
 	// Metrics and queries
 	api.Handle("/query", secure("gosight:api:metrics:query", http.HandlerFunc(s.HandleAPIQuery))).Methods("GET")
@@ -292,4 +314,5 @@ func (s *HttpServer) setupWebSocketRoutes() {
 	s.Router.HandleFunc("/ws/events", s.Sys.WSHub.Events.ServeWS)
 	s.Router.HandleFunc("/ws/logs", s.Sys.WSHub.Logs.ServeWS)
 	s.Router.HandleFunc("/ws/command", s.Sys.WSHub.Commands.ServeWS)
+	s.Router.HandleFunc("/ws/process", s.Sys.WSHub.Processes.ServeWS)
 }

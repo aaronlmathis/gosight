@@ -38,5 +38,5 @@ import (
 
 type EventStore interface {
 	AddEvent(ctx context.Context, e model.EventEntry) error
-	QueryEvents(filter model.EventFilter) ([]model.EventEntry, error)
+	GetRecentEvents(ctx context.Context, filter model.EventFilter) ([]model.EventEntry, error)
 }

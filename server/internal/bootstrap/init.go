@@ -28,6 +28,7 @@ import (
 	"fmt"
 
 	"github.com/aaronlmathis/gosight/server/internal/alerts"
+	"github.com/aaronlmathis/gosight/server/internal/cache"
 	"github.com/aaronlmathis/gosight/server/internal/dispatcher"
 	"github.com/aaronlmathis/gosight/server/internal/events"
 	"github.com/aaronlmathis/gosight/server/internal/rules"
@@ -123,6 +124,9 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 	tracker := InitTracker(ctx, dataStore, emitter)
 	utils.Must("Agent tracker", err)
 
+	// Initialize cache
+	cache := cache.NewCache() // TODO : perhaps load maxsize, ttl etc from config?
+
 	// Build stores
 	stores := sys.NewStoreModule(
 		metricStore,
@@ -156,6 +160,7 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 		authProviders,
 		stores,
 		telemetry,
+		cache,
 	)
 
 	return sys, nil

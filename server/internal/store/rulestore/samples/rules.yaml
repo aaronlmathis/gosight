@@ -1,20 +1,20 @@
 - id: "cpu_high_prod"
   name: "High CPU Usage - Production"
-  enabled: false
+  enabled: true
   type: metric
   match:
     endpoint_ids: []
     labels:
-      Department: "Engineering"
+
   scope:
     namespace: system
     subnamespace: cpu
     metric: usage_percent
   expression:
     operator: ">"
-    value: 15
+    value: 75
     datatype: percent
-  level: warning
+  level: critical
   actions:
     - notify-local
   options:

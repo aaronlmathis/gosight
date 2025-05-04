@@ -26,7 +26,10 @@ package httpserver
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
@@ -37,20 +40,51 @@ import (
 // It retrieves all alerts from the database and returns them as JSON.
 
 func (s *HttpServer) HandleAlertsAPI(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	query := r.URL.Query()
 
-	alerts, err := s.Sys.Stores.Alerts.ListAlerts(r.Context())
+	limit := utils.ParseIntOrDefault(query.Get("limit"), 100)
+	page := utils.ParseIntOrDefault(query.Get("page"), 1)
+
+	alertQuery := model.AlertQuery{
+		RuleID: strings.TrimSpace(query.Get("rule_id")),
+		State:  strings.TrimSpace(query.Get("state")),
+		Level:  strings.TrimSpace(query.Get("level")),
+		Target: strings.TrimSpace(query.Get("target")),
+		Scope:  strings.TrimSpace(query.Get("scope")),
+		Sort:   strings.TrimSpace(query.Get("sort")),
+		Order:  strings.TrimSpace(query.Get("order")),
+		Limit:  limit,
+		Offset: (page - 1) * limit,
+	}
+
+	// Total count
+	total, err := s.Sys.Stores.Alerts.CountAlertsFiltered(ctx, alertQuery)
 	if err != nil {
-		http.Error(w, "failed to load alerts", http.StatusInternalServerError)
+		http.Error(w, "failed to count alerts", http.StatusInternalServerError)
 		return
 	}
 
-	if alerts == nil {
-		alerts = []model.AlertInstance{}
+	// Filtered + paged alerts
+	alerts, err := s.Sys.Stores.Alerts.ListAlertsFiltered(ctx, alertQuery)
+	if err != nil {
+		http.Error(w, "failed to query alerts", http.StatusInternalServerError)
+		return
 	}
 
+	tags := make(map[string]string)
+	for _, raw := range query["tag"] {
+		parts := strings.SplitN(raw, ":", 2)
+		if len(parts) == 2 {
+			tags[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+		}
+	}
+	alertQuery.Tags = tags
+
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Total-Count", strconv.Itoa(total))
 	if err := json.NewEncoder(w).Encode(alerts); err != nil {
-		http.Error(w, "failed to encode alerts", http.StatusInternalServerError)
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 		return
 	}
 }
@@ -165,4 +199,53 @@ func (s *HttpServer) HandleCreateAlertRuleAPI(w http.ResponseWriter, r *http.Req
 		"status": "ok",
 		"id":     rule.ID,
 	})
+}
+
+func SortBy(alerts *[]model.AlertInstance, field, order string) {
+	slice := *alerts
+	field = strings.ToLower(strings.TrimSpace(field))
+	order = strings.ToLower(strings.TrimSpace(order))
+
+	less := func(i, j int) bool { return true }
+
+	switch field {
+	case "first_fired":
+		less = func(i, j int) bool { return slice[i].FirstFired.Before(slice[j].FirstFired) }
+	case "last_ok":
+		less = func(i, j int) bool { return slice[i].LastOK.Before(slice[j].LastOK) }
+	case "rule_id":
+		less = func(i, j int) bool { return slice[i].RuleID < slice[j].RuleID }
+	case "target":
+		less = func(i, j int) bool { return slice[i].Target < slice[j].Target }
+	case "scope":
+		less = func(i, j int) bool { return slice[i].Scope < slice[j].Scope }
+	case "state":
+		less = func(i, j int) bool { return slice[i].State < slice[j].State }
+	case "level":
+		less = func(i, j int) bool { return slice[i].Level < slice[j].Level }
+	case "last_fired":
+		less = func(i, j int) bool {
+			var t1, t2 time.Time
+			if !slice[i].LastFired.IsZero() {
+				t1 = slice[i].LastFired
+			} else {
+				t1 = slice[i].FirstFired
+			}
+			if !slice[j].LastFired.IsZero() {
+				t2 = slice[j].LastFired
+			} else {
+				t2 = slice[j].FirstFired
+			}
+			return t1.Before(t2)
+		}
+	default:
+		// no-op; leave existing order
+		return
+	}
+
+	if order == "desc" {
+		sort.SliceStable(slice, func(i, j int) bool { return !less(i, j) })
+	} else {
+		sort.SliceStable(slice, less)
+	}
 }

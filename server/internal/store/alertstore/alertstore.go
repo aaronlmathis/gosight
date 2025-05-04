@@ -40,4 +40,7 @@ type AlertStore interface {
 	ListAlerts(ctx context.Context) ([]model.AlertInstance, error)
 	ListActiveAlerts(ctx context.Context) ([]model.AlertInstance, error)
 	ListAlertHistory(ctx context.Context, since time.Time) ([]model.AlertInstance, error)
+	ListAlertsFiltered(ctx context.Context, q model.AlertQuery) ([]model.AlertInstance, error)
+	CountAlertsFiltered(ctx context.Context, q model.AlertQuery) (int, error)
+	GetByID(ctx context.Context, id string) (model.AlertInstance, error)
 }

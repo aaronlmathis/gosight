@@ -31,6 +31,7 @@ import (
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
+// HandleAlertsHistoryPage handles the page for viewing configured alerts at /alerts
 func (s *HttpServer) HandleAlertsPage(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
@@ -59,6 +60,79 @@ func (s *HttpServer) HandleAlertsPage(w http.ResponseWriter, r *http.Request) {
 
 	pageData := s.Tmpl.BuildPageData(user, bc, nil, r.URL.Path, "Alerts", nil, permissions)
 	err = s.Tmpl.RenderTemplate(w, "layout_dashboard", "dashboard_alerts", pageData)
+
+	if err != nil {
+		http.Error(w, "template error", 500)
+	}
+
+}
+
+// HandleAlertsHistoryPage handles the page for viewing active alerts and their alert context at /alerts/active
+
+func (s *HttpServer) HandleAlertsActivePage(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	if forbidden, ok := ctx.Value("forbidden").(bool); ok && forbidden {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	userID, ok := contextutil.GetUserID(ctx)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	user, err := s.Sys.Stores.Users.GetUserWithPermissions(ctx, userID)
+	if err != nil {
+		utils.Error("Failed to load user %s: %v", userID, err)
+		http.Error(w, "failed to load user", http.StatusInternalServerError)
+		return
+	}
+
+	permissions := gosightauth.FlattenPermissions(user.Roles)
+
+	bc := map[string]string{"Alerts": "/alerts", "Active Alerts": ""}
+
+	pageData := s.Tmpl.BuildPageData(user, bc, nil, r.URL.Path, "Active Alerts", nil, permissions)
+	err = s.Tmpl.RenderTemplate(w, "layout_dashboard", "dashboard_alerts_active", pageData)
+
+	if err != nil {
+		http.Error(w, "template error", 500)
+	}
+
+}
+
+// HandleAlertsHistoryPage handles the page for viewing alert history at /alerts/history
+func (s *HttpServer) HandleAlertsHistoryPage(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	if forbidden, ok := ctx.Value("forbidden").(bool); ok && forbidden {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	userID, ok := contextutil.GetUserID(ctx)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	user, err := s.Sys.Stores.Users.GetUserWithPermissions(ctx, userID)
+	if err != nil {
+		utils.Error("Failed to load user %s: %v", userID, err)
+		http.Error(w, "failed to load user", http.StatusInternalServerError)
+		return
+	}
+
+	permissions := gosightauth.FlattenPermissions(user.Roles)
+
+	bc := map[string]string{"Alerts": "/alerts", "Alert History": ""}
+
+	pageData := s.Tmpl.BuildPageData(user, bc, nil, r.URL.Path, "Alerts History", nil, permissions)
+	err = s.Tmpl.RenderTemplate(w, "layout_dashboard", "dashboard_alerts_history", pageData)
 
 	if err != nil {
 		http.Error(w, "template error", 500)

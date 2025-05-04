@@ -27,7 +27,6 @@ package httpserver
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -36,22 +35,6 @@ import (
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
-
-// LogQueryParams represents the parameters for querying logs.
-// It includes the limit of logs to return, the log levels to filter by,
-// the unit of the logs, the source of the logs, a string to search for in the logs,
-// and the start and end times for the logs.
-
-type LogQueryParams struct {
-	EndpointID string          `json:"endpointID"`
-	Levels     map[string]bool `json:"levels"`
-	Start      *time.Time      `json:"start"`
-	End        *time.Time      `json:"end"`
-	Keyword    string          `json:"keyword"`
-	Source     string          `json:"source"`
-	Unit       string          `json:"unit"`
-	Limit      int             `json:"limit"`
-}
 
 // HandleRecentLogs handles the HTTP request for recent logs.
 // It retrieves the logs from the log store, applies any filters specified
@@ -63,7 +46,6 @@ type LogQueryParams struct {
 
 func (s *HttpServer) HandleRecentLogs(w http.ResponseWriter, r *http.Request) {
 	limit := 100
-
 	if l := r.URL.Query().Get("limit"); l != "" {
 		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
 			if parsed > 1000 {
@@ -73,7 +55,12 @@ func (s *HttpServer) HandleRecentLogs(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	logs, err := s.Sys.Stores.Logs.GetRecentLogs(limit)
+	filter := model.LogFilter{
+		Limit: limit,
+		Order: "desc",
+	}
+
+	logs, err := s.Sys.Stores.Logs.GetRecentLogs(r.Context(), filter)
 	if err != nil {
 		utils.Error("Failed to load logs: %v", err)
 		http.Error(w, "failed to load logs", http.StatusInternalServerError)
@@ -82,7 +69,6 @@ func (s *HttpServer) HandleRecentLogs(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(logs)
-
 }
 
 // HandleLogAPI handles the HTTP request for the log API.
@@ -98,52 +84,17 @@ func (s *HttpServer) HandleRecentLogs(w http.ResponseWriter, r *http.Request) {
 // appropriate HTTP status codes and messages.
 
 func (s *HttpServer) HandleLogAPI(w http.ResponseWriter, r *http.Request) {
-	params := parseLogQueryParams(r)
+	filter := parseLogFilterFromQuery(r)
 
-	all, err := s.Sys.Stores.Logs.GetRecentLogs(1000) // load enough to filter
+	logs, err := s.Sys.Stores.Logs.GetRecentLogs(r.Context(), filter)
 	if err != nil {
-		http.Error(w, "failed to load logs", http.StatusInternalServerError)
+		utils.Error("log query failed: %v", err)
+		http.Error(w, "log query failed", http.StatusInternalServerError)
 		return
 	}
 
-	var filtered []model.LogEntry
-	for _, log := range all {
-
-		if params.EndpointID != "" && strings.ToLower(log.Tags["endpoint_id"]) != params.EndpointID {
-			continue
-		}
-		if len(filtered) >= params.Limit {
-			break
-		}
-		if log.Source == "podman" {
-			continue
-		}
-		if len(params.Levels) > 0 && !params.Levels[strings.ToLower(log.Level)] {
-			continue
-		}
-		if params.Unit != "" && log.Category != params.Unit {
-			continue
-		}
-		if params.Source != "" && log.Source != params.Source {
-			continue
-		}
-		fmt.Println("Parsed Start:", params.Start, "Parsed End:", params.End)
-		if params.Start != nil && log.Timestamp.Before(*params.Start) {
-			continue
-		}
-		if params.End != nil && !log.Timestamp.Before(*params.End) {
-			continue // Exclude logs at or after the End time
-		}
-
-		if params.Keyword != "" && !matchesSearch(log, params.Keyword) {
-			continue
-		}
-
-		filtered = append(filtered, log)
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(filtered)
+	_ = json.NewEncoder(w).Encode(logs)
 }
 
 // parseLogQueryParams parses the query parameters from the HTTP request
@@ -154,8 +105,9 @@ func (s *HttpServer) HandleLogAPI(w http.ResponseWriter, r *http.Request) {
 // If a parameter is not provided or invalid, it is ignored.
 // The function also trims whitespace and converts levels to lowercase.
 
-func parseLogQueryParams(r *http.Request) LogQueryParams {
+func parseLogFilterFromQuery(r *http.Request) model.LogFilter {
 	q := r.URL.Query()
+
 	limit := 100
 	if l, err := strconv.Atoi(q.Get("limit")); err == nil && l > 0 {
 		if l > 1000 {
@@ -165,36 +117,32 @@ func parseLogQueryParams(r *http.Request) LogQueryParams {
 		}
 	}
 
-	levels := make(map[string]bool)
-	for _, lvl := range strings.Split(q.Get("level"), ",") {
-		if lvl != "" {
-			levels[strings.ToLower(strings.TrimSpace(lvl))] = true
-		}
-	}
+	start := parseTime(q.Get("start"))
+	end := parseTime(q.Get("end"))
 
-	var start, end *time.Time
-	const layout = "2006-01-02T15:04:05" // no timezone
-
-	if s := q.Get("start"); s != "" {
-		if t, err := time.Parse(layout, s); err == nil {
-			start = &t
-		}
-	}
-	if s := q.Get("end"); s != "" {
-		if t, err := time.Parse(layout, s); err == nil {
-			end = &t
-		}
-	}
-	return LogQueryParams{
-		EndpointID: q.Get("endpointID"),
-		Limit:      limit,
-		Levels:     levels,
-		Unit:       q.Get("unit"),
-		Source:     q.Get("source"),
-		Keyword:    q.Get("keyword"),
+	return model.LogFilter{
 		Start:      start,
 		End:        end,
+		EndpointID: q.Get("endpointID"),
+		Target:     q.Get("target"),
+		Level:      strings.ToLower(strings.TrimSpace(q.Get("level"))),
+		Category:   q.Get("unit"),
+		Source:     q.Get("source"),
+		Contains:   q.Get("keyword"),
+		Limit:      limit,
+		Order:      "desc",
 	}
+}
+
+func parseTime(s string) time.Time {
+	if s == "" {
+		return time.Time{}
+	}
+	t, err := time.Parse("2006-01-02T15:04:05", s)
+	if err != nil {
+		return time.Time{}
+	}
+	return t
 }
 
 // matchesSearch checks if a log entry matches the search keyword.

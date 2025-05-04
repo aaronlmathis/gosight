@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 // HandleEventsAPI handles api calls to /api/events.
@@ -28,6 +29,7 @@ import (
 
 func (s *HttpServer) HandleEventsAPI(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
+	utils.Debug("Received request for events API with query: %s", q.Encode())
 
 	filter := model.EventFilter{}
 
@@ -79,10 +81,11 @@ func (s *HttpServer) HandleEventsAPI(w http.ResponseWriter, r *http.Request) {
 	if v := q.Get("sort"); v != "" {
 		filter.SortOrder = v
 	}
-
-	results, err := s.Sys.Stores.Events.QueryEvents(filter)
+	utils.Debug("Calling GetRecentEvents with filter: %+v", filter)
+	results, err := s.Sys.Stores.Events.GetRecentEvents(r.Context(), filter)
 	if err != nil {
 		http.Error(w, "Failed to query events", http.StatusInternalServerError)
+		utils.Error("Error querying events: %v", err)
 		return
 	}
 	if filter.SortOrder == "asc" {

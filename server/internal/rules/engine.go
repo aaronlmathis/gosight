@@ -74,7 +74,7 @@ func (e *Evaluator) EvaluateMetric(ctx context.Context, metrics []model.Metric, 
 	}
 
 	for _, rule := range activeRules {
-		utils.Debug("Evaluating rule: %s", rule.ID)
+
 		if !rule.Enabled {
 			continue
 		}
@@ -82,29 +82,26 @@ func (e *Evaluator) EvaluateMetric(ctx context.Context, metrics []model.Metric, 
 		if rule.Type != "metric" {
 			continue
 		}
-		utils.Debug("Before label check")
+
 		if !ruleMatchLabels(rule.Match, meta) {
 			continue
 		}
-		utils.Debug("After label check")
+
 		metricName := fmt.Sprintf("%s.%s.%s", rule.Scope.Namespace, rule.Scope.SubNamespace, rule.Scope.Metric)
 
-		utils.Debug("Metric name to match: %s", metricName)
 		var matched *model.Metric
 		for _, m := range metrics {
 			full := strings.ToLower(fmt.Sprintf("%s.%s.%s", m.Namespace, m.SubNamespace, m.Name))
-			utils.Debug("Checking metric: %s against rule metric: %s", full, metricName)
+
 			if full == metricName {
 				matched = &m
 				break
 			}
 		}
-		utils.Debug("After ranging metric names...")
+
 		if matched == nil {
 			continue
 		}
-
-		utils.Debug("About to fire rule: %s", rule.ID)
 
 		firing := evaluateExpression(rule.Expression, matched)
 		key := rule.ID + "|" + meta.EndpointID
@@ -132,7 +129,6 @@ func (e *Evaluator) EvaluateMetric(ctx context.Context, metrics []model.Metric, 
 // and the metadata is expected to be in the format of model.Meta.
 // Logs are point-in-time events, so they are always evaluated immediately.
 func (e *Evaluator) EvaluateLogs(ctx context.Context, logs []model.LogEntry, meta *model.Meta) {
-	utils.Debug("✅  Evaluate Metric called.")
 	activeRules, err := e.store.GetActiveRules(ctx)
 	if err != nil {
 		utils.Error("Failed to fetch active rules: %v", err)
@@ -159,7 +155,6 @@ func (e *Evaluator) EvaluateLogs(ctx context.Context, logs []model.LogEntry, met
 			}
 			firing := evaluateLogExpression(rule.Expression, log)
 			if firing {
-				utils.Debug("✅  Firing alert for rule: %s, endpoint: %s", rule.ID, meta.EndpointID)
 				e.AlertMgr.HandleLogState(ctx, rule, meta, log, true)
 			}
 		}

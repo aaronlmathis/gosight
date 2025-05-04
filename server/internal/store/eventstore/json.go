@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/aaronlmathis/gosight/shared/model"
-	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 // JSONEventStore is a file-backed implementation of the EventStore interface.
@@ -36,6 +35,22 @@ func NewJSONEventStore(path string) (*JSONEventStore, error) {
 
 	_ = s.load()
 	return s, nil
+}
+
+// GetByID retrieves an event by its ID.
+func (s *JSONEventStore) GetByID(ctx context.Context, id string) (model.EventEntry, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	// Iterate through events and match by ID
+	for _, e := range s.data {
+		if e.ID == id {
+			return e, nil
+		}
+	}
+
+	// Return error if event is not found
+	return model.EventEntry{}, fmt.Errorf("event with ID %s not found", id)
 }
 
 // load reads the events from the JSON file and unmarshals them into the data slice.
@@ -73,14 +88,17 @@ func (s *JSONEventStore) AddEvent(ctx context.Context, e model.EventEntry) error
 // The results are returned as a slice of EventEntry structs.
 // The filter can include various criteria such as level, type, category,
 // source, scope, target, and time range.
-func (s *JSONEventStore) QueryEvents(filter model.EventFilter) ([]model.EventEntry, error) {
+// QueryEvents retrieves events from the store based on the provided filter.
+// It applies the filter criteria and returns a slice of EventEntry structs.
+func (s *JSONEventStore) GetRecentEvents(ctx context.Context, filter model.EventFilter) ([]model.EventEntry, error) {
 	fmt.Printf("[DEBUG] Querying events with HostID = %s\n", filter.HostID)
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
 	var result []model.EventEntry
-	for i := len(s.data) - 1; i >= 0; i-- {
-		e := s.data[i]
+
+	// Iterate through events and apply filter criteria
+	for _, e := range s.data {
 		if filter.Level != "" && e.Level != filter.Level {
 			continue
 		}
@@ -111,23 +129,23 @@ func (s *JSONEventStore) QueryEvents(filter model.EventFilter) ([]model.EventEnt
 		if filter.EndpointID != "" && e.EndpointID != filter.EndpointID {
 			continue
 		}
-		utils.Debug("HOSTID : %v", filter.HostID)
+
+		// HostID filter
 		if filter.HostID != "" {
-			if e.Meta == nil {
-				fmt.Printf("Skipping event: meta is nil\n")
-				continue
-			}
-			if e.Meta["host_id"] != filter.HostID {
-				fmt.Printf("Skipping event: meta host_id = %s, filter.HostID = %s\n", e.Meta["host_id"], filter.HostID)
+			if e.Meta == nil || e.Meta["host_id"] != filter.HostID {
 				continue
 			}
 		}
 
+		// Add event to results
 		result = append(result, e)
+
+		// Apply limit to the number of results
 		if filter.Limit > 0 && len(result) >= filter.Limit {
 			break
 		}
 	}
+
 	return result, nil
 }
 

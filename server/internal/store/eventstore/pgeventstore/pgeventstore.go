@@ -45,7 +45,7 @@ func (s *PGEventStore) AddEvent(ctx context.Context, e model.EventEntry) error {
 // The filter can include various criteria such as level, type, category,
 // source, scope, target, and time range.
 // The results are returned as a slice of EventEntry structs.
-func (s *PGEventStore) QueryEvents(filter model.EventFilter) ([]model.EventEntry, error) {
+func (s *PGEventStore) GetRecentEvents(ctx context.Context, filter model.EventFilter) ([]model.EventEntry, error) {
 	q := `SELECT id, timestamp, level, type, category, message,
 	          source, scope, target, endpoint_id, meta
 	      FROM events WHERE 1=1`
@@ -55,6 +55,7 @@ func (s *PGEventStore) QueryEvents(filter model.EventFilter) ([]model.EventEntry
 		return fmt.Sprintf("$%d", len(args))
 	}
 
+	// Filtering
 	if filter.Level != "" {
 		q += " AND level = " + arg(filter.Level)
 	}
@@ -70,31 +71,36 @@ func (s *PGEventStore) QueryEvents(filter model.EventFilter) ([]model.EventEntry
 	if filter.Target != "" {
 		q += " AND target = " + arg(filter.Target)
 	}
+	if filter.EndpointID != "" {
+		q += " AND endpoint_id = " + arg(filter.EndpointID)
+	}
 	if filter.Source != "" {
 		q += " AND source ILIKE " + arg("%"+filter.Source+"%")
 	}
 	if filter.Contains != "" {
 		q += " AND message ILIKE " + arg("%"+filter.Contains+"%")
 	}
-	if filter.Start != nil {
-		q += " AND timestamp >= " + arg(*filter.Start)
-	}
-	if filter.End != nil {
-		q += " AND timestamp <= " + arg(*filter.End)
-	}
-	if filter.EndpointID != "" {
-		q += " AND endpoint_id = " + arg(filter.EndpointID)
-	}
 	if filter.HostID != "" {
 		q += " AND meta->>'host_id' = " + arg(filter.HostID)
 	}
+	if !filter.Start.IsZero() {
+		q += " AND timestamp >= " + arg(filter.Start)
+	}
+	if !filter.End.IsZero() {
+		q += " AND timestamp <= " + arg(filter.End)
+	}
 
-	q += " ORDER BY timestamp DESC"
+	// Order and limit
+	if filter.SortOrder == "asc" {
+		q += " ORDER BY timestamp ASC"
+	} else {
+		q += " ORDER BY timestamp DESC"
+	}
 	if filter.Limit > 0 {
 		q += " LIMIT " + arg(filter.Limit)
 	}
 
-	rows, err := s.db.Query(q, args...)
+	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -112,5 +118,6 @@ func (s *PGEventStore) QueryEvents(filter model.EventFilter) ([]model.EventEntry
 		_ = json.Unmarshal(meta, &e.Meta)
 		results = append(results, e)
 	}
+
 	return results, rows.Err()
 }

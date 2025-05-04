@@ -27,6 +27,7 @@ import (
 	"context"
 
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"
+	"github.com/aaronlmathis/gosight/server/internal/cache"
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/tracker"
 	"github.com/aaronlmathis/gosight/server/internal/websocket"
@@ -41,6 +42,7 @@ type SystemContext struct {
 	Auth    map[string]gosightauth.AuthProvider
 	Stores  *StoreModule
 	Tele    *TelemetryModule
+	Cache   *cache.Cache
 }
 
 func NewSystemContext(
@@ -51,6 +53,7 @@ func NewSystemContext(
 	authProviders map[string]gosightauth.AuthProvider,
 	stores *StoreModule,
 	telemetry *TelemetryModule,
+	cache *cache.Cache,
 ) *SystemContext {
 	return &SystemContext{
 		Ctx:     ctx,
@@ -60,5 +63,6 @@ func NewSystemContext(
 		Auth:    authProviders,
 		Stores:  stores,
 		Tele:    telemetry,
+		Cache:   cache,
 	}
 }
