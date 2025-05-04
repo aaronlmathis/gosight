@@ -19,7 +19,7 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// server/internal/http/websocket/loghub.go
+// server/internal/http/websocket/metrichub.go
 // Description: This file contains the WebSocket hub implementation for the GoSight server.
 
 package websocket
@@ -28,7 +28,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -39,22 +38,23 @@ import (
 	"github.com/google/uuid"
 )
 
-type LogHub struct {
+type ProcessHub struct {
 	clients     map[*Client]bool
-	broadcast   chan model.LogPayload
+	broadcast   chan model.ProcessPayload
 	lock        sync.Mutex
 	metaTracker *metastore.MetaTracker
 }
 
-func NewLogHub(metaTracker *metastore.MetaTracker) *LogHub {
-	return &LogHub{
+func NewProcessHub(metaTracker *metastore.MetaTracker) *ProcessHub {
+	return &ProcessHub{
 		clients:     make(map[*Client]bool),
-		broadcast:   make(chan model.LogPayload, 500), // bursty but medium volume
+		broadcast:   make(chan model.ProcessPayload, 2000), // high buffer for frequent metric bursts
 		metaTracker: metaTracker,
 	}
 }
 
-func (h *LogHub) Run(ctx context.Context) {
+// Run starts the ProcessHub's broadcast loop.
+func (h *ProcessHub) Run(ctx context.Context) {
 	for {
 		select {
 		case payload := <-h.broadcast:
@@ -62,12 +62,11 @@ func (h *LogHub) Run(ctx context.Context) {
 
 			h.lock.Lock()
 
-			var deadClients []*Client
+			var deadClients []*Client // NEW: list to track which clients to remove
 
 			for client := range h.clients {
 				if h.shouldDeliver(payload, client) {
 					if !safeSend(client, data) {
-						utils.Warn("Client send failed, scheduling removal: endpoint=%s agent=%s", client.EndpointID, client.AgentID)
 						client.Close()
 						deadClients = append(deadClients, client)
 					}
@@ -82,21 +81,21 @@ func (h *LogHub) Run(ctx context.Context) {
 			h.lock.Unlock()
 
 		case <-ctx.Done():
-			// Context cancelled — shut down cleanly
+			// Graceful shutdown
 			h.lock.Lock()
 			for client := range h.clients {
 				client.Close()
 				delete(h.clients, client)
 			}
 			h.lock.Unlock()
-
-			utils.Info("WebSocketHub: LogHub shutdown complete")
+			utils.Info("WebSocketHub: ProcessHub shutdown complete")
 			return
 		}
 	}
 }
 
-func (h *LogHub) ServeWS(w http.ResponseWriter, r *http.Request) {
+// ServeWS upgrades HTTP to WebSocket and registers client to ProcessHub.
+func (h *ProcessHub) ServeWS(w http.ResponseWriter, r *http.Request) {
 	// Authenticate the request
 	_, err := gosightauth.GetSessionClaims(r)
 	if err != nil {
@@ -122,7 +121,7 @@ func (h *LogHub) ServeWS(w http.ResponseWriter, r *http.Request) {
 		Send:       make(chan []byte, 100),
 	}
 
-	// Heartbeat: read timeout + pong handler
+	// Configure heartbeat/pong handling
 	conn.SetReadLimit(512)
 	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	conn.SetPongHandler(func(string) error {
@@ -155,27 +154,22 @@ func (h *LogHub) ServeWS(w http.ResponseWriter, r *http.Request) {
 	go client.writePump()
 }
 
-func (h *LogHub) Broadcast(payload model.LogPayload) {
+// Broadcast sends a pre-serialized metric payload to all ProcessHub clients.
+func (h *ProcessHub) Broadcast(payload model.ProcessPayload) {
 	select {
 	case h.broadcast <- payload:
 	default:
-		// drop if full
+		// drop message if buffer full
 	}
 }
 
-func (h *LogHub) shouldDeliver(payload model.LogPayload, client *Client) bool {
+func (h *ProcessHub) shouldDeliver(payload model.ProcessPayload, client *Client) bool {
 	if client.EndpointID == "" {
-		return true // no filter
+		return true
 	}
 
 	if payload.EndpointID == client.EndpointID {
-		return true // direct match
-	}
-
-	if strings.HasPrefix(payload.EndpointID, "ctr-") &&
-		payload.Meta != nil &&
-		payload.Meta.AgentID == client.AgentID {
-		return true // container log belongs to agent
+		return true
 	}
 
 	return false

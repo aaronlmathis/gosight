@@ -34,18 +34,20 @@ import (
 	"github.com/aaronlmathis/gosight/agent/internal/logs/logrunner"
 	"github.com/aaronlmathis/gosight/agent/internal/meta"
 	metricrunner "github.com/aaronlmathis/gosight/agent/internal/metrics/metricrunner"
+	"github.com/aaronlmathis/gosight/agent/internal/processes/processrunner"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 type Agent struct {
-	Config       *config.Config
-	MetricRunner *metricrunner.MetricRunner
-	AgentID      string
-	AgentVersion string
-	LogRunner    *logrunner.LogRunner
-	Meta         *model.Meta
-	Ctx          context.Context
+	Config        *config.Config
+	MetricRunner  *metricrunner.MetricRunner
+	AgentID       string
+	AgentVersion  string
+	LogRunner     *logrunner.LogRunner
+	ProcessRunner *processrunner.ProcessRunner
+	Meta          *model.Meta
+	Ctx           context.Context
 }
 
 func NewAgent(ctx context.Context, cfg *config.Config, agentVersion string) (*Agent, error) {
@@ -67,14 +69,21 @@ func NewAgent(ctx context.Context, cfg *config.Config, agentVersion string) (*Ag
 	if err != nil {
 		return nil, fmt.Errorf("failed to create log runner: %v", err)
 	}
+
+	processRunner, err := processrunner.NewRunner(ctx, cfg, baseMeta)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create process runner: %v", err)
+	}
+
 	return &Agent{
-		Ctx:          ctx,
-		Config:       cfg,
-		MetricRunner: metricRunner,
-		AgentID:      agentID,
-		AgentVersion: agentVersion,
-		LogRunner:    logRunner,
-		Meta:         baseMeta,
+		Ctx:           ctx,
+		Config:        cfg,
+		MetricRunner:  metricRunner,
+		AgentID:       agentID,
+		AgentVersion:  agentVersion,
+		LogRunner:     logRunner,
+		ProcessRunner: processRunner,
+		Meta:          baseMeta,
 	}, nil
 }
 
@@ -86,12 +95,17 @@ func (a *Agent) Start(ctx context.Context) {
 
 	utils.Debug("Agent attempting to start metricrunner.")
 	go a.LogRunner.Run(ctx)
+
+	utils.Debug("Agent attempting to start processrunner.")
+	go a.ProcessRunner.Run(ctx)
+
 }
 
 func (a *Agent) Close(ctx context.Context) {
-	// Stop the metric runner
+	// Stop All Runners
 	a.MetricRunner.Close()
 	a.LogRunner.Close()
+	a.ProcessRunner.Close()
 
 	err := grpcconn.CloseGRPCConn()
 	if err != nil {

@@ -51,6 +51,12 @@ type DataStore interface {
 	ListKeys(ctx context.Context) ([]string, error)
 	ListValues(ctx context.Context, key string) ([]string, error)
 
+	// Process methods
+	InsertFullProcessPayload(ctx context.Context, payload *model.ProcessPayload) error
+	InsertProcessSnapshot(ctx context.Context, snap *model.ProcessPayload) (int64, error)
+	InsertProcessInfos(ctx context.Context, snapshotID int64, payload *model.ProcessPayload) error
+	QueryProcessInfos(ctx context.Context, filter *model.ProcessQueryFilter) ([]model.ProcessInfo, error)
+
 	// Lifecycle
 	Close() error
 }

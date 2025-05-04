@@ -27,6 +27,7 @@ package linuxcollector
 import (
 	"context"
 	"io" // Needed for Closer interface
+	"os/user"
 	"strconv"
 	"strings"
 	"sync"
@@ -237,6 +238,7 @@ collectLoop:
 				if isDisabled {
 					// If reader stopped due to error and closed journal, report maybe?
 					// For now, just break loop. Might need better error propagation.
+					utils.Debug("Journald collector is disabled, stopping collection.")
 				}
 				break collectLoop
 			}
@@ -306,8 +308,6 @@ func (j *JournaldCollector) Close() error {
 	return j.cleanupErr
 }
 
-// --- Helper functions (kept mostly as is) ---
-
 // mapPriorityToLevel maps systemd journal priority levels to log levels.
 func mapPriorityToLevel(priority string) string {
 	switch priority {
@@ -329,8 +329,10 @@ func mapPriorityToLevel(priority string) string {
 }
 
 // buildLogEntry constructs a LogEntry from a systemd journal entry.
+// Fields: cleaned journald fields (no `_` prefix)
+// Meta.Extra: original raw journald fields for advanced filtering/debugging
 func buildLogEntry(entry *sdjournal.JournalEntry, maxSize int) model.LogEntry {
-	// Timestamp calculation seems correct
+
 	timestamp := time.Unix(0, int64(entry.RealtimeTimestamp)*int64(time.Microsecond))
 
 	msg := entry.Fields["MESSAGE"]
@@ -340,51 +342,34 @@ func buildLogEntry(entry *sdjournal.JournalEntry, maxSize int) model.LogEntry {
 	}
 	// Truncate after sanitizing
 	if len(msg) > maxSize && maxSize > 0 { // Check maxSize > 0
-		// Be careful with multi-byte runes when truncating
-		// A simpler approach (though less precise) is just slicing bytes:
 		msg = msg[:maxSize] + " [truncated]"
-		// For precise rune boundary truncation (more complex):
-		// var size int
-		// for i := range msg {
-		//  if size+len(" [truncated]") >= maxSize {
-		//      msg = msg[:i] + " [truncated]"
-		//      break
-		//  }
-		//  size = i
-		// }
-	}
-
-	source := entry.Fields["SYSLOG_IDENTIFIER"]
-	if source == "" {
-		source = entry.Fields["_COMM"] // Fallback to command name
-	}
-	if source == "" {
-		source = "unknown"
-	}
-
-	category := entry.Fields["_SYSTEMD_UNIT"]
-	if category == "" {
-		category = entry.Fields["_SYSTEMD_SLICE"] // Fallback
-	}
-	if category == "" {
-		category = "unknown"
 	}
 
 	// Filtered fields into Fields map
-	wanted := []string{"_SYSTEMD_UNIT", "_SYSTEMD_SLICE", "_EXE", "_CMDLINE", "_PID", "_UID", "MESSAGE_ID", "SYSLOG_IDENTIFIER", "_COMM", "CONTAINER_ID", "CONTAINER_NAME"}
+	wanted := []string{
+		"_SYSTEMD_UNIT", "_SYSTEMD_SLICE", "_EXE",
+		"_CMDLINE", "_PID", "_UID", "MESSAGE_ID",
+		"SYSLOG_IDENTIFIER", "_COMM", "CONTAINER_ID",
+		"CONTAINER_NAME"}
+
 	fields := make(map[string]string)
 	for _, k := range wanted {
 		if v, ok := entry.Fields[k]; ok && v != "" { // Only add if value exists and is not empty
 			fields[strings.TrimPrefix(k, "_")] = v // Trim leading _ for cleaner field names
 		}
 	}
+	// Classify the category based on SYSLOG_IDENTIFIER or SYSTEMD_UNIT using the classifyCategory function
+	category := classifyCategory(fields["SYSLOG_IDENTIFIER"], fields["SYSTEMD_UNIT"])
+
+	// Try to extact user information from fields
+	user := extractUserFromFields(entry.Fields)
 
 	// Add priority and hostname if available
-	if v := entry.Fields["PRIORITY"]; v != "" {
+	if v := entry.Fields["_PRIORITY"]; v != "" {
 		fields["PRIORITY"] = v
 	}
 	if v := entry.Fields["_HOSTNAME"]; v != "" {
-		fields["HOSTNAME_LOG"] = v
+		fields["HOSTNAME"] = v
 	}
 
 	// Simplified Tags - use Fields map for most details
@@ -399,22 +384,32 @@ func buildLogEntry(entry *sdjournal.JournalEntry, maxSize int) model.LogEntry {
 		tags["container_name"] = cname
 	}
 
+	// Keep the RAW  fields - may need?
+	extra := map[string]string{}
+	for _, k := range wanted {
+		if v, ok := entry.Fields[k]; ok && v != "" {
+			extra[k] = v
+		}
+	}
+
 	return model.LogEntry{
 		Timestamp: timestamp,
 		Level:     mapPriorityToLevel(entry.Fields["PRIORITY"]),
 		Message:   msg,
-		Source:    source,   // e.g., sshd, CRON, _COMM
-		Category:  category, // e.g., systemd unit or slice
+		Source:    "systemd", // e.g., systemd, auth, gosight
+		Category:  category,  // e.g., systemd unit or slice
 		PID:       parsePID(entry.Fields["_PID"]),
 		Fields:    fields, // Richer metadata goes here
 		Tags:      tags,   // Minimal, high-value tags
 		Meta: &model.LogMeta{ // Keep essential routing/origin info here
 			Platform:      "journald",
-			AppName:       source, // Or maybe category? Depends on desired grouping.
-			ContainerID:   entry.Fields["CONTAINER_ID"],
-			ContainerName: entry.Fields["CONTAINER_NAME"],
-			Unit:          entry.Fields["_SYSTEMD_UNIT"], // Explicitly store unit if present
-			// Add other Meta fields if needed for specific backend processing
+			AppName:       fields["SYSLOG_IDENTIFIER"],
+			ContainerID:   fields["CONTAINER_ID"],
+			ContainerName: fields["CONTAINER_NAME"],
+			Unit:          fields["SYSTEMD_UNIT"], // Explicitly store unit if present
+			User:          user,
+			Executable:    fields["EXE"],
+			Extra:         extra, // Keep all raw fields for potential future use
 		},
 	}
 }
@@ -436,3 +431,92 @@ func sanitizeUTF8(s string) string {
 
 // Ensure JournaldCollector implements io.Closer
 var _ io.Closer = (*JournaldCollector)(nil)
+
+// User mapping for journald logs based on best guess
+// extractUserFromFields attempts to extract the user from journal fields.
+// It checks for specific fields in a priority order and falls back to UID lookup if necessary.
+func extractUserFromFields(fields map[string]string) string {
+	// Priority order: named fields
+	if user := fields["USERNAME"]; user != "" {
+		return user
+	}
+	if user := fields["SUDO_USER"]; user != "" {
+		return user
+	}
+	if user := fields["SSH_USER"]; user != "" {
+		return user
+	}
+
+	// Try UID lookup
+	var uidStr string
+	if uidStr = fields["UID"]; uidStr == "" {
+		uidStr = fields["_UID"]
+	}
+	if uidStr != "" {
+		if uid, err := strconv.Atoi(uidStr); err == nil {
+			if u, err := user.LookupId(strconv.Itoa(uid)); err == nil {
+				return u.Username
+			}
+		}
+	}
+
+	// fallback
+	return ""
+}
+
+// Category mapping for journald logs based on SYSLOG_IDENTIFIER or SYSTEMD_UNIT
+// This mapping is used to categorize logs into predefined categories.
+
+// journaldCategoryMap is a mapping of common journald identifiers to categories.
+var journaldCategoryMap = []struct {
+	MatchKey string // lowercased value of SYSLOG_IDENTIFIER or SYSTEMD_UNIT
+	Category string
+}{
+	// Authentication
+	{"sshd", "auth"},
+	{"sudo", "auth"},
+	{"login", "auth"},
+
+	// Security
+	{"firewalld", "security"},
+	{"auditd", "security"},
+	{"selinux", "security"},
+
+	// Network
+	{"networkmanager", "network"},
+	{"dhclient", "network"},
+	{"resolvconf", "network"},
+
+	// Container
+	{"podman", "container"},
+	{"docker", "container"},
+	{"containerd", "container"},
+
+	// Application servers
+	{"nginx", "app"},
+	{"apache2", "app"},
+	{"postgres", "app"},
+	{"mysqld", "app"},
+
+	// System / OS
+	{"systemd", "system"},
+	{"cron", "system"},
+	{"crond", "system"},
+	{"kernel", "system"},
+
+	// Internal
+	{"gosight", "gosight"},
+}
+
+// classifyCategory determines the category of a log entry based on its syslog identifier or systemd unit.
+func classifyCategory(syslogID, unit string) string {
+	inputs := []string{strings.ToLower(syslogID), strings.ToLower(unit)}
+	for _, input := range inputs {
+		for _, rule := range journaldCategoryMap {
+			if strings.Contains(input, rule.MatchKey) {
+				return rule.Category
+			}
+		}
+	}
+	return "system" // default fallback
+}

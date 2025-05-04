@@ -53,6 +53,7 @@ type EventEntry struct {
 	Target     string            `json:"target"` // "host-123", "gosight-core", etc.
 	EndpointID string            `json:"endpoint_id"`
 	Meta       map[string]string `json:"meta"` // additional tags/labels
+
 }
 
 func GenerateID() string {

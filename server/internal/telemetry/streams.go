@@ -20,7 +20,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
 // gosight/server/internal/api
-// metrics.go - gRPC handler for metrics submission
+// streams.go - gRPC handler for stream submission
 
 package telemetry
 
@@ -55,12 +55,12 @@ func (h *StreamHandler) Stream(stream pb.StreamService_StreamServer) error {
 	go func() {
 		for {
 			time.Sleep(5 * time.Second)
-			utils.Debug("🧭 server Stream handler alive...")
+			utils.Debug("server Stream handler alive...")
 		}
 	}()
 
 	for {
-		utils.Debug("📥 Waiting for next message on gRPC stream...")
+
 		req, err := stream.Recv()
 		if err != nil {
 			utils.Error("Stream receive error: %v", err)
@@ -69,6 +69,55 @@ func (h *StreamHandler) Stream(stream pb.StreamService_StreamServer) error {
 
 		switch v := req.Payload.(type) {
 
+		case *pb.StreamPayload_Process:
+			SafeHandlePayload(func() {
+				var processPayload pb.ProcessPayload
+				if err := proto.Unmarshal(v.Process.RawPayload, &processPayload); err != nil {
+					utils.Warn("Failed to unmarshal ProcessPayload: %v", err)
+				}
+				// Convert the protobuf ProcessPayload to model.ProcessPayload
+				converted := ConvertProtoProcessPayload(&processPayload)
+
+				// Tag enrichment
+				if converted.Meta != nil && converted.Meta.EndpointID != "" {
+					tags, err := h.Sys.Stores.Data.GetTags(stream.Context(), converted.Meta.EndpointID)
+					if err == nil {
+						if converted.Meta.Tags == nil {
+							converted.Meta.Tags = make(map[string]string)
+						}
+						for k, v := range tags {
+							if _, exists := converted.Meta.Tags[k]; !exists {
+								converted.Meta.Tags[k] = v
+							}
+						}
+					}
+				}
+
+				h.Sys.Cache.Processes.Add(model.ProcessSnapshot{
+					Timestamp:  converted.Timestamp,
+					HostID:     converted.HostID,
+					EndpointID: converted.EndpointID,
+					Processes:  converted.Processes,
+					Meta:       converted.Meta,
+				})
+
+				// Broadcast + store process payload
+
+				utils.Debug("📡 About to broadcast process payload for %s with %d processes", converted.EndpointID, len(converted.Processes))
+				h.Sys.WSHub.Processes.Broadcast(converted)
+
+				/*				Holding off on this for now, as it is simply too much to store this in the database.
+
+								if err := h.Sys.Stores.Processes.Write([]model.ProcessPayload{converted}); err != nil {
+								// Insert Process Snapshot and ProcessInfos into database.
+								if err := h.Sys.Stores.Data.InsertFullProcessPayload(stream.Context(), &converted); err != nil {
+									utils.Warn("Failed to store ProcessPayload: %v", err)
+									return
+								} else {
+									utils.Debug("Stored ProcessPayload from agent %s", converted.EndpointID)
+								}
+				*/
+			})
 		case *pb.StreamPayload_Metric:
 			// Handle MetricWrapper
 			SafeHandlePayload(func() {
@@ -80,13 +129,13 @@ func (h *StreamHandler) Stream(stream pb.StreamService_StreamServer) error {
 
 				converted := ConvertToModelPayload(&metricPayload)
 
-				utils.Debug("Received MetricPayload from agent %s: %s", converted.EndpointID, converted.Meta.AgentID)
+				//utils.Debug("Received MetricPayload from agent %s: %s", converted.EndpointID, converted.Meta.AgentID)
 
 				// Register agent session
 				if !registered && converted.Meta != nil && converted.Meta.AgentID != "" {
 					agentID = converted.AgentID
 					h.Sys.Tracker.RegisterAgentSession(agentID, stream)
-					utils.Info("Registered live session for agent %s (%s)", converted.Meta.Hostname, agentID)
+					//utils.Info("Registered live session for agent %s (%s)", converted.Meta.Hostname, agentID)
 					registered = true
 				}
 
@@ -135,8 +184,7 @@ func (h *StreamHandler) Stream(stream pb.StreamService_StreamServer) error {
 
 		case *pb.StreamPayload_CommandResponse:
 			// Received command execution result
-			utils.Info("Received CommandResponse: success=%v output=%s error=%s",
-				v.CommandResponse.Success, v.CommandResponse.Output, v.CommandResponse.ErrorMessage)
+			//utils.Info("Received CommandResponse: success=%v output=%s error=%s",	v.CommandResponse.Success, v.CommandResponse.Output, v.CommandResponse.ErrorMessage)
 
 			if endpointID, ok := h.Sys.Tracker.GetEndpointIdByAgentId(agentID); ok {
 				h.Sys.WSHub.Commands.Broadcast(&model.CommandResult{
@@ -165,7 +213,7 @@ func (h *StreamHandler) Stream(stream pb.StreamService_StreamServer) error {
 			StatusCode: 0,
 		}
 
-		utils.Debug("Agent ID: %s", agentID)
+		//utils.Debug("Agent ID: %s", agentID)
 		var pendingCmd *pb.CommandRequest
 		if agentID != "" {
 			pendingCmd = h.Sys.Tracker.DequeueCommand(agentID) // Copy command reference outside of lock
@@ -174,7 +222,7 @@ func (h *StreamHandler) Stream(stream pb.StreamService_StreamServer) error {
 			resp.Command = pendingCmd
 			utils.Info("Injecting pending CommandRequest into StreamResponse for agent %s", agentID)
 		}
-		utils.Debug("📤 Sending StreamResponse to %s", agentID)
+		//utils.Debug("Sending StreamResponse to %s", agentID)
 		if session, ok := h.Sys.Tracker.GetAgentSession(agentID); ok {
 			select {
 			case session.SendQueue <- resp:
@@ -183,7 +231,7 @@ func (h *StreamHandler) Stream(stream pb.StreamService_StreamServer) error {
 				utils.Warn("SendQueue full for agent %s — dropping response", agentID)
 			}
 		} else {
-			utils.Warn("No live session found for agent %s", agentID)
+			//utils.Warn("No live session found for agent %s", agentID)
 		}
 	}
 }

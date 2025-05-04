@@ -92,3 +92,16 @@ type AlertSummary struct {
 	State      string    `json:"state"`       // "firing", "resolved", etc.
 	LastChange time.Time `json:"last_change"` // based on LastFired
 }
+
+type AlertQuery struct {
+	RuleID string
+	State  string
+	Level  string
+	Target string
+	Scope  string
+	Sort   string // e.g. "first_fired desc"
+	Limit  int
+	Offset int
+	Order  string
+	Tags   map[string]string
+}

@@ -10,11 +10,17 @@ message MetricWrapper {
   bytes raw_payload = 1; // serialized MetricPayload manually
 }
 
+
+message ProcessWrapper {
+  bytes raw_payload = 1;
+}
+
 message StreamPayload {
   oneof payload {
     MetricWrapper metric = 1;
     CommandRequest command_request = 2;
     CommandResponse command_response = 3;
+    ProcessWrapper process = 5;
   }
 }
 

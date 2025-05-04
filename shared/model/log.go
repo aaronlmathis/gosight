@@ -60,3 +60,44 @@ type LogPayload struct {
 	Logs       []LogEntry
 	Meta       *Meta
 }
+
+// LogFilter is used to filter logs based on various criteria.
+// It includes the limit of logs to return, the log levels to filter by,
+// the unit of the logs, the source of the logs, a string to search for in the logs,
+// and the start and end times for the logs.
+type LogFilter struct {
+	// Time range filter
+	Start time.Time // Filter logs from this time onward
+	End   time.Time // Filter logs until this time
+
+	// Filtering by log properties
+	EndpointID string // Filter by endpoint ID (e.g., "host-123", "container-xyz")
+	Target     string // Filter by target (e.g., "gosight-core", "host-123")
+	Level      string // Filter by log level (e.g., "info", "warning", "error")
+	Category   string // Filter by category (e.g., "system", "metric", "security")
+	Source     string // Filter by source (e.g., "docker", "podman", "system")
+	Contains   string // Filter by a substring match in the message
+	Unit       string // Filter by systemd unit name (e.g., "nginx.service")
+	AppName    string // Filter by application name (e.g., "nginx", "sshd")
+
+	// Limit and sorting
+	Limit int    // Max number of logs to return
+	Order string // Order direction: "asc" or "desc"
+}
+
+// Standardized Log Categories
+/*
+
+system				OS-level logs: kernel, systemd, startup, shutdown
+auth				Login attempts, sudo, PAM, user sessions, MFA
+security			Firewall logs, intrusion detection, policy enforcement
+network				DHCP, DNS, IP allocation, connection errors, interface events
+app					Application-specific logs (e.g., nginx, postgres, your Go apps)
+container			Podman/Docker lifecycle, logs from inside containers
+metric				Logs related to metric collection or processing
+gosight				Internal logs from the GoSight agent/server
+scheduler			Cron-like jobs, backups, etc.
+config				Configuration changes, reloads, validation errors
+audit				User actions, RBAC events, config edits, role changes (great for IAM auditing)
+alert				Alert evaluation or dispatch activity
+*/

@@ -1,0 +1,30 @@
+syntax = "proto3";
+package proto;
+
+option go_package = "github.com/aaronlmathis/gosight/shared/proto";
+
+import "google/protobuf/timestamp.proto";
+import "meta.proto"; // assuming this defines `Meta`
+
+message ProcessInfo {
+  int32 pid = 1;
+  int32 ppid = 2;
+  string user = 3;
+  string executable = 4;
+  string cmdline = 5;
+  double cpu_percent = 6;
+  double mem_percent = 7;
+  int32 threads = 8;
+  google.protobuf.Timestamp start_time = 9;
+  map<string, string> tags = 10;
+}
+
+message ProcessPayload {
+  string agent_id = 1;
+  string host_id = 2;
+  string hostname = 3;
+  string endpoint_id = 4;
+  google.protobuf.Timestamp timestamp = 5;
+  repeated ProcessInfo processes = 6;
+  Meta meta = 7;
+}

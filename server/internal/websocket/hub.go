@@ -47,21 +47,23 @@ type Client struct {
 }
 
 type HubManager struct {
-	Metrics  *MetricHub
-	Logs     *LogHub
-	Alerts   *AlertsHub
-	Events   *EventsHub
-	Commands *CommandHub
+	Metrics   *MetricHub
+	Logs      *LogHub
+	Alerts    *AlertsHub
+	Events    *EventsHub
+	Commands  *CommandHub
+	Processes *ProcessHub
 }
 
 // NewHubManager creates a new HubManager with initialized hubs.
 func NewHubManager(metaTracker *metastore.MetaTracker) *HubManager {
 	return &HubManager{
-		Metrics:  NewMetricHub(metaTracker),
-		Logs:     NewLogHub(metaTracker),
-		Alerts:   NewAlertsHub(metaTracker),
-		Events:   NewEventsHub(metaTracker),
-		Commands: NewCommandHub(metaTracker),
+		Metrics:   NewMetricHub(metaTracker),
+		Logs:      NewLogHub(metaTracker),
+		Alerts:    NewAlertsHub(metaTracker),
+		Events:    NewEventsHub(metaTracker),
+		Commands:  NewCommandHub(metaTracker),
+		Processes: NewProcessHub(metaTracker),
 	}
 }
 
@@ -72,6 +74,7 @@ func (h *HubManager) StartAll(ctx context.Context) {
 	go h.Alerts.Run(ctx)
 	go h.Events.Run(ctx)
 	go h.Commands.Run(ctx)
+	go h.Processes.Run(ctx)
 }
 
 // shared WebSocket upgrader used by all hubs

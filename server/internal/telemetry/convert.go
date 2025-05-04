@@ -26,6 +26,7 @@ import (
 	"github.com/aaronlmathis/gosight/shared/proto"
 )
 
+// ConvertToModelPayload converts a protobuf MetricPayload to a model.MetricPayload.
 func ConvertToModelPayload(pbPayload *proto.MetricPayload) model.MetricPayload {
 	metrics := make([]model.Metric, 0, len(pbPayload.Metrics))
 	var modelMeta *model.Meta
@@ -67,6 +68,42 @@ func ConvertToModelPayload(pbPayload *proto.MetricPayload) model.MetricPayload {
 	}
 }
 
+// ConvertProtoProcessPayload converts a protobuf ProcessPayload to a model.ProcessPayload.
+func ConvertProtoProcessPayload(pb *proto.ProcessPayload) model.ProcessPayload {
+
+	processes := make([]model.ProcessInfo, 0, len(pb.Processes))
+	for _, p := range pb.Processes {
+		tags := make(map[string]string, len(p.Tags))
+		for k, v := range p.Tags {
+			tags[k] = v
+		}
+
+		processes = append(processes, model.ProcessInfo{
+			PID:        int(p.Pid),
+			PPID:       int(p.Ppid),
+			User:       p.User,
+			Executable: p.Executable,
+			Cmdline:    p.Cmdline,
+			CPUPercent: p.CpuPercent,
+			MemPercent: p.MemPercent,
+			Threads:    int(p.Threads),
+			StartTime:  p.StartTime.AsTime(),
+			Tags:       tags,
+		})
+	}
+
+	return model.ProcessPayload{
+		AgentID:    pb.AgentId,
+		HostID:     pb.HostId,
+		Hostname:   pb.Hostname,
+		EndpointID: pb.EndpointId,
+		Timestamp:  pb.Timestamp.AsTime(),
+		Processes:  processes,
+		Meta:       convertProtoMetaToModelMeta(pb.Meta),
+	}
+}
+
+// ConvertToModelLogPayload converts a protobuf LogPayload to a model.LogPayload.
 func ConvertToModelLogPayload(pbPayload *proto.LogPayload) model.LogPayload {
 
 	var logs []model.LogEntry
@@ -119,6 +156,7 @@ func ConvertToModelLogPayload(pbPayload *proto.LogPayload) model.LogPayload {
 	}
 }
 
+// convertProtoMetaToModelMeta converts a protobuf Meta to a model.Meta.
 func convertProtoMetaToModelMeta(pbMeta *proto.Meta) *model.Meta {
 	if pbMeta == nil {
 		return nil

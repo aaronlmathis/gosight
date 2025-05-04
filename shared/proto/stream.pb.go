@@ -65,6 +65,50 @@ func (x *MetricWrapper) GetRawPayload() []byte {
 	return nil
 }
 
+type ProcessWrapper struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RawPayload    []byte                 `protobuf:"bytes,1,opt,name=raw_payload,json=rawPayload,proto3" json:"raw_payload,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProcessWrapper) Reset() {
+	*x = ProcessWrapper{}
+	mi := &file_stream_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProcessWrapper) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProcessWrapper) ProtoMessage() {}
+
+func (x *ProcessWrapper) ProtoReflect() protoreflect.Message {
+	mi := &file_stream_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProcessWrapper.ProtoReflect.Descriptor instead.
+func (*ProcessWrapper) Descriptor() ([]byte, []int) {
+	return file_stream_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ProcessWrapper) GetRawPayload() []byte {
+	if x != nil {
+		return x.RawPayload
+	}
+	return nil
+}
+
 type StreamPayload struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Payload:
@@ -72,6 +116,7 @@ type StreamPayload struct {
 	//	*StreamPayload_Metric
 	//	*StreamPayload_CommandRequest
 	//	*StreamPayload_CommandResponse
+	//	*StreamPayload_Process
 	Payload       isStreamPayload_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -79,7 +124,7 @@ type StreamPayload struct {
 
 func (x *StreamPayload) Reset() {
 	*x = StreamPayload{}
-	mi := &file_stream_proto_msgTypes[1]
+	mi := &file_stream_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -91,7 +136,7 @@ func (x *StreamPayload) String() string {
 func (*StreamPayload) ProtoMessage() {}
 
 func (x *StreamPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_stream_proto_msgTypes[1]
+	mi := &file_stream_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -104,7 +149,7 @@ func (x *StreamPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamPayload.ProtoReflect.Descriptor instead.
 func (*StreamPayload) Descriptor() ([]byte, []int) {
-	return file_stream_proto_rawDescGZIP(), []int{1}
+	return file_stream_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *StreamPayload) GetPayload() isStreamPayload_Payload {
@@ -141,6 +186,15 @@ func (x *StreamPayload) GetCommandResponse() *CommandResponse {
 	return nil
 }
 
+func (x *StreamPayload) GetProcess() *ProcessWrapper {
+	if x != nil {
+		if x, ok := x.Payload.(*StreamPayload_Process); ok {
+			return x.Process
+		}
+	}
+	return nil
+}
+
 type isStreamPayload_Payload interface {
 	isStreamPayload_Payload()
 }
@@ -157,11 +211,17 @@ type StreamPayload_CommandResponse struct {
 	CommandResponse *CommandResponse `protobuf:"bytes,3,opt,name=command_response,json=commandResponse,proto3,oneof"`
 }
 
+type StreamPayload_Process struct {
+	Process *ProcessWrapper `protobuf:"bytes,5,opt,name=process,proto3,oneof"`
+}
+
 func (*StreamPayload_Metric) isStreamPayload_Payload() {}
 
 func (*StreamPayload_CommandRequest) isStreamPayload_Payload() {}
 
 func (*StreamPayload_CommandResponse) isStreamPayload_Payload() {}
+
+func (*StreamPayload_Process) isStreamPayload_Payload() {}
 
 type StreamResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -174,7 +234,7 @@ type StreamResponse struct {
 
 func (x *StreamResponse) Reset() {
 	*x = StreamResponse{}
-	mi := &file_stream_proto_msgTypes[2]
+	mi := &file_stream_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -186,7 +246,7 @@ func (x *StreamResponse) String() string {
 func (*StreamResponse) ProtoMessage() {}
 
 func (x *StreamResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_stream_proto_msgTypes[2]
+	mi := &file_stream_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -199,7 +259,7 @@ func (x *StreamResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamResponse.ProtoReflect.Descriptor instead.
 func (*StreamResponse) Descriptor() ([]byte, []int) {
-	return file_stream_proto_rawDescGZIP(), []int{2}
+	return file_stream_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *StreamResponse) GetStatus() string {
@@ -230,11 +290,15 @@ const file_stream_proto_rawDesc = "" +
 	"\fstream.proto\x12\x05proto\x1a\rcommand.proto\"0\n" +
 	"\rMetricWrapper\x12\x1f\n" +
 	"\vraw_payload\x18\x01 \x01(\fR\n" +
-	"rawPayload\"\xd1\x01\n" +
+	"rawPayload\"1\n" +
+	"\x0eProcessWrapper\x12\x1f\n" +
+	"\vraw_payload\x18\x01 \x01(\fR\n" +
+	"rawPayload\"\x84\x02\n" +
 	"\rStreamPayload\x12.\n" +
 	"\x06metric\x18\x01 \x01(\v2\x14.proto.MetricWrapperH\x00R\x06metric\x12@\n" +
 	"\x0fcommand_request\x18\x02 \x01(\v2\x15.proto.CommandRequestH\x00R\x0ecommandRequest\x12C\n" +
-	"\x10command_response\x18\x03 \x01(\v2\x16.proto.CommandResponseH\x00R\x0fcommandResponseB\t\n" +
+	"\x10command_response\x18\x03 \x01(\v2\x16.proto.CommandResponseH\x00R\x0fcommandResponse\x121\n" +
+	"\aprocess\x18\x05 \x01(\v2\x15.proto.ProcessWrapperH\x00R\aprocessB\t\n" +
 	"\apayload\"z\n" +
 	"\x0eStreamResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\x1f\n" +
@@ -256,26 +320,28 @@ func file_stream_proto_rawDescGZIP() []byte {
 	return file_stream_proto_rawDescData
 }
 
-var file_stream_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_stream_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_stream_proto_goTypes = []any{
 	(*MetricWrapper)(nil),   // 0: proto.MetricWrapper
-	(*StreamPayload)(nil),   // 1: proto.StreamPayload
-	(*StreamResponse)(nil),  // 2: proto.StreamResponse
-	(*CommandRequest)(nil),  // 3: proto.CommandRequest
-	(*CommandResponse)(nil), // 4: proto.CommandResponse
+	(*ProcessWrapper)(nil),  // 1: proto.ProcessWrapper
+	(*StreamPayload)(nil),   // 2: proto.StreamPayload
+	(*StreamResponse)(nil),  // 3: proto.StreamResponse
+	(*CommandRequest)(nil),  // 4: proto.CommandRequest
+	(*CommandResponse)(nil), // 5: proto.CommandResponse
 }
 var file_stream_proto_depIdxs = []int32{
 	0, // 0: proto.StreamPayload.metric:type_name -> proto.MetricWrapper
-	3, // 1: proto.StreamPayload.command_request:type_name -> proto.CommandRequest
-	4, // 2: proto.StreamPayload.command_response:type_name -> proto.CommandResponse
-	3, // 3: proto.StreamResponse.command:type_name -> proto.CommandRequest
-	1, // 4: proto.StreamService.Stream:input_type -> proto.StreamPayload
-	2, // 5: proto.StreamService.Stream:output_type -> proto.StreamResponse
-	5, // [5:6] is the sub-list for method output_type
-	4, // [4:5] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	4, // 1: proto.StreamPayload.command_request:type_name -> proto.CommandRequest
+	5, // 2: proto.StreamPayload.command_response:type_name -> proto.CommandResponse
+	1, // 3: proto.StreamPayload.process:type_name -> proto.ProcessWrapper
+	4, // 4: proto.StreamResponse.command:type_name -> proto.CommandRequest
+	2, // 5: proto.StreamService.Stream:input_type -> proto.StreamPayload
+	3, // 6: proto.StreamService.Stream:output_type -> proto.StreamResponse
+	6, // [6:7] is the sub-list for method output_type
+	5, // [5:6] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_stream_proto_init() }
@@ -284,10 +350,11 @@ func file_stream_proto_init() {
 		return
 	}
 	file_command_proto_init()
-	file_stream_proto_msgTypes[1].OneofWrappers = []any{
+	file_stream_proto_msgTypes[2].OneofWrappers = []any{
 		(*StreamPayload_Metric)(nil),
 		(*StreamPayload_CommandRequest)(nil),
 		(*StreamPayload_CommandResponse)(nil),
+		(*StreamPayload_Process)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -295,7 +362,7 @@ func file_stream_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_stream_proto_rawDesc), len(file_stream_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
