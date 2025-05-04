@@ -152,6 +152,10 @@ func (v *VictoriaStore) QueryRange(metric string, start, end time.Time, step str
 	return points, nil
 }
 
+func (v *VictoriaStore) GetAllKnownMetricNames() []string {
+	return []string{}
+}
+
 func (v *VictoriaStore) QueryMultiInstant(metricNames []string, filters map[string]string) ([]model.MetricRow, error) {
 	//utils.Debug("Executing VictoriaStore.QueryMultiInstant")
 	if len(metricNames) == 0 {
@@ -343,11 +347,6 @@ func (v *VictoriaStore) QueryMultiRange(metrics []string, start, end time.Time, 
 	}
 
 	return rows, nil
-}
-
-// GetAllKnownMetricNames retrieves all known metric names from VictoriaMetrics.
-func (v *VictoriaStore) GetAllKnownMetricNames() []string {
-	return v.MetricIndex.GetAllMetricNames()
 }
 
 // FetchDimensionsForMetric queries VictoriaMetrics for a given metric and extracts dimension keys.

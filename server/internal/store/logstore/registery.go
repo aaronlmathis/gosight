@@ -18,8 +18,8 @@ func InitLogStore(ctx context.Context, cfg *config.Config) (LogStore, error) {
 	utils.Debug("InitLogStore selected engine: %s", engine)
 	switch engine {
 	case "file":
-		utils.Debug("Bootstrapping JSON File Store with %d workers", cfg.LogStore.Workers) // TODO give separate configs for workers
-		s := filestore.NewFileStore(ctx, cfg)
+		utils.Debug("Bootstrapping JSON File Store.")
+		s := filestore.New(cfg.LogStore.Dir)
 		utils.Debug("Returning JSON Filestore at: %p", s)
 		return s, nil
 	default:

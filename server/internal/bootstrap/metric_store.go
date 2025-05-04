@@ -46,7 +46,7 @@ func InitMetricIndex() (*metricindex.MetricIndex, error) {
 // InitMetricStore initializes the metric store for the GoSight agent.
 // The metric store is responsible for storing and retrieving metrics.
 func InitMetricStore(ctx context.Context, cfg *config.Config, metricIndex *metricindex.MetricIndex) (metricstore.MetricStore, error) {
-	engine := cfg.Storage.Engine
+	engine := cfg.MetricStore.Engine
 	utils.Info("Initializing metric store engine: %s", engine)
 
 	s, err := metricstore.InitStore(ctx, cfg, metricIndex)

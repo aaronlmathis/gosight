@@ -34,7 +34,7 @@ import (
 )
 
 type MetricStore interface {
-	Write(metrics []model.MetricPayload) error
+	Write(batch []model.MetricPayload) error
 	Close() error
 
 	QueryInstant(metric string, filters map[string]string) ([]model.MetricRow, error)

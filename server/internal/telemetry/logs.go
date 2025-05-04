@@ -55,12 +55,18 @@ func (h *LogsHandler) SubmitStream(stream pb.LogService_SubmitStreamServer) erro
 			// Check rulesrunser
 			h.Sys.Tele.Evaluator.EvaluateLogs(h.Sys.Ctx, converted.Logs, converted.Meta)
 
+			// Broadcast to hub.LogHub Websocket
 			h.Sys.WSHub.Logs.Broadcast(converted)
-			if err := h.Sys.Stores.Logs.Write([]model.LogPayload{converted}, stream.Context()); err != nil {
-				utils.Error("Failed to store logs from host %s: %v", converted.EndpointID, err)
+
+			// Write to BufferedLog store, fallback to writing to logstore directly.
+			if h.Sys.Buffers == nil || h.Sys.Buffers.Metrics == nil {
+				utils.Warn("[stream] Logs buffer not configured — writing directly to store")
+				// Fall back to writing directly to store
+				h.Sys.Stores.Logs.Write([]model.LogPayload{converted})
 			} else {
-				//utils.Debug("Stored %d logs from host: %s at %s", len(converted.Logs), converted.EndpointID, converted.Timestamp)
+				h.Sys.Buffers.Logs.WriteAny(converted)
 			}
+
 		})
 	}
 }

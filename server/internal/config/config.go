@@ -69,7 +69,7 @@ type Config struct {
 	} `yaml:"debug"`
 
 	// TODO - split up storage engine configs.
-	Storage struct {
+	MetricStore struct {
 		Engine        string `yaml:"engine"`
 		URL           string `yaml:"url"`
 		Workers       int    `yaml:"workers"`
@@ -78,7 +78,7 @@ type Config struct {
 		BatchTimeout  int    `yaml:"batch_timeout"`
 		BatchRetry    int    `yaml:"batch_retry"`
 		BatchInterval int    `yaml:"batch_interval"`
-	} `yaml:"storage"`
+	} `yaml:"metricstore"`
 
 	LogStore struct {
 		Engine        string `yaml:"engine"` // file, victoriametric etc
@@ -118,18 +118,20 @@ type Config struct {
 	RuleStore struct {
 		Engine string `yaml:"engine"` // "memory", "json", or "postgres"
 		Path   string `yaml:"path"`   // optional path for JSON file
-	}
+	} `yaml:"rulestore"`
 
 	RouteStore struct {
 		Path string `yaml:"path"` // path for YAML file
-	}
+	} `yaml:"routestore"`
+
+	BufferEngine BufferEngineConfig `yaml:"buffer_engine"`
 
 	Auth struct {
 		SSOEnabled bool         `yaml:"sso_enabled"`
 		MFASecret  string       `yaml:"mfa_secret_key"`
 		JWTSecret  string       `yaml:"jwt_secret"`
 		Google     GoogleConfig `yaml:"google"`
-	}
+	} `yaml:"auth"`
 }
 
 type GoogleConfig struct {

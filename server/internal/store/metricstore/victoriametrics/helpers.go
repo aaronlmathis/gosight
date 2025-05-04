@@ -30,15 +30,7 @@ import (
 	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
-	"github.com/aaronlmathis/gosight/shared/utils"
 )
-
-func (v *VictoriaStore) Close() error {
-	utils.Info("Waiting for VictoriaStore workers to finish...")
-	v.wg.Wait()
-	utils.Info("VictoriaStore shutdown complete")
-	return nil
-}
 
 func buildPrometheusFormat(batch []model.MetricPayload) string {
 	var sb strings.Builder

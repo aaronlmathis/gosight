@@ -36,24 +36,16 @@ import (
 )
 
 func InitStore(ctx context.Context, cfg *config.Config, metricIndex *metricindex.MetricIndex) (MetricStore, error) {
-	utils.Debug("InitMetricStore selected engine: %s", cfg.Storage.Engine)
-	switch cfg.Storage.Engine {
+
+	switch cfg.MetricStore.Engine {
 	case "victoriametrics":
-		utils.Debug("Bootstrapping VictoriaMetrics Store with %d workers", cfg.Storage.Workers)
-		s := victoriametricstore.NewVictoriaStore(
-			ctx,
-			cfg.Storage.URL,
-			cfg.Storage.Workers,
-			cfg.Storage.QueueSize,
-			cfg.Storage.BatchSize,
-			cfg.Storage.BatchTimeout,
-			cfg.Storage.BatchRetry,
-			cfg.Storage.BatchInterval,
-			metricIndex,
-		)
+		s, err := victoriametricstore.NewVictoriaStore(cfg.MetricStore.URL)
+		if err != nil {
+			return nil, err
+		}
 		utils.Debug("Returning VictoriaStoreMetrics store at: %p", s)
 		return s, nil
 	default:
-		return nil, fmt.Errorf("unsupported storage engine: %s", cfg.Storage.Engine)
+		return nil, fmt.Errorf("unsupported storage engine: %s", cfg.MetricStore.Engine)
 	}
 }

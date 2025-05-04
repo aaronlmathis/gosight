@@ -83,11 +83,11 @@ func (s *PGEventStore) GetRecentEvents(ctx context.Context, filter model.EventFi
 	if filter.HostID != "" {
 		q += " AND meta->>'host_id' = " + arg(filter.HostID)
 	}
-	if !filter.Start.IsZero() {
-		q += " AND timestamp >= " + arg(filter.Start)
+	if filter.Start != nil && !filter.Start.IsZero() {
+		q += " AND timestamp >= " + arg(*filter.Start)
 	}
-	if !filter.End.IsZero() {
-		q += " AND timestamp <= " + arg(filter.End)
+	if filter.End != nil && !filter.End.IsZero() {
+		q += " AND timestamp <= " + arg(*filter.End)
 	}
 
 	// Order and limit

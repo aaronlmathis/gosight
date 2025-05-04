@@ -60,7 +60,7 @@ func (s *HttpServer) HandleRecentLogs(w http.ResponseWriter, r *http.Request) {
 		Order: "desc",
 	}
 
-	logs, err := s.Sys.Stores.Logs.GetRecentLogs(r.Context(), filter)
+	logs, err := s.Sys.Stores.Logs.GetRecentLogs(filter)
 	if err != nil {
 		utils.Error("Failed to load logs: %v", err)
 		http.Error(w, "failed to load logs", http.StatusInternalServerError)
@@ -86,7 +86,7 @@ func (s *HttpServer) HandleRecentLogs(w http.ResponseWriter, r *http.Request) {
 func (s *HttpServer) HandleLogAPI(w http.ResponseWriter, r *http.Request) {
 	filter := parseLogFilterFromQuery(r)
 
-	logs, err := s.Sys.Stores.Logs.GetRecentLogs(r.Context(), filter)
+	logs, err := s.Sys.Stores.Logs.GetRecentLogs(filter)
 	if err != nil {
 		utils.Error("log query failed: %v", err)
 		http.Error(w, "log query failed", http.StatusInternalServerError)

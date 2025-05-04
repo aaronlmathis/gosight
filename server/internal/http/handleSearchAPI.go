@@ -123,7 +123,7 @@ func (s *HttpServer) HandleGlobalSearchAPI(w http.ResponseWriter, r *http.Reques
 		Limit: 100,
 	}
 	// === 4. Fetch Logs (recent messages) ===
-	logs, err := s.Sys.Stores.Logs.GetRecentLogs(r.Context(), filter) // Fetch last 100 logs
+	logs, err := s.Sys.Stores.Logs.GetRecentLogs(filter) // Fetch last 100 logs
 	if err == nil {
 		for _, log := range logs {
 			if strings.Contains(strings.ToLower(log.Message), term) {

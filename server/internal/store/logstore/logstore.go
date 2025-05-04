@@ -25,13 +25,12 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 package logstore
 
 import (
-	"context"
-
 	"github.com/aaronlmathis/gosight/shared/model"
 )
 
 type LogStore interface {
-	Write(metrics []model.LogPayload, streamContext context.Context) error
+	Name() string
+	Write(metrics []model.LogPayload) error
 	Close() error
-	GetRecentLogs(ctx context.Context, filter model.LogFilter) ([]model.LogEntry, error)
+	GetRecentLogs(filter model.LogFilter) ([]model.LogEntry, error)
 }

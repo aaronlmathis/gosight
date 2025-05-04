@@ -138,7 +138,7 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 		actionStore,
 		alertStore,
 	)
-
+	buffers := InitBufferEngine(ctx, &cfg.BufferEngine, stores)
 	// Build telemetry
 	telemetry := sys.NewTelemetryModule(
 		metricIndex,
@@ -161,6 +161,7 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 		stores,
 		telemetry,
 		cache,
+		buffers,
 	)
 
 	return sys, nil

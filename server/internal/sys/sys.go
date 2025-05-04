@@ -43,6 +43,7 @@ type SystemContext struct {
 	Stores  *StoreModule
 	Tele    *TelemetryModule
 	Cache   *cache.Cache
+	Buffers *BufferModule
 }
 
 func NewSystemContext(
@@ -54,6 +55,8 @@ func NewSystemContext(
 	stores *StoreModule,
 	telemetry *TelemetryModule,
 	cache *cache.Cache,
+	buffers *BufferModule,
+
 ) *SystemContext {
 	return &SystemContext{
 		Ctx:     ctx,
@@ -64,5 +67,6 @@ func NewSystemContext(
 		Stores:  stores,
 		Tele:    telemetry,
 		Cache:   cache,
+		Buffers: buffers,
 	}
 }

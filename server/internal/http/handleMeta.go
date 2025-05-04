@@ -358,7 +358,7 @@ func (s *HttpServer) HandleExportQuery(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build final URL
-	exportURL := fmt.Sprintf("%s?%s", s.Sys.Cfg.Storage.URL+"/api/v1/export", params.Encode())
+	exportURL := fmt.Sprintf("%s?%s", s.Sys.Cfg.MetricStore.URL+"/api/v1/export", params.Encode())
 
 	resp, err := http.Get(exportURL)
 	if err != nil {

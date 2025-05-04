@@ -2,7 +2,6 @@ package filestore
 
 import (
 	"compress/gzip"
-	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -12,8 +11,8 @@ import (
 	"github.com/aaronlmathis/gosight/shared/model"
 )
 
-func (v *FileStore) GetRecentLogs(ctx context.Context, filter model.LogFilter) ([]model.LogEntry, error) {
-	files, err := filepath.Glob(filepath.Join(v.Dir, "*.json.gz"))
+func (v *FileStore) GetRecentLogs(filter model.LogFilter) ([]model.LogEntry, error) {
+	files, err := filepath.Glob(filepath.Join(v.dir, "*.json.gz"))
 	if err != nil {
 		return nil, err
 	}

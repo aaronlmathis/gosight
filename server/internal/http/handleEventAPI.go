@@ -37,6 +37,8 @@ func (s *HttpServer) HandleEventsAPI(w http.ResponseWriter, r *http.Request) {
 		if n, err := strconv.Atoi(limit); err == nil {
 			filter.Limit = n
 		}
+	} else {
+		filter.Limit = 100
 	}
 	if v := q.Get("level"); v != "" {
 		filter.Level = v
