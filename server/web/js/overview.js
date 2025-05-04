@@ -34,6 +34,7 @@ async function renderMiniCharts() {
 
 function createMiniApexChart(elementId, color, label) {
     const options = {
+        chartLabel: label,
         dataLabels: {
             enabled: false,
         },
@@ -66,7 +67,8 @@ function createMiniApexChart(elementId, color, label) {
         },
         tooltip: {
             x: { format: "HH:mm:ss" },
-            y: { formatter: val => `${val.toFixed(1)}%` }
+            custom: generateProcessTooltip(label.toLowerCase().includes("memory")),
+            cssClass: "custom-process-tooltip"     // key to override styles
         },
         grid: { borderColor: "#e0e0e0", strokeDashArray: 4 }
     };
@@ -75,6 +77,73 @@ function createMiniApexChart(elementId, color, label) {
     return chart;
 }
 
+function generateProcessTooltip(isMem) {
+    return function ({ series, seriesIndex, dataPointIndex, w }) {
+        const labelKey = isMem ? "mem_percent" : "cpu_percent";
+        const point = w.config.series[seriesIndex].data[dataPointIndex];
+        if (!point || !point.x) return "";
+
+        const hoverTime = point.x;
+        const snapshot = findClosestSnapshot(hoverTime);
+        if (!snapshot || !snapshot.processes) return "No process data";
+
+        const rows = snapshot.processes
+            .sort((a, b) => b[labelKey] - a[labelKey])
+            .slice(0, 5)
+            .map(p => {
+                const full = p.cmdline || p.executable || "(?)";
+                const short = truncateCmd(full, 50);
+                const value = p[labelKey].toFixed(1);
+                return `
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+              <td style="padding:4px 6px; font-size:11px; color:#6b7280;">${p.pid}</td>
+              <td title="${full}" style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:4px 6px; font-size:11px;">
+                ${short}
+              </td>
+              <td style="text-align:right; padding:4px 6px; font-weight:500; font-size:11px; color:${isMem ? '#10b981' : '#3b82f6'};">${value}%</td>
+            </tr>`;
+            }).join("");
+
+        return `
+        <div>
+          <div style="font-weight: 600; font-size: 12px; margin-bottom: 6px;">
+            Top Processes (${isMem ? "Memory" : "CPU"})
+          </div>
+          <table style="width:100%; border-collapse:collapse;">
+            <thead>
+              <tr style="text-align:left; font-size: 11px; color:#9ca3af;">
+                <th style="padding: 4px 6px;">PID</th>
+                <th style="padding: 4px 6px;">Command</th>
+                <th style="padding: 4px 6px; text-align:right;">Usage</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </div>`;
+    };
+}
+function truncateCmd(cmd, max = 40) {
+    if (!cmd) return "(?)";
+    return cmd.length > max ? cmd.slice(0, max - 1) + "…" : cmd;
+}
+function findClosestSnapshot(ts) {
+    let closest = null;
+    let minDiff = Infinity;
+    for (const snap of processHistory) {
+        const diff = Math.abs(snap.timestamp - ts);
+        if (diff < minDiff) {
+            closest = snap;
+            minDiff = diff;
+        }
+    }
+    return closest;
+}
+
+function labelToKey(label) {
+    return label.toLowerCase().includes("memory") ? "mem_percent" : "cpu_percent";
+}
 function appendMiniPoint(chart, timestamp, val) {
     if (!chart || !chart.w || !chart.w.config) return;
 
@@ -458,7 +527,54 @@ function updateContainerTable(payload) {
         tbody.appendChild(row);
     }
 }
+const processHistory = []; // stores { timestamp: ms, processes: [] }
+window.addEventListener("process", (e) => {
 
+    const ts = new Date(e.detail.timestamp).getTime();
+    processHistory.push({ timestamp: ts, processes: e.detail.processes });
+
+    // keep 30 minutes max
+    const cutoff = Date.now() - 30 * 60 * 1000;
+    while (processHistory.length > 0 && processHistory[0].timestamp < cutoff) {
+        processHistory.shift();
+    }
+
+    const processes = e.detail.processes || [];
+
+    // Top 5 by CPU %
+    const topCPU = [...processes]
+        .sort((a, b) => b.cpu_percent - a.cpu_percent)
+        .slice(0, 5);
+
+    // Top 5 by Memory %
+    const topMem = [...processes]
+        .sort((a, b) => b.mem_percent - a.mem_percent)
+        .slice(0, 5);
+
+    renderProcessTable("cpu-table", topCPU, "cpu_percent");
+    renderProcessTable("mem-table", topMem, "mem_percent");
+});
+
+function renderProcessTable(tableId, processes, key) {
+    const tbody = document.querySelector(`#${tableId} tbody`);
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    for (const proc of processes) {
+        const row = document.createElement("tr");
+        row.className = "hover:bg-gray-50 dark:hover:bg-gray-700";
+
+        const value = proc[key] != null ? proc[key].toFixed(1) : "--";
+
+        row.innerHTML = `
+        <td class="px-4 py-2">${proc.pid}</td>
+        <td class="px-4 py-2">${proc.user}</td>
+        <td class="px-4 py-2">${value}</td>
+        <td class="px-4 py-2 truncate max-w-xs" title="${proc.cmdline}">${proc.cmdline}</td>
+      `;
+        tbody.appendChild(row);
+    }
+}
 
 //
 // Initialization
@@ -468,6 +584,7 @@ async function initOverviewTab() {
     await renderMiniCharts();
     await fetchRecentLogs();
     setupContainerFilters();
+
 }
 
 

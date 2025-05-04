@@ -1,4 +1,5 @@
-import { initTabs } from 'flowbite';
+import { gosightFetch } from "./api.js";
+
 
 document.addEventListener("DOMContentLoaded", () => {
   loadActiveAlerts();
@@ -17,11 +18,11 @@ async function loadActiveAlerts() {
   const state = document.getElementById("filter-state")?.value;
   const level = document.getElementById("filter-level")?.value;
 
-  let url = "/api/v1/alerts?state=ALARM&limit=1000";
+  let url = "/api/v1/alerts?state=firing&limit=1000";
   if (state) url += `&state=${state}`;
   if (level) url += `&level=${level}`;
 
-  const res = await fetch(url);
+  const res = await gosightFetch(url);
   const data = await res.json();
 
   const filtered = data.filter(a => {
@@ -33,15 +34,16 @@ async function loadActiveAlerts() {
 
   for (const alert of filtered) {
     const row = document.createElement("tr");
-    row.className = "hover:bg-blue-50 dark:hover:bg-gray-800 alert-row border-b border-gray-100 dark:border-gray-800";
+    row.className = "alert-row transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 border-t border-gray-200 dark:border-gray-700 cursor-pointer";
 
     row.innerHTML = `
       <td class="px-4 py-2">${alert.rule_id}</td>
-      <td class="px-4 py-2">${alert.state}</td>
-      <td class="px-4 py-2 capitalize">${alert.level}</td>
+      <td class="px-4 py-2">${badge(alert.state)}</td> <!-- State Badge -->
+      <td class="px-4 py-2 capitalize">${getSeverityBadge(alert.level)}</td> <!-- Severity Badge -->
       <td class="px-4 py-2">${alert.scope || '-'}</td>
       <td class="px-4 py-2">${alert.target || '-'}</td>
-      <td class="px-4 py-2">${alert.fired_at}</td>
+      <td class="px-4 py-2">${formatDate(alert.first_fired)}</td>
+      <td class="px-4 py-2">${formatDate(alert.last_ok)}</td>
       <td class="px-4 py-2">
         <button class="text-sm text-blue-600 dark:text-blue-400 hover:underline" data-alert-id="${alert.id}">Expand</button>
       </td>
@@ -102,11 +104,46 @@ async function loadActiveAlerts() {
   }
 }
 
+// Badge for alert state (firing, resolved, etc.)
+function badge(state) {
+  switch (state) {
+    case "firing":
+      return `<span class="bg-red-500 text-white py-1 px-3 rounded text-xs">Firing</span>`;
+    case "resolved":
+      return `<span class="bg-green-500 text-white py-1 px-3 rounded text-xs">Resolved</span>`;
+    case "no_data":
+      return `<span class="bg-gray-400 text-white py-1 px-3 rounded text-xs">No Data</span>`;
+    default:
+      return `<span class="bg-yellow-500 text-white py-1 px-3 rounded text-xs">Active</span>`;
+  }
+}
+
+// Badge for severity (critical, warning, etc.)
+function getSeverityBadge(level) {
+  switch (level) {
+    case "error":
+      return `<span class="bg-red-600 text-white py-1 px-3 rounded text-xs">Critical</span>`;
+    case "warning":
+      return `<span class="bg-yellow-500 text-white py-1 px-3 rounded text-xs">Warning</span>`;
+    case "info":
+      return `<span class="bg-blue-500 text-white py-1 px-3 rounded text-xs">Info</span>`;
+    default:
+      return `<span class="bg-gray-500 text-white py-1 px-3 rounded text-xs">Unknown</span>`;
+  }
+}
+
+// Function to format dates properly
+function formatDate(dateStr) {
+  const date = new Date(dateStr);
+  return date.toLocaleString(); // Custom formatting as per your need
+}
+
+// Function to fetch logs and events for the alert
 async function fetchIncidentContext(alertId) {
   const logsEl = document.getElementById(`logs-${alertId}`);
   const eventsEl = document.getElementById(`events-${alertId}`);
 
-  const res = await fetch(`/api/v1/alerts/${alertId}/context`);
+  const res = await gosightFetch(`/api/v1/alerts/${alertId}/context`);
   const { logs, events } = await res.json();
 
   logsEl.innerHTML = logs.length
@@ -119,3 +156,4 @@ async function fetchIncidentContext(alertId) {
 
   initTabs(); // re-initialize Flowbite tab logic
 }
+

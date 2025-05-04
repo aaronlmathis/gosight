@@ -58,11 +58,11 @@
     <div
       class="p-4 sm:p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm flex flex-col h-64">
       <div class="flex justify-between items-center mb-2">
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Live Logs</h3>
+        <h3 class="text-md font-semibold text-gray-800 dark:text-white mb-2">Live Logs</h3>
         <span class="text-xs text-gray-500 dark:text-gray-400">Last 10 entries</span>
       </div>
       <div id="log-stream"
-        class="overflow-y-auto break-words whitespace-pre-wrap text-sm font-mono bg-white dark:bg-gray-800 rounded p-3 w-full h-40 space-y-1">
+        class="overflow-y-auto break-words whitespace-pre-wrap text-sm font-mono bg-white dark:bg-gray-800 rounded p-3 w-full h-80 space-y-1">
         <!-- Logs go here -->
       </div>
     </div>
@@ -71,6 +71,43 @@
 
 
   <div class="mt-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div
+        class="p-4 sm:p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm">
+        <h3 class="text-md font-semibold text-gray-800 dark:text-white mb-2">Top 5 Running Processes by CPU</h3>
+        <div class="overflow-x-auto">
+          <table id="cpu-table" class="w-full text-sm text-left text-gray-700 dark:text-gray-200">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-300">
+              <tr>
+                <th scope="col" class="px-4 py-2">PID</th>
+                <th scope="col" class="px-4 py-2">User</th>
+                <th scope="col" class="px-4 py-2">CPU %</th>
+                <th scope="col" class="px-4 py-2">Cmdline</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+          </table>
+        </div>
+      </div>
+    
+      <div
+        class="p-4 sm:p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm">
+        <h3 class="text-md font-semibold text-gray-800 dark:text-white mb-2">Top 5 Running Processes by Memory</h3>
+        <div class="overflow-x-auto">
+          <table id="mem-table" class="w-full text-sm text-left text-gray-700 dark:text-gray-200">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-300">
+              <tr>
+                <th scope="col" class="px-4 py-2">PID</th>
+                <th scope="col" class="px-4 py-2">User</th>
+                <th scope="col" class="px-4 py-2">MEM %</th>
+                <th scope="col" class="px-4 py-2">Cmdline</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
     <div class="p-4 sm:p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-lg font-semibold">Container Endpoints</h2>

@@ -39,6 +39,21 @@ let swapTotalBytes = 0;
 let memoryTotal = null;
 let memoryAvailable = null;
 
+let latestProcessSnapshots = [];
+
+function findClosestSnapshot(ts) {
+    return latestProcessSnapshots.find(s => Math.abs(new Date(s.timestamp).getTime() - ts) < 15000);
+}
+
+function truncateCmd(cmd, max = 50) {
+    return cmd.length > max ? cmd.slice(0, max - 3) + "..." : cmd;
+}
+
+window.addEventListener("process", ({ detail }) => {
+    latestProcessSnapshots.unshift(detail);
+    if (latestProcessSnapshots.length > 30) latestProcessSnapshots.pop();
+});
+
 
 function updateCpuActivityChart(metrics) {
     const current = {};
@@ -417,10 +432,63 @@ function waitForElement(id, callback) {
         setTimeout(() => waitForElement(id, callback), 100);
     }
 }
+function generateProcessTooltip(isMem) {
+    return function ({ series, seriesIndex, dataPointIndex, w }) {
+        const labelKey = isMem ? "mem_percent" : "cpu_percent";
+        const point = w.config.series[seriesIndex].data[dataPointIndex];
+        if (!point || !point.x) return "";
 
+        const hoverTime = point.x;
+        const snapshot = findClosestSnapshot(hoverTime);
+        if (!snapshot || !snapshot.processes) return "No process data";
+
+        const rows = snapshot.processes
+            .sort((a, b) => b[labelKey] - a[labelKey])
+            .slice(0, 5)
+            .map(p => {
+                const full = p.cmdline || p.executable || "(?)";
+                const short = truncateCmd(full, 50);
+                const value = p[labelKey].toFixed(1);
+                return `
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+              <td style="padding:4px 6px; font-size:11px; color:#6b7280;">${p.pid}</td>
+              <td title="${full}" style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:4px 6px; font-size:11px;">
+                ${short}
+              </td>
+              <td style="text-align:right; padding:4px 6px; font-weight:500; font-size:11px; color:${isMem ? '#10b981' : '#3b82f6'};">${value}%</td>
+            </tr>`;
+            }).join("");
+
+        return `
+        <div>
+          <div style="font-weight: 600; font-size: 12px; margin-bottom: 6px;">
+            Top Processes (${isMem ? "Memory" : "CPU"})
+          </div>
+          <table style="width:100%; border-collapse:collapse;">
+            <thead>
+              <tr style="text-align:left; font-size: 11px; color:#9ca3af;">
+                <th style="padding: 4px 6px;">PID</th>
+                <th style="padding: 4px 6px;">Command</th>
+                <th style="padding: 4px 6px; text-align:right;">Usage</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </div>`;
+    };
+}
 function initComputeCharts() {
     waitForElement("cpuUsageChart", () => {
         cpuUsageChart = createApexAreaChart("cpuUsageChart", "CPU Usage %", ["Usage"]);
+        cpuUsageChart.updateOptions({
+            tooltip: {
+                x: { format: "HH:mm:ss" },
+                custom: generateProcessTooltip(false),
+                cssClass: "custom-process-tooltip"
+            }
+        });
     });
 
     waitForElement("cpuLoadChart", () => {
@@ -515,6 +583,13 @@ function initComputeCharts() {
 
     waitForElement("memoryUsageChart", () => {
         memoryUsageChart = createApexAreaChart("memoryUsageChart", "Memory Usage %", ["Used"]);
+        memoryUsageChart.updateOptions({
+            tooltip: {
+                x: { format: "HH:mm:ss" },
+                custom: generateProcessTooltip(true),
+                cssClass: "custom-process-tooltip"
+            }
+        });
     });
 
     waitForElement("swapUsageChart", () => {

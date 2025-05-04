@@ -1,13 +1,13 @@
 // ws.js
 //
-// Handles WebSocket connections to metrics, logs, events, and alerts streams
+// Handles WebSocket connections to metrics, process, events, and alerts streams
 // for the GoSight dashboard.
 
 // === Global WebSocket references ===
 export let metricsSocket = null;
 export let logsSocket = null;
 export let eventsSocket = null;
-
+export let processSocket = null;
 export let commandSocket = null;
 
 
@@ -15,7 +15,7 @@ export let commandSocket = null;
 let metricsBadge = document.getElementById("metrics-ws-status");
 let logsBadge = document.getElementById("logs-ws-status");
 let eventsBadge = document.getElementById("events-ws-status");
-let alertsBadge = document.getElementById("alerts-ws-status");
+let processBadge = document.getElementById("alerts-ws-status");
 let commandBadge = document.getElementById("command-ws-status");
 
 // === Connection logic per socket ===
@@ -94,6 +94,26 @@ function connectEventsSocket() {
     });
 }
 
+function connectProcessSocket() {
+    console.log("Subscribing to endpointID:", window.endpointID);
+    processSocket = new WebSocket(`wss://${location.host}/ws/process?endpointID=${encodeURIComponent(window.endpointID)}`);
+
+    processSocket.addEventListener("open", () => updateWsStatus(processBadge, true));
+    processSocket.addEventListener("close", () => updateWsStatus(processBadge, false));
+    processSocket.addEventListener("error", (e) => console.error("Processes WebSocket error:", e));
+
+    processSocket.addEventListener("message", (event) => {
+        if (!event.data || event.data === "ping") return; // ignore dummy pings
+        try {
+            const payload = JSON.parse(event.data);
+            console.log("Received process data:", payload);
+            window.dispatchEvent(new CustomEvent("process", { detail: payload }));
+        } catch (err) {
+            console.error("Failed to parse process WS JSON:", err);
+        }
+    });
+}
+
 
 
 // === Badge updater helper ===
@@ -112,5 +132,5 @@ export function initWebSockets(endpointID) {
     connectCommandSocket();
     connectLogsSocket();
     connectEventsSocket();
-    connectAlertsSocket();
+    connectProcessSocket();
 }
