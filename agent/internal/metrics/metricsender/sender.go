@@ -185,8 +185,8 @@ func (s *MetricSender) receiveResponses() {
 			}
 		}
 
-		utils.Debug("Received StreamResponse: status=%s", resp.Status)
-		utils.Debug("Response Payload: %v", resp)
+		//utils.Debug("Received StreamResponse: status=%s", resp.Status)
+		//utils.Debug("Response Payload: %v", resp)
 		if resp.Command != nil {
 			utils.Info("Received CommandRequest: type=%s command=%s", resp.Command.CommandType, resp.Command.Command)
 			result := command.HandleCommand(s.ctx, resp.Command)
