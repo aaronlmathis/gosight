@@ -36,10 +36,15 @@ import (
 	"github.com/shirou/gopsutil/v4/load"
 )
 
-type CPUCollector struct{}
+type CPUCollector struct{
+	interval time.Duration
+}
 
-func NewCPUCollector() *CPUCollector {
-	return &CPUCollector{}
+func NewCPUCollector(interval time.Duration) *CPUCollector {
+	if interval <= 0 { 
+		interval = 2 * time.Second 
+	}
+	return &CPUCollector{interval: interval}
 }
 
 func (c *CPUCollector) Name() string {
@@ -51,7 +56,7 @@ func (c *CPUCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	now := time.Now()
 
 	// Per-core usage
-	if percentPerCore, err := cpu.PercentWithContext(ctx, 200*time.Millisecond, true); err == nil {
+	if percentPerCore, err := cpu.PercentWithContext(ctx, c.interval, true); err == nil {
 		for i, val := range percentPerCore {
 			metrics = append(metrics, model.Metric{
 				Namespace:    "System",
@@ -70,7 +75,7 @@ func (c *CPUCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	}
 
 	// Total CPU usage
-	if percentTotal, err := cpu.PercentWithContext(ctx, 200*time.Millisecond, false); err == nil && len(percentTotal) > 0 {
+	if percentTotal, err := cpu.PercentWithContext(ctx, c.interval, false); err == nil && len(percentTotal) > 0 {
 		metrics = append(metrics, model.Metric{
 			Namespace:    "System",
 			SubNamespace: "CPU",

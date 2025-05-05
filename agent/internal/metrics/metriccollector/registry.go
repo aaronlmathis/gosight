@@ -46,7 +46,7 @@ func NewRegistry(cfg *config.Config) *MetricRegistry {
 	for _, name := range cfg.Agent.MetricsEnabled {
 		switch name {
 		case "cpu":
-			reg.Collectors["cpu"] = system.NewCPUCollector()
+			reg.Collectors["cpu"] = system.NewCPUCollector(cfg.Agent.Interval)
 		case "mem":
 			reg.Collectors["mem"] = system.NewMemCollector()
 		case "disk":
