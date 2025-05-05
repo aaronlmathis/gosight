@@ -25,6 +25,7 @@ package processcollector
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"github.com/shirou/gopsutil/v4/process"
@@ -32,17 +33,15 @@ import (
 	"github.com/aaronlmathis/gosight/shared/model"
 )
 
+const topN = 20
+
 // Collector captures running processes
 func CollectProcesses(ctx context.Context) (*model.ProcessSnapshot, error) {
 	procs, err := process.ProcessesWithContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-
-	snapshot := &model.ProcessSnapshot{
-		Timestamp: time.Now(),
-		Processes: make([]model.ProcessInfo, 0, len(procs)),
-	}
+	all := make([]model.ProcessInfo, 0, len(procs))
 
 	for _, p := range procs {
 		info := model.ProcessInfo{PID: int(p.Pid)}
@@ -71,9 +70,47 @@ func CollectProcesses(ctx context.Context) (*model.ProcessSnapshot, error) {
 		if start, err := p.CreateTimeWithContext(ctx); err == nil {
 			info.StartTime = time.UnixMilli(start)
 		}
+		all = append(all, info)
 
-		snapshot.Processes = append(snapshot.Processes, info)
 	}
 
-	return snapshot, nil
+	// Sort by CPU to get top 20
+	byCPU := make([]model.ProcessInfo, len(all))
+	copy(byCPU, all)
+
+	sort.SliceStable(byCPU, func(i, j int) bool {
+		return byCPU[i].CPUPercent > byCPU[j].CPUPercent
+	})
+
+	// Sort by MEM to get top 20
+	byMem := make([]model.ProcessInfo, len(all))
+	copy(byMem, all)
+
+	sort.SliceStable(byMem, func(i, j int) bool {
+		return byMem[i].MemPercent > byMem[j].MemPercent
+	})
+
+	// Merge and dedpulicate
+
+	selected := make(map[int]model.ProcessInfo)
+
+	for i := 0; i < len(byCPU) && len(selected) < topN*2; i++ {
+		p := byCPU[i]
+		selected[p.PID] = p
+	}
+	for i := 0; i < len(byMem) && len(selected) < topN*2; i++ {
+		p := byMem[i]
+		selected[p.PID] = p
+	}
+
+	final := make([]model.ProcessInfo, 0, len(selected))
+	for _, p := range selected {
+		final = append(final, p)
+	}
+
+	return &model.ProcessSnapshot{
+		Timestamp: time.Now(),
+		Processes: final,
+	}, nil
+
 }

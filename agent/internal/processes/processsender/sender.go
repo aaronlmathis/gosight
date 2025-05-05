@@ -35,6 +35,7 @@ import (
 	"github.com/aaronlmathis/gosight/agent/internal/protohelper"
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/proto"
+	"github.com/aaronlmathis/gosight/shared/utils"
 	goproto "google.golang.org/protobuf/proto"
 
 	"google.golang.org/grpc"
@@ -105,7 +106,7 @@ func (s *ProcessSender) SendSnapshot(payload *model.ProcessPayload) error {
 	if err != nil {
 		return fmt.Errorf("marshal ProcessPayload: %w", err)
 	}
-
+	utils.Debug("Sending ProcessPayload with %d processes", len(pb.Processes))
 	sp := &proto.StreamPayload{
 		Payload: &proto.StreamPayload_Process{
 			Process: &proto.ProcessWrapper{
