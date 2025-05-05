@@ -31,14 +31,24 @@ import (
 )
 
 type LogCollectionConfig struct {
+	Interval time.Duration `yaml:"interval"`
 	Sources    []string `yaml:"sources"`
 	Services   []string `yaml:"services"`
 	BatchSize  int      `yaml:"batch_size"`
 	BufferSize int      `yaml:"buffer_size"`
 	Workers    int      `yaml:"workers"`
 	MessageMax int      `yaml:"message_max"`
-	CursorFile string   `yaml:"cursor_file"`
-	LastCursor string   `yaml:"-"` // this field is set dynamically, not from YAML
+}
+
+type MetricCollectionConfig struct {
+	Interval   time.Duration `yaml:"interval"`
+	Sources    []string `yaml:"sources"`
+	Workers    int      `yaml:"workers"`
+}
+
+type ProcessCollectionConfig struct {
+	Interval time.Duration `yaml:"interval"`
+	Workers int      `yaml:"workers"`
 }
 
 type Config struct {
@@ -71,8 +81,11 @@ type Config struct {
 		ServerURL      string              `yaml:"server_url"`
 		Interval       time.Duration       `yaml:"interval"`
 		HostOverride   string              `yaml:"host"`
-		MetricsEnabled []string            `yaml:"metrics_enabled"`
+		
+		MetricCollection MetricCollectionConfig `yaml:"metric_collection"`
 		LogCollection  LogCollectionConfig `yaml:"log_collection"`
+		ProcessCollection ProcessCollectionConfig `yaml:"process_collection"`
+		
 		Environment    string              `yaml:"environment"`
 		AppLogFile     string              `yaml:"app_log_file"`
 		ErrorLogFile   string              `yaml:"error_log_file"`
@@ -112,10 +125,7 @@ func ApplyEnvOverrides(cfg *Config) {
 		cfg.Agent.HostOverride = val
 		fmt.Printf("Env override: GOSIGHT_HOST = %s\n", val)
 	}
-	if val := os.Getenv("GOSIGHT_METRICS"); val != "" {
-		cfg.Agent.MetricsEnabled = SplitCSV(val)
-		fmt.Printf("Env override: GOSIGHT_METRICS = %s\n", val)
-	}
+
 	if val := os.Getenv("GOSIGHT_ENVIRONMENT"); val != "" {
 		cfg.Agent.Environment = val
 		fmt.Printf("Env override: GOSIGHT_ENVIRONMENT = %s\n", val)

@@ -105,11 +105,6 @@ func (s *LogSender) SendLogs(payload *model.LogPayload) error {
 	}
 	utils.Debug("Marshaled LogPayload size = %d bytes", len(b))
 
-	if err := s.stream.Send(req); err != nil {
-		return fmt.Errorf("log stream send failed: %w", err)
-	}
-
-	utils.Debug("Streamed %d logs", len(pbLogs))
 	// Try sending
 	err = s.stream.Send(req)
 	if err != nil {

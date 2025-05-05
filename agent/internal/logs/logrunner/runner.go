@@ -79,10 +79,10 @@ func (r *LogRunner) Run(ctx context.Context) {
 		utils.Debug("Log sender worker pool stopped.")
 	}()
 
-	ticker := time.NewTicker(r.Config.Agent.Interval)
+	ticker := time.NewTicker(r.Config.Agent.LogCollection.Interval)
 	defer ticker.Stop()
 
-	utils.Info("Log Runner started. Collecting logs every %v", r.Config.Agent.Interval)
+	utils.Info("Log Runner started. Collecting logs every %v", r.Config.Agent.LogCollection.Interval)
 
 	// No need for the startTime throttling anymore unless specifically desired
 	// startTime := time.Now()

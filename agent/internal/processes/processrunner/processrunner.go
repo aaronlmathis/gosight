@@ -52,7 +52,12 @@ func NewRunner(ctx context.Context, cfg *config.Config, baseMeta *model.Meta) (*
 		Config:        cfg,
 		ProcessSender: sender,
 		Meta:          baseMeta,
+	
 	}, nil
+}
+
+func (r *ProcessRunner) SetDisconnectHandler(fn func()) {
+	r.ProcessSender.SetDisconnectHandler(fn)
 }
 
 func (r *ProcessRunner) Close() {
@@ -63,12 +68,12 @@ func (r *ProcessRunner) Close() {
 
 func (r *ProcessRunner) Run(ctx context.Context) {
 	taskQueue := make(chan *model.ProcessPayload, 100)
-	go r.ProcessSender.StartWorkerPool(ctx, taskQueue, 5)
+	go r.ProcessSender.StartWorkerPool(ctx, taskQueue, r.Config.Agent.ProcessCollection.Workers)
 
-	ticker := time.NewTicker(r.Config.Agent.Interval)
+	ticker := time.NewTicker(r.Config.Agent.ProcessCollection.Interval)
 	defer ticker.Stop()
 
-	utils.Info("ProcessRunner started. Collecting processes every %v", r.Config.Agent.Interval)
+	utils.Info("ProcessRunner started. Collecting processes every %v", r.Config.Agent.ProcessCollection.Interval)
 
 	for {
 		select {

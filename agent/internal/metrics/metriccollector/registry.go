@@ -43,10 +43,10 @@ type MetricRegistry struct {
 func NewRegistry(cfg *config.Config) *MetricRegistry {
 	reg := &MetricRegistry{Collectors: make(map[string]MetricCollector)}
 
-	for _, name := range cfg.Agent.MetricsEnabled {
+	for _, name := range cfg.Agent.MetricCollection.Sources {
 		switch name {
 		case "cpu":
-			reg.Collectors["cpu"] = system.NewCPUCollector(cfg.Agent.Interval)
+			reg.Collectors["cpu"] = system.NewCPUCollector(cfg.Agent.MetricCollection.Interval)
 		case "mem":
 			reg.Collectors["mem"] = system.NewMemCollector()
 		case "disk":

@@ -41,7 +41,7 @@ func (s *ProcessSender) StartWorkerPool(ctx context.Context, queue <-chan *model
 			defer s.wg.Done()
 			for {
 				select {
-				case <-ctx.Done():
+				case <-s.streamCtx.Done():
 					utils.Info("Process worker %d shutting down", id)
 					return
 				case payload := <-queue:

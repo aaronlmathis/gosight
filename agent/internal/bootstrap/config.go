@@ -40,7 +40,7 @@ func LoadAgentConfig() *config.Config {
 	serverURL := flag.String("server-url", "", "Override server URL")
 	interval := flag.Duration("interval", 0, "Override interval (e.g. 5s)")
 	host := flag.String("host", "", "Override hostname")
-	metrics := flag.String("metrics", "", "Comma-separated list of enabled metrics")
+
 	environment := flag.String("env", "", "Environment (dev, test, prod)")
 	logLevel := flag.String("log-level", "", "Log level (debug, info, warn, error)")
 	errorLogFile := flag.String("error_log", "", "Path to error log file")
@@ -77,9 +77,7 @@ func LoadAgentConfig() *config.Config {
 	if *environment != "" {
 		cfg.Agent.Environment = *environment
 	}
-	if *metrics != "" {
-		cfg.Agent.MetricsEnabled = config.SplitCSV(*metrics)
-	}
+
 	if *logLevel != "" {
 		cfg.Logs.LogLevel = *logLevel
 	}

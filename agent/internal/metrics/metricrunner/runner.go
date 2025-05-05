@@ -53,12 +53,12 @@ func (r *MetricRunner) Run(ctx context.Context) {
 	defer r.MetricSender.Close()
 
 	taskQueue := make(chan *model.MetricPayload, 500)
-	go r.MetricSender.StartWorkerPool(ctx, taskQueue, 10)
+	go r.MetricSender.StartWorkerPool(ctx, taskQueue, r.Config.Agent.MetricCollection.Workers)
 
-	ticker := time.NewTicker(r.Config.Agent.Interval)
+	ticker := time.NewTicker(r.Config.Agent.MetricCollection.Interval)
 	defer ticker.Stop()
 
-	utils.Info("MetricRunner started. Sending metrics every %v", r.Config.Agent.Interval)
+	utils.Info("MetricRunner started. Sending metrics every %v", r.Config.Agent.MetricCollection.Interval)
 
 	for {
 		select {

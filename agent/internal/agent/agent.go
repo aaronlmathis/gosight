@@ -27,7 +27,6 @@ package gosightagent
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/aaronlmathis/gosight/agent/internal/config"
 	grpcconn "github.com/aaronlmathis/gosight/agent/internal/grpc"
@@ -37,9 +36,7 @@ import (
 	metricrunner "github.com/aaronlmathis/gosight/agent/internal/metrics/metricrunner"
 	"github.com/aaronlmathis/gosight/agent/internal/processes/processrunner"
 	"github.com/aaronlmathis/gosight/shared/model"
-	"github.com/aaronlmathis/gosight/shared/proto"
 	"github.com/aaronlmathis/gosight/shared/utils"
-	"google.golang.org/grpc"
 )
 
 type Agent struct {
@@ -54,57 +51,20 @@ type Agent struct {
 }
 
 func NewAgent(ctx context.Context, cfg *config.Config, agentVersion string) (*Agent, error) {
+
+	// Retrieve (or set) the agent ID
 	agentID, err := agentidentity.LoadOrCreateAgentID()
 	if err != nil {
 		utils.Fatal("Failed to get agent ID: %v", err)
 	}
 
+	// Build base metadata for the agent and cache it in the Agent struct
 	baseMeta := meta.BuildMeta(cfg, nil, agentID, agentVersion)
 
-	backoff := 1 * time.Second
-	maxBackoff := 15 * time.Minute
-
-	var conn *grpc.ClientConn
-
-	for {
-		utils.Info("Attempting to connect to server at %s...", cfg.Agent.ServerURL)
-
-		conn, err = grpcconn.GetGRPCConn(ctx, cfg)
-		if err != nil {
-			utils.Warn("gRPC dial failed: %v", err)
-		} else {
-			// Validate stream can be established
-			client := proto.NewStreamServiceClient(conn)
-			streamCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-			_, streamErr := client.Stream(streamCtx)
-			cancel()
-
-			if streamErr == nil {
-				utils.Info("Successfully established gRPC connection and stream.")
-				break
-			}
-
-			utils.Warn("gRPC dial succeeded but stream failed: %v", streamErr)
-		}
-
-		utils.Warn("Retrying connection in %v...", backoff)
-		select {
-		case <-time.After(backoff):
-			backoff *= 2
-			if backoff > maxBackoff {
-				backoff = maxBackoff
-			}
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		}
-	}
-
-	// Now that connection is confirmed usable, initialize runners
 	metricRunner, err := metricrunner.NewRunner(ctx, cfg, baseMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create metric runner: %v", err)
 	}
-
 	logRunner, err := logrunner.NewRunner(ctx, cfg, baseMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create log runner: %v", err)
@@ -116,14 +76,14 @@ func NewAgent(ctx context.Context, cfg *config.Config, agentVersion string) (*Ag
 	}
 
 	return &Agent{
-		Ctx:          ctx,
-		Config:       cfg,
-		AgentID:      agentID,
-		AgentVersion: agentVersion,
-		MetricRunner: metricRunner,
-		LogRunner:    logRunner,
+		Ctx:           ctx,
+		Config:        cfg,
+		MetricRunner:  metricRunner,
+		AgentID:       agentID,
+		AgentVersion:  agentVersion,
+		LogRunner:     logRunner,
 		ProcessRunner: processRunner,
-		Meta:         baseMeta,
+		Meta:          baseMeta,
 	}, nil
 }
 
