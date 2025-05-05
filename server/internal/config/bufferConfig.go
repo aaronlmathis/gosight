@@ -33,6 +33,7 @@ type BufferEngineConfig struct {
 	MaxWorkers           int                `yaml:"max_workers"`
 	Metrics              MetricBufferConfig `yaml:"metrics"`
 	Logs                 LogBufferConfig    `yaml:"logs"`
+	Data                 DataBufferConfig   `yaml:"data"`
 	Events               EventBufferConfig  `yaml:"events"`
 	Alerts               AlertBufferConfig  `yaml:"alerts"`
 }
@@ -55,7 +56,15 @@ type LogBufferConfig struct {
 	RetryFailedFlush bool             `yaml:"retry_failed_flush"`
 	FallbackDisk     DiskBufferConfig `yaml:"fallback_disk"`
 }
-
+type DataBufferConfig struct {
+	Enabled           bool             `yaml:"enabled"`
+	BufferSize        int              `yaml:"buffer_size"`
+	FlushInterval     time.Duration    `yaml:"flush_interval"`
+	DropOnOverflow    bool             `yaml:"drop_on_overflow"`
+	RetryFailedFlush  bool             `yaml:"retry_failed_flush"`
+	FlushOnDisconnect bool             `yaml:"flush_on_disconnect"`
+	FallbackDisk      DiskBufferConfig `yaml:"fallback_disk"`
+}
 type EventBufferConfig struct {
 	Enabled          bool          `yaml:"enabled"`
 	BufferSize       int           `yaml:"buffer_size"`

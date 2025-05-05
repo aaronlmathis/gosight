@@ -89,3 +89,14 @@ func (t *EndpointTracker) HasLiveSession(agentID string) bool {
 	_, ok := t.sessions[agentID]
 	return ok
 }
+
+func (t *EndpointTracker) GetLiveAgentIDs() []string {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	ids := make([]string, 0, len(t.sessions))
+	for id := range t.sessions {
+		ids = append(ids, id)
+	}
+	return ids
+}

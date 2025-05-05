@@ -31,6 +31,14 @@ type CommandQueue struct {
 }
 
 func (t *EndpointTracker) EnqueueCommand(agentID string, cmd *proto.CommandRequest) bool {
+	if cmd == nil {
+		utils.Warn("Attempted to enqueue nil CommandRequest for agent %s — ignoring", agentID)
+		return false
+	}
+	if cmd.Command == "" && cmd.CommandType == "" {
+		utils.Warn("Attempted to enqueue empty CommandRequest for agent %s — ignoring", agentID)
+		return false
+	}
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -45,7 +53,7 @@ func (t *EndpointTracker) EnqueueCommand(agentID string, cmd *proto.CommandReque
 	}
 
 	q.Pending = append(q.Pending, cmd)
-	utils.Debug("✅ Enqueued command for %s (queue length: %d)", agentID, len(q.Pending))
+	utils.Debug("Enqueued command for %s (queue length: %d)", agentID, len(q.Pending))
 	return true
 }
 
@@ -60,5 +68,12 @@ func (t *EndpointTracker) DequeueCommand(agentID string) *proto.CommandRequest {
 
 	cmd := q.Pending[0]
 	q.Pending = q.Pending[1:]
+
+	// Harden: skip empty command structs
+	if cmd.Command == "" && cmd.CommandType == "" {
+		utils.Warn("Dequeued empty CommandRequest for agent %s — skipping", agentID)
+		return nil
+	}
+
 	return cmd
 }

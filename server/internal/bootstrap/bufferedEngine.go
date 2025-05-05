@@ -66,8 +66,13 @@ func InitBufferEngine(ctx context.Context, cfg *config.BufferEngineConfig, store
 		e.RegisterStore(logBuffer)
 	}
 
-	if cfg.Events.Enabled && stores.Events != nil {
-		// Implement event buffering if needed
+	if cfg.Data.Enabled && stores.Data != nil {
+		if cfg.Data.FlushInterval > 0 {
+			interval = cfg.Data.FlushInterval
+		}
+		dataBuffer := bufferengine.NewBufferedDataStore(ctx, "data", stores.Data, cfg.Logs.BufferSize, interval)
+		buffers.Data = dataBuffer
+		e.RegisterStore(dataBuffer)
 	}
 
 	if cfg.Alerts.Enabled && stores.Alerts != nil {

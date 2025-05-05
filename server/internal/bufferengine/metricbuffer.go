@@ -1,4 +1,4 @@
-// bufferengine/metric_buffer.go
+// bufferengine/metricbuffer.go
 package bufferengine
 
 import (
@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
-	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 type BufferedMetricStore struct {
@@ -72,7 +71,7 @@ func (b *BufferedMetricStore) flushLocked() error {
 	}
 	toFlush := b.buffer
 	b.buffer = make([]model.MetricPayload, 0, b.maxSize)
-	utils.Debug("Flushing %d metric payloads from buffer", len(toFlush))
+	//utils.Debug("Flushing %d metric payloads from buffer", len(toFlush))
 	return b.underlying.Write(toFlush)
 }
 

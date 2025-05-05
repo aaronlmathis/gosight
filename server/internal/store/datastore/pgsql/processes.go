@@ -29,7 +29,63 @@ import (
 	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
+
+// Write fullfills the interface in BufferedDataStore
+func (s *PGDataStore) Write(ctx context.Context, batches []*model.ProcessPayload) error {
+	if len(batches) == 0 {
+		return nil
+	}
+	return s.bulkInsertSnapshots(ctx, batches)
+}
+
+func (s *PGDataStore) bulkInsertSnapshots(ctx context.Context, batches []*model.ProcessPayload) error {
+	var (
+		args         []interface{}
+		placeholders []string
+	)
+
+	for i, snap := range batches {
+		metaJSON, err := json.Marshal(snap.Meta)
+		if err != nil {
+			utils.Warn("Failed to marshal metadata for snapshot from endpoint %s: %v", snap.EndpointID, err)
+			continue
+		}
+
+		idx := i * 6
+		placeholders = append(placeholders, fmt.Sprintf("($%d,$%d,$%d,$%d,$%d,$%d)",
+			idx+1, idx+2, idx+3, idx+4, idx+5, idx+6))
+
+		args = append(args,
+			snap.Timestamp,
+			snap.HostID,
+			snap.EndpointID,
+			snap.AgentID,
+			snap.Hostname,
+			metaJSON,
+		)
+	}
+
+	if len(args) == 0 {
+		utils.Warn("No valid process snapshots to insert")
+		return nil
+	}
+
+	query := `
+		INSERT INTO process_snapshots (timestamp, host_id, endpoint_id, agent_id, hostname, meta)
+		VALUES ` + strings.Join(placeholders, ",")
+
+	start := time.Now()
+	_, err := s.db.ExecContext(ctx, query, args...)
+	if err != nil {
+		utils.Error("Bulk insert of %d process snapshots failed: %v", len(batches), err)
+		return err
+	}
+
+	utils.Debug("Inserted %d process snapshots in %s", len(batches), time.Since(start))
+	return nil
+}
 
 // InsertFullProcessPayload inserts a complete process payload into the database,
 func (s *PGDataStore) InsertFullProcessPayload(ctx context.Context, payload *model.ProcessPayload) error {

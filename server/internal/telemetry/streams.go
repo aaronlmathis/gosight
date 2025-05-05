@@ -103,20 +103,20 @@ func (h *StreamHandler) Stream(stream pb.StreamService_StreamServer) error {
 
 				// Broadcast + store process payload
 
-				utils.Debug("📡 About to broadcast process payload for %s with %d processes", converted.EndpointID, len(converted.Processes))
 				h.Sys.WSHub.Processes.Broadcast(converted)
 
-				/*				Holding off on this for now, as it is simply too much to store this in the database.
+				// Write Process snapshots to the buffer datastore
 
-								if err := h.Sys.Stores.Processes.Write([]model.ProcessPayload{converted}); err != nil {
-								// Insert Process Snapshot and ProcessInfos into database.
-								if err := h.Sys.Stores.Data.InsertFullProcessPayload(stream.Context(), &converted); err != nil {
-									utils.Warn("Failed to store ProcessPayload: %v", err)
-									return
-								} else {
-									utils.Debug("Stored ProcessPayload from agent %s", converted.EndpointID)
-								}
-				*/
+				if err := h.Sys.Buffers.Data.WriteAny(converted); err != nil {
+					// Insert Process Snapshot and ProcessInfos into database.
+					if err := h.Sys.Stores.Data.InsertFullProcessPayload(stream.Context(), &converted); err != nil {
+						utils.Warn("Failed to store ProcessPayload: %v", err)
+						return
+					} else {
+						//utils.Debug("Stored ProcessPayload from agent %s", converted.EndpointID)
+					}
+				}
+
 			})
 		case *pb.StreamPayload_Metric:
 			// Handle MetricWrapper

@@ -38,3 +38,6 @@ tools/
 .vscode*
 configs/
 server/logstore
+*.bak
+*.old
+*.new

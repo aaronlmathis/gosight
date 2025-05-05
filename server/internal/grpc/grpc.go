@@ -172,3 +172,18 @@ func loadTLSConfig(cfg *config.Config) (*tls.Config, error) {
 
 	return tlsCfg, nil
 }
+
+// gracefulDisconnectAllAgents disconnects all agents by sending a `disconnect` command to each agent.
+
+func (g *GrpcServer) GracefulDisconnectAllAgents() {
+	liveSessions := g.Sys.Tracker.GetLiveAgentIDs()
+	utils.Info("Sending disconnect command to %d live agents", len(liveSessions))
+
+	for _, agentID := range liveSessions {
+		g.Sys.Tracker.EnqueueCommand(agentID, &proto.CommandRequest{
+			CommandType: "control",
+			Command:     "disconnect",
+		})
+	}
+
+}

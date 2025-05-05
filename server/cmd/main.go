@@ -92,7 +92,16 @@ func main() {
 	if err := srv.Shutdown(); err != nil {
 		utils.Warn("Failed to shutdown HTTP server: %v", err)
 	}
+	// Tell Agents to disconnect gracefully
+	grpcServer.GracefulDisconnectAllAgents()
+
+	// Flush all pending data before shutdown.
+
+	// Close GRPC gracefully.
+
 	grpcServer.Server.GracefulStop()
+	
+	// Disconnect from metric store, datastore, and userstore.
 	if err := sys.Stores.Metrics.Close(); err != nil {
 		utils.Warn("Failed to close metric store: %v", err)
 	}
@@ -102,4 +111,5 @@ func main() {
 	if err := sys.Stores.Users.Close(); err != nil {
 		utils.Warn("Failed to close userstore: %v", err)
 	}
+
 }

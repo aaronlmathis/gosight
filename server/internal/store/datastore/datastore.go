@@ -31,6 +31,9 @@ import (
 )
 
 type DataStore interface {
+	// Satisfy Buffered Data Store interface
+	Write(ctx context.Context, batches []*model.ProcessPayload) error
+
 	// Agent methods
 	UpsertAgent(ctx context.Context, agent *model.Agent) error
 	GetAgentByHostname(ctx context.Context, hostname string) (*model.Agent, error)
