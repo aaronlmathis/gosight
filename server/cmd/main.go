@@ -67,7 +67,7 @@ func main() {
 	srv := httpserver.NewServer(sys)
 
 	go func() {
-		if err := srv.Start(); err != nil {
+		if err = srv.Start(); err != nil {
 			utils.Fatal("HTTP server failed: %v", err)
 		} else {
 			utils.Info("HTTP server started successfully")
