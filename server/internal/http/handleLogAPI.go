@@ -60,7 +60,7 @@ func (s *HttpServer) HandleRecentLogs(w http.ResponseWriter, r *http.Request) {
 		Order: "desc",
 	}
 
-	logs, err := s.Sys.Stores.Logs.GetRecentLogs(filter)
+	logs, err := s.Sys.Stores.Logs.GetLogs(filter)
 	if err != nil {
 		utils.Error("Failed to load logs: %v", err)
 		http.Error(w, "failed to load logs", http.StatusInternalServerError)
@@ -82,19 +82,47 @@ func (s *HttpServer) HandleRecentLogs(w http.ResponseWriter, r *http.Request) {
 // parameters, with a maximum of 1000 logs. If the limit is not specified,
 // it defaults to 100 logs. The function also handles errors and returns
 // appropriate HTTP status codes and messages.
+type LogResponse struct {
+	Logs     []model.LogEntry `json:"logs"`
+	NextCursor string         `json:"next_cursor,omitempty"`
+	HasMore  bool             `json:"has_more"`
+	Count    int              `json:"count"`
+}
 
 func (s *HttpServer) HandleLogAPI(w http.ResponseWriter, r *http.Request) {
 	filter := parseLogFilterFromQuery(r)
 
-	logs, err := s.Sys.Stores.Logs.GetRecentLogs(filter)
+	// Ensure a sane default
+	if filter.Limit <= 0 || filter.Limit > 1000 {
+		filter.Limit = 100
+	}
+
+	logs, err := s.Sys.Stores.Logs.GetLogs(filter)
 	if err != nil {
 		utils.Error("log query failed: %v", err)
 		http.Error(w, "log query failed", http.StatusInternalServerError)
 		return
 	}
 
+	// Pagination logic (cursor-based)
+	var nextCursor string
+	hasMore := false
+	if len(logs) > filter.Limit {
+		hasMore = true
+		last := logs[filter.Limit-1]
+		nextCursor = last.Timestamp.Format(time.RFC3339Nano)
+		logs = logs[:filter.Limit] // trim to limit
+	}
+
+	resp := LogResponse{
+		Logs:      logs,
+		NextCursor: nextCursor,
+		HasMore:   hasMore,
+		Count:     len(logs),
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(logs)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 // parseLogQueryParams parses the query parameters from the HTTP request
@@ -108,30 +136,52 @@ func (s *HttpServer) HandleLogAPI(w http.ResponseWriter, r *http.Request) {
 func parseLogFilterFromQuery(r *http.Request) model.LogFilter {
 	q := r.URL.Query()
 
-	limit := 100
-	if l, err := strconv.Atoi(q.Get("limit")); err == nil && l > 0 {
-		if l > 1000 {
-			limit = 1000
-		} else {
-			limit = l
+	parseTime := func(key string) time.Time {
+		str := q.Get(key)
+		if str == "" {
+			return time.Time{}
 		}
+		t, err := time.Parse(time.RFC3339, str)
+		if err != nil {
+			return time.Time{}
+		}
+		return t
 	}
 
-	start := parseTime(q.Get("start"))
-	end := parseTime(q.Get("end"))
-
-	return model.LogFilter{
-		Start:      start,
-		End:        end,
-		EndpointID: q.Get("endpointID"),
-		Target:     q.Get("target"),
-		Level:      strings.ToLower(strings.TrimSpace(q.Get("level"))),
-		Category:   q.Get("unit"),
-		Source:     q.Get("source"),
-		Contains:   q.Get("keyword"),
-		Limit:      limit,
-		Order:      "desc",
+	parseInt := func(key string, def int) int {
+		val := q.Get(key)
+		if val == "" {
+			return def
+		}
+		if i, err := strconv.Atoi(val); err == nil {
+			return i
+		}
+		return def
 	}
+
+	filter := model.LogFilter{
+		Start:         parseTime("start"),
+		End:           parseTime("end"),
+		Cursor:        parseTime("cursor"),
+		Limit:         parseInt("limit", 100),
+		Order:         q.Get("order"), // "asc" or "desc"
+		EndpointID:    q.Get("endpoint_id"),
+		Target:        q.Get("target"),
+		Level:         q.Get("level"),
+		Category:      q.Get("category"),
+		Source:        q.Get("source"),
+		Contains:      q.Get("contains"),
+		Unit:          q.Get("unit"),
+		AppName:       q.Get("app_name"),
+		Service:       q.Get("service"),
+		EventID:       q.Get("event_id"),
+		User:          q.Get("user"),
+		ContainerID:   q.Get("container_id"),
+		ContainerName: q.Get("container_name"),
+		Platform:      q.Get("platform"),
+	}
+
+	return filter
 }
 
 func parseTime(s string) time.Time {
@@ -153,28 +203,53 @@ func parseTime(s string) time.Time {
 func matchesSearch(log model.LogEntry, keyword string) bool {
 	kw := strings.ToLower(keyword)
 
-	for k, v := range log.Meta.Extra {
-		// already safe because map, but good habit:
+	// Base fields
+	if strings.Contains(strings.ToLower(log.Message), kw) ||
+		strings.Contains(strings.ToLower(log.Source), kw) ||
+		strings.Contains(strings.ToLower(log.Category), kw) ||
+		strings.Contains(strings.ToLower(log.Level), kw) {
+		return true
+	}
+
+	// Log.Meta fields
+	if log.Meta != nil {
+		metaFields := []string{
+			log.Meta.Platform,
+			log.Meta.AppName,
+			log.Meta.AppVersion,
+			log.Meta.ContainerID,
+			log.Meta.ContainerName,
+			log.Meta.Unit,
+			log.Meta.Service,
+			log.Meta.EventID,
+			log.Meta.User,
+			log.Meta.Executable,
+			log.Meta.Path,
+		}
+		for _, f := range metaFields {
+			if strings.Contains(strings.ToLower(f), kw) {
+				return true
+			}
+		}
+
+		for k, v := range log.Meta.Extra {
+			if strings.Contains(strings.ToLower(k), kw) || strings.Contains(strings.ToLower(v), kw) {
+				return true
+			}
+		}
+	}
+
+	// Tags and Fields
+	for k, v := range log.Tags {
+		if strings.Contains(strings.ToLower(k), kw) || strings.Contains(strings.ToLower(v), kw) {
+			return true
+		}
+	}
+	for k, v := range log.Fields {
 		if strings.Contains(strings.ToLower(k), kw) || strings.Contains(strings.ToLower(v), kw) {
 			return true
 		}
 	}
 
-	return strings.Contains(strings.ToLower(log.Message), kw) ||
-		strings.Contains(strings.ToLower(log.Source), kw) ||
-		strings.Contains(strings.ToLower(log.Category), kw) ||
-		strings.Contains(strings.ToLower(log.Level), kw) ||
-
-		strings.Contains(strings.ToLower(log.Meta.Platform), kw) ||
-		strings.Contains(strings.ToLower(log.Meta.AppName), kw) ||
-		strings.Contains(strings.ToLower(log.Meta.AppVersion), kw) ||
-		strings.Contains(strings.ToLower(log.Meta.ContainerID), kw) ||
-		strings.Contains(strings.ToLower(log.Meta.ContainerName), kw) ||
-		strings.Contains(strings.ToLower(log.Meta.Unit), kw) ||
-		strings.Contains(strings.ToLower(log.Meta.Service), kw) ||
-		strings.Contains(strings.ToLower(log.Meta.EventID), kw) ||
-		strings.Contains(strings.ToLower(log.Meta.User), kw) ||
-		strings.Contains(strings.ToLower(log.Meta.Executable), kw) ||
-		strings.Contains(strings.ToLower(log.Meta.Path), kw)
-
+	return false
 }

@@ -9,6 +9,9 @@
         background-color: #1e293b;
         /* Tailwind's slate-800 for dark mode */
     }
+    tr.details-expanded {
+  transition: all 0.3s ease-in-out;
+}
 </style>
 <section class="p-4 space-y-6">
     <div class="mb-6">
@@ -16,112 +19,169 @@
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Create or view alerts on gosight metrics, logs, or
             events.</p>
     </div>
-    <div id="advanced-log-search"
-    class="mb-4 p-4 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm space-y-4">
-    <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100">Advanced Log Search</h3>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <!-- Advanced Log Search + Result Filters (Tailwind + Flowbite Compatible) -->
+    <form id="log-search-form" class="space-y-6">
 
-        <!-- Keyword -->
-        <div>
-            <label for="adv-keyword" class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Keyword</label>
-            <input type="text" id="adv-keyword" placeholder="Search messages, tags, metadata..."
-                class="w-full text-sm px-3 py-1.5 rounded border dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+        <!-- Search Panel -->
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Advanced Log Search</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Keyword</label>
+                    <input type="text" id="filter-keyword"
+                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Log Level</label>
+                    <select multiple id="filter-level"
+                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option value="error">Error</option>
+                        <option value="warning">Warning</option>
+                        <option value="info">Info</option>
+                        <option value="debug">Debug</option>
+                    </select>
+                </div>
+                <div>
+                <label class="block text-sm font-medium">Category</label>
+                <select multiple id="filter-category"
+                    class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <option value="system">System</option>
+                    <option value="application">Application</option>
+                    <option value="security">Security</option>
+                    <option value="performance">Performance</option>
+                    <option value="system">system</option>
+                    <option value="auth">auth</option>
+                    <option value="security">security</option>
+                    <option value="network">network</option>
+                    <option value="app">app</option>
+                    <option value="container">container</option>
+                    <option value="metric">metric</option>
+                    <option value="gosight">gosight</option>
+                    <option value="scheduler">scheduler</option>
+                    <option value="config">config</option>
+                    <option value="audit">audit</option>
+                    <option value="alert">alert</option>
+                </select>
+            </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Source</label>
+                    <input type="text" id="filter-source" placeholder="e.g. docker, systemd"
+                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Target</label>
+                    <input type="text" id="filter-source" placeholder="e.g. docker, systemd"
+                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Endpoint
+                        Name</label>
+                    <input type="text" id="endpoint-name"
+                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">App Name</label>
+                    <input type="text" id="app-name"
+                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm">
+                </div>
+
+                <div class="flex items-end gap-2">
+                    <div class="w-full">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Start
+                            Time</label>
+                        <input type="datetime-local" id="start-time"
+                            class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm">
+                    </div>
+                    <div class="w-full">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">End
+                            Time</label>
+                        <input type="datetime-local" id="end-time"
+                            class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tags Filter -->
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags</label>
+                <div id="tag-filters" class="flex flex-wrap gap-2">
+                    <!-- Example: -->
+
+            </div>
+
+            <!-- Search / Reset -->
+            <div class="mt-6 flex items-center justify-end gap-4">
+                <button
+                    class="text-sm px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-white bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
+                    id="reset-search">Reset</button>
+                <button class="text-sm px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+                    id="search-submit">Search</button>
+            </div>
         </div>
-
-        <!-- Level -->
-        <div>
-            <label for="adv-level" class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Level</label>
-            <select id="adv-level"
-                class="w-full text-sm px-3 py-1.5 rounded border dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-                <option value="">All Levels</option>
-                <option value="error">Error</option>
-                <option value="warn">Warn</option>
-                <option value="info">Info</option>
-                <option value="debug">Debug</option>
-                <option value="notice">Notice</option>
-            </select>
+    </form>
+    <!-- Result Table -->
+    <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+        <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <h3 class="text-md font-semibold text-gray-900 dark:text-white">Log Results</h3>
+            <div class="text-sm text-gray-500 dark:text-gray-400">Showing <span id="log-count">0</span> results</div>
         </div>
-
-        <!-- Source -->
-        <div>
-            <label for="adv-source" class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Source</label>
-            <input type="text" id="adv-source" placeholder="e.g. postgres-dev"
-                class="w-full text-sm px-3 py-1.5 rounded border dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+        <div class="overflow-x-auto">
+            <table class="min-w-full table-auto text-sm text-left text-gray-700 dark:text-gray-200">
+                <thead class="bg-gray-50 dark:bg-gray-800 text-xs uppercase text-gray-500 dark:text-gray-300">
+                    <tr>
+                        <th class="px-4 py-3">Time</th>
+                        <th class="px-4 py-3">Level</th>
+                        <th class="px-4 py-3">Source</th>
+                        <th class="px-4 py-3">Container</th>
+                        <th class="px-4 py-3">Message</th>
+                        <th class="px-4 py-3">User</th>
+                        <th class="px-4 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="log-results">
+                    <!-- JS-populated rows -->
+                </tbody>
+            </table>
+            <div id="log-details-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
+                <div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6">
+                  <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Log Details</h3>
+                    <button id="close-log-modal" class="text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 text-xl">&times;</button>
+                  </div>
+                  <pre id="log-details-body" class="text-sm text-gray-800 dark:text-gray-100 whitespace-pre-wrap font-mono"></pre>
+                </div>
+              </div>
+            <div class="flex justify-center mt-6">
+                <button id="load-more-logs"
+                    class="px-4 py-2 text-sm font-medium text-white bg-gray-800 rounded hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                    Load More Logs
+                </button>
+            </div>
         </div>
-
-        <!-- Start Date -->
-        <div>
-            <label for="adv-start" class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Start Time</label>
-            <input type="datetime-local" id="adv-start"
-                class="w-full text-sm px-3 py-1.5 rounded border dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-        </div>
-
-        <!-- End Date -->
-        <div>
-            <label for="adv-end" class="block text-sm text-gray-600 dark:text-gray-300 mb-1">End Time</label>
-            <input type="datetime-local" id="adv-end"
-                class="w-full text-sm px-3 py-1.5 rounded border dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-        </div>
-
-        <!-- Actions -->
-        <div class="flex items-end gap-2">
-            <button id="log-search-button"
-                class="text-sm px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-full">Search</button>
-            <button id="log-reset-button"
-                class="text-sm px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-700 w-full">Reset</button>
+        <div class="p-4 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
+            <div class="text-sm text-gray-500 dark:text-gray-400">Cursor: <span id="cursor-pos">-</span></div>
+            <div class="flex gap-2">
+                <button
+                    class="text-sm px-3 py-1 border border-gray-300 dark:border-gray-600 rounded bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    id="prev-page">Prev</button>
+                <button
+                    class="text-sm px-3 py-1 border border-gray-300 dark:border-gray-600 rounded bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    id="next-page">Next</button>
+            </div>
         </div>
     </div>
-    </div>
-
-
-    <div
-    class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4 space-y-4">
-    <!-- Controls -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Search Logs</h2>
-        <div class="flex flex-wrap gap-2 items-center">
-            <input id="logs-filter-search" type="text" placeholder="Search..."
-                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-
-            <select id="logs-filter-level"
-                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-                <option value="">All Levels</option>
-                <option value="error">Error</option>
-                <option value="warn">Warn</option>
-                <option value="info">Info</option>
-                <option value="debug">Debug</option>
-                <option value="notice">Notice</option>
-            </select>
-
-            <input type="date" id="logs-filter-start"
-                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-            <input type="date" id="logs-filter-end"
-                class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-            <button id="logs-export-csv" class="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
-                Export CSV
-            </button>
-            <button id="logs-refresh-button"
-                class="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">↻
-                Refresh</button>
-        </div>
-    </div>
-
-    <!-- Table -->
-    <div id="logs-table-container" class="overflow-x-auto">
 
     </div>
 
-    <!-- Pagination -->
-    <div class="flex justify-end items-center gap-2 pt-2">
-        <button id="logs-prev"
-            class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700">Previous</button>
-        <span id="logs-page-indicator" class="text-sm text-gray-500 dark:text-gray-400">Page 1 of 1</span>
-        <button id="logs-next"
-            class="text-sm px-3 py-1 rounded border dark:bg-gray-900 border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700">Next</button>
-    </div>
 </section>
 {{ end }}
 
 
 
-{{ define "page-scripts" }}{{ end }}
+{{ define "page-scripts" }}
+<script type="module" src="js/log-page.js"></script>
+{{ end }}

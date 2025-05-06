@@ -61,10 +61,11 @@ func (h *LogsHandler) SubmitStream(stream pb.LogService_SubmitStreamServer) erro
 		SafeHandlePayload(func() {
 			converted := ConvertToModelLogPayload(pbPayload)
 
-			// Enrich Meta.Tags with custom tags from datastore
+
+			// Tag enrichment from in-memory cache
 			if converted.Meta != nil && converted.Meta.EndpointID != "" {
-				tags, err := h.Sys.Stores.Data.GetTags(stream.Context(), converted.Meta.EndpointID)
-				if err == nil {
+				tags := h.Sys.Cache.Tags.GetFlattenedTagsForEndpoint(converted.Meta.EndpointID)
+				if len(tags) > 0 {
 					if converted.Meta.Tags == nil {
 						converted.Meta.Tags = make(map[string]string)
 					}
@@ -75,7 +76,6 @@ func (h *LogsHandler) SubmitStream(stream pb.LogService_SubmitStreamServer) erro
 					}
 				}
 			}
-
 			// Evaluate severity level of logs and act accordingly
 			h.EvaluateSeverityLevel(&converted)
 

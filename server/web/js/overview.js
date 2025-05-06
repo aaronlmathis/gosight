@@ -106,9 +106,14 @@ function generateProcessTooltip(isMem) {
 
         return `
         <div>
-          <div style="font-weight: 600; font-size: 12px; margin-bottom: 6px;">
-            Top Processes (${isMem ? "Memory" : "CPU"})
-          </div>
+<div class="flex justify-between items-center text-xs font-semibold mb-1">
+  <div>
+    Top Processes (${isMem ? "Memory" : "CPU"})
+  </div>
+  <div>
+Total Usage: ${isMem ? latestMemUsedPercent.toFixed(1) : latestCpuPercent.toFixed(1)}%
+  </div>
+</div>
           <table style="width:100%; border-collapse:collapse;">
             <thead>
               <tr style="text-align:left; font-size: 11px; color:#9ca3af;">
@@ -563,14 +568,14 @@ function renderProcessTable(tableId, processes, key) {
 
     for (const proc of processes) {
         const row = document.createElement("tr");
-        row.className = "hover:bg-gray-50 dark:hover:bg-gray-700";
+        row.className = "odd:bg-white even:bg-gray-50 dark:odd:bg-gray-900 dark:even:bg-gray-800";
 
         const value = proc[key] != null ? proc[key].toFixed(1) : "--";
 
         row.innerHTML = `
-        <td class="px-4 py-2">${proc.pid}</td>
+        <td class="px-4 py-2 text-center">${proc.pid}</td>
         <td class="px-4 py-2">${proc.user}</td>
-        <td class="px-4 py-2">${value}</td>
+        <td class="px-4 py-2 text-right">${value}</td>
         <td class="px-4 py-2 truncate max-w-xs" title="${proc.cmdline}">${proc.cmdline}</td>
       `;
         tbody.appendChild(row);
