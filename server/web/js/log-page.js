@@ -11,8 +11,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const params = new URLSearchParams();
 
         const keyword = document.getElementById("filter-keyword").value.trim();
-        const levels = Array.from(document.getElementById("filter-level").selectedOptions).map(opt => opt.value);
-        const categories = Array.from(document.getElementById("filter-category").selectedOptions).map(opt => opt.value);
+        const levels = Array.from(document.querySelectorAll(".filter-level-option:checked")).map(el => el.value);
+        levels.forEach(v => params.append("level", v));
+
+        const categories = Array.from(document.querySelectorAll(".filter-category-option:checked")).map(el => el.value);
+        categories.forEach(v => params.append("category", v));
+
         const source = document.getElementById("filter-source").value;
         const container = document.getElementById("container-name")?.value || "";
         const endpoint = document.getElementById("endpoint-name")?.value || "";
@@ -129,12 +133,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const keyword = document.getElementById("filter-keyword").value.trim();
         if (keyword) params.set("contains", keyword);
       
-        Array.from(document.getElementById("filter-level").selectedOptions).forEach(opt => {
-          params.append("level", opt.value);
+        document.querySelectorAll(".filter-level-option:checked").forEach(opt => {
+            params.append("level", opt.value);
         });
       
-        Array.from(document.getElementById("filter-category").selectedOptions).forEach(opt => {
-          params.append("category", opt.value);
+        document.querySelectorAll(".filter-category-option:checked").forEach(opt => {
+            params.append("category", opt.value);
         });
       
         const mappings = {
@@ -218,13 +222,10 @@ document.addEventListener("DOMContentLoaded", () => {
           if (el) el.value = value;
         };
       
-        const setMultiSelect = (id, values) => {
-          const el = document.getElementById(id);
-          if (el) {
-            Array.from(el.options).forEach(opt => {
-              opt.selected = values.includes(opt.value);
-            });
-          }
+          const setFlowbiteMultiSelect = (checkboxClass, values) => {
+              document.querySelectorAll(`.${checkboxClass}`).forEach(checkbox => {
+                  checkbox.checked = values.includes(checkbox.value);
+              });
         };
       
         // Single fields
@@ -237,8 +238,8 @@ document.addEventListener("DOMContentLoaded", () => {
         setInput("end-time", params.get("end") ? new Date(params.get("end")).toISOString().slice(0, 16) : "");
       
         // Multi-select
-        setMultiSelect("filter-level", params.getAll("level"));
-        setMultiSelect("filter-category", params.getAll("category"));
+          setFlowbiteMultiSelect("filter-level-option", params.getAll("level"));
+          setFlowbiteMultiSelect("filter-category-option", params.getAll("category"));
       
         // Tags
         const tagContainer = document.getElementById("tag-filters");
@@ -258,6 +259,63 @@ document.addEventListener("DOMContentLoaded", () => {
       }
         
 
+    async function populateEndpointDropdown() {
+        const dropdown = document.getElementById("endpoint-dropdown");
+        const input = document.getElementById("endpoint-name");
+
+        let allItems = [];
+
+        try {
+            const [hosts, containers] = await Promise.all([
+                fetch("/api/v1/endpoints/hosts").then(r => r.json()),
+                fetch("/api/v1/endpoints/containers").then(r => r.json()),
+            ]);
+
+            allItems = [
+                { label: "Hosts", items: hosts.map(h => h.hostname).filter(Boolean) },
+                { label: "Containers", items: containers.map(c => c.Name ?? "").filter(Boolean) },
+            ];
+        } catch (err) {
+            console.error("Failed to load endpoints", err);
+        }
+
+        // Filter logic
+        input.addEventListener("input", () => {
+            const val = input.value.toLowerCase();
+            dropdown.innerHTML = "";
+            dropdown.classList.remove("hidden");
+
+            allItems.forEach(group => {
+                const matched = group.items.filter(item => item.toLowerCase().includes(val));
+                if (matched.length === 0) return;
+
+                const groupLabel = document.createElement("div");
+                groupLabel.className = "px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase";
+                groupLabel.textContent = group.label;
+                dropdown.appendChild(groupLabel);
+
+                matched.forEach(item => {
+                    const opt = document.createElement("div");
+                    opt.className = "cursor-pointer px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-white";
+                    opt.textContent = item;
+                    opt.addEventListener("click", () => {
+                        input.value = item;
+                        dropdown.classList.add("hidden");
+                    });
+                    dropdown.appendChild(opt);
+                });
+            });
+
+            if (dropdown.innerHTML === "") {
+                dropdown.classList.add("hidden");
+            }
+        });
+
+        // Hide dropdown on blur
+        input.addEventListener("blur", () => setTimeout(() => dropdown.classList.add("hidden"), 150));
+
+
+    }
 
     function sanitize(str) {
         const div = document.createElement("div");
@@ -363,6 +421,9 @@ document.addEventListener("DOMContentLoaded", () => {
             updateURLFromForm();
         }
     });
+
     loadFormFromURL();
+    populateEndpointDropdown();
+
     fetchLogs();
 });
