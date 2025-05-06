@@ -38,11 +38,7 @@ func (s *HttpServer) HandleGetTags(w http.ResponseWriter, r *http.Request) {
 	endpointID := vars["endpointID"]
 	utils.Debug("HandleGetTags() for endpoint ID: %s", endpointID)
 
-	tags, err := s.Sys.Stores.Data.GetTags(r.Context(), endpointID)
-	if err != nil {
-		http.Error(w, "Failed to get tags", http.StatusInternalServerError)
-		return
-	}
+	tags := s.Sys.Cache.Tags.GetFlattenedTagsForEndpoint(endpointID) // returns map[string]string
 
 	if tags == nil {
 		tags = make(map[string]string) // Return an empty map if no tags exist
@@ -125,13 +121,8 @@ func (s *HttpServer) HandleDeleteTag(w http.ResponseWriter, r *http.Request) {
 
 // HandleTagKeys returns all known tag keys
 func (s *HttpServer) HandleTagKeys(w http.ResponseWriter, r *http.Request) {
-	keys, err := s.Sys.Stores.Data.ListKeys(r.Context())
-	if err != nil {
-		http.Error(w, "Failed to list tag keys", http.StatusInternalServerError)
-		return
-	}
+	keys := s.Sys.Cache.Tags.GetTagKeys()
 	utils.JSON(w, http.StatusOK, keys)
-
 }
 
 // HandleTagValues returns all values for a given key
@@ -142,10 +133,10 @@ func (s *HttpServer) HandleTagValues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	values, err := s.Sys.Stores.Data.ListValues(r.Context(), key)
-	if err != nil {
-		http.Error(w, "Failed to list tag values", http.StatusInternalServerError)
-		return
+	valueSet := s.Sys.Cache.Tags.GetTagValues(key)
+	values := make([]string, 0, len(valueSet))
+	for v := range valueSet {
+		values = append(values, v)
 	}
 
 	// Optional fuzzy filter

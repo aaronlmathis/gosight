@@ -50,6 +50,7 @@ type DataStore interface {
 	SetTags(ctx context.Context, endpointID string, tags map[string]string) error
 	DeleteTag(ctx context.Context, endpointID, key string) error
 	ListTags(ctx context.Context, endpointID string) (map[string]string, error)
+	GetAllTags(ctx context.Context) ([]model.Tag, error)
 
 	ListKeys(ctx context.Context) ([]string, error)
 	ListValues(ctx context.Context, key string) ([]string, error)

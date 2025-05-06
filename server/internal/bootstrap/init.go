@@ -28,12 +28,13 @@ import (
 	"fmt"
 
 	"github.com/aaronlmathis/gosight/server/internal/alerts"
-	"github.com/aaronlmathis/gosight/server/internal/cache"
 	"github.com/aaronlmathis/gosight/server/internal/dispatcher"
 	"github.com/aaronlmathis/gosight/server/internal/events"
 	"github.com/aaronlmathis/gosight/server/internal/rules"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
+	"github.com/aaronlmathis/gosight/server/internal/syncmanager"
 	"github.com/aaronlmathis/gosight/server/internal/sys"
+	"github.com/aaronlmathis/gosight/server/internal/tracker"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
@@ -121,11 +122,15 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 	utils.Must("Auth providers", err)
 
 	// Initialize agent tracker
-	tracker := InitTracker(ctx, dataStore, emitter)
+	tracker := tracker.NewEndpointTracker(ctx, emitter, dataStore)
 	utils.Must("Agent tracker", err)
 
 	// Initialize cache
-	cache := cache.NewCache() // TODO : perhaps load maxsize, ttl etc from config?
+	caches, err := InitCaches(ctx, dataStore)
+	utils.Must("Caches", err)
+
+	// Initialize SyncManager (synchronization of caches with datastore)
+	syncManager := syncmanager.NewSyncManager(ctx, caches, dataStore, tracker, cfg.Server.SyncInterval)
 
 	// Build stores
 	stores := sys.NewStoreModule(
@@ -160,8 +165,9 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 		authProviders,
 		stores,
 		telemetry,
-		cache,
+		caches,
 		buffers,
+		syncManager,
 	)
 
 	return sys, nil

@@ -19,15 +19,17 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
+// internal/cache/metrics.go
+
 package cache
 
 import (
-	"context"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 // MetricCache is an in-memory cache for metrics as well as their meta data
@@ -50,15 +52,9 @@ type MetricCache interface {
 	GetMetricsWithLabels(filters map[string]string) []string // Get all metric names that match a given label filter
 
 	Prune()
-}
 
-type StringSet map[string]struct{}
-
-func addToSet(m map[string]StringSet, key, val string) {
-	if m[key] == nil {
-		m[key] = make(StringSet)
-	}
-	m[key][val] = struct{}{}
+	// For debugtools
+	GetAllEntries() []*MetricEntry
 }
 
 type MetricEntry struct {
@@ -68,13 +64,13 @@ type MetricEntry struct {
 	Unit      string
 	Type      string
 
-	Dimensions map[string]StringSet
-	Labels     map[string]StringSet
-	Emitters   map[string]struct{} // endpoint IDs
+	Dimensions map[string]StringSet // Dimensions are metric specific key value pairs, added by collectors
+	Labels     map[string]StringSet // Labels are a superset of dimensions, including custom user-defined tags and meta fields
+	Tags       map[string]StringSet // Tags are user-defined key value pairs, added by the user in the Meta
+	Emitters   map[string]struct{}  // endpoint IDs
 }
 type metricCache struct {
-	ctx context.Context
-	mu  sync.RWMutex
+	mu sync.RWMutex
 
 	Namespaces    map[string]struct{}
 	SubNamespaces map[string]map[string]struct{} // ns → subns
@@ -84,9 +80,9 @@ type metricCache struct {
 	LastSeen      map[string]int64
 }
 
-func NewMetricCache(ctx context.Context) MetricCache {
+func NewMetricCache() MetricCache {
 	return &metricCache{
-		ctx:           ctx,
+
 		Namespaces:    make(map[string]struct{}),
 		SubNamespaces: make(map[string]map[string]struct{}),
 		MetricEntries: make(map[string]*MetricEntry),
@@ -106,25 +102,33 @@ func (c *metricCache) Add(payload *model.MetricPayload) {
 	}
 	c.LastSeen[eid] = time.Now().Unix()
 	for _, m := range payload.Metrics {
-		fullName := m.Namespace + "." + m.SubNamespace + "." + m.Name
 
-		if _, ok := c.Namespaces[m.Namespace]; !ok {
-			c.Namespaces[m.Namespace] = struct{}{}
+		normalNS := strings.ToLower(m.Namespace)
+		normalSN := strings.ToLower(m.SubNamespace)
+		normalMN := strings.ToLower(m.Name)
+
+		fullName := normalNS + "." + normalSN + "." + normalMN
+
+		if _, ok := c.Namespaces[normalNS]; !ok {
+			c.Namespaces[normalNS] = struct{}{}
 		}
-		if _, ok := c.SubNamespaces[m.Namespace]; !ok {
-			c.SubNamespaces[m.Namespace] = make(map[string]struct{})
+		if _, ok := c.SubNamespaces[normalNS]; !ok {
+			c.SubNamespaces[normalNS] = make(map[string]struct{})
+			utils.Debug("Adding new subnamespace: %s.%s", normalNS, normalSN)
 		}
-		c.SubNamespaces[m.Namespace][m.SubNamespace] = struct{}{}
+		normalSn := strings.ToLower(normalSN)
+		c.SubNamespaces[normalNS][normalSn] = struct{}{}
 
 		entry := c.MetricEntries[fullName]
 		if entry == nil {
 			entry = &MetricEntry{
-				Namespace:  m.Namespace,
-				SubNS:      m.SubNamespace,
-				Name:       m.Name,
-				Unit:       m.Unit,
-				Type:       m.Type,
+				Namespace:  normalNS,
+				SubNS:      normalSN,
+				Name:       normalMN,
+				Unit:       strings.ToLower(m.Unit),
+				Type:       strings.ToLower(m.Type),
 				Dimensions: make(map[string]StringSet),
+				Tags:       make(map[string]StringSet),
 				Labels:     make(map[string]StringSet),
 				Emitters:   make(map[string]struct{}),
 			}
@@ -140,13 +144,9 @@ func (c *metricCache) Add(payload *model.MetricPayload) {
 			addToSet(c.LabelValues, k, v)
 		}
 
-		// Index tags
-		if payload.Meta != nil {
-			for k, v := range payload.Meta.Tags {
-				addToSet(entry.Labels, k, v)
-				addToSet(c.LabelValues, k, v)
-			}
-		}
+		// Index tags / Meta into Labels as well.
+		AddMetaFieldsToLabels(payload.Meta, entry.Labels)
+
 	}
 }
 
@@ -180,7 +180,7 @@ func (c *metricCache) GetSubNamespaces(namespace string) []string {
 
 	subnsMap, ok := c.SubNamespaces[namespace]
 	if !ok {
-		return nil
+		return []string{}
 	}
 
 	var out []string
@@ -357,6 +357,97 @@ func (c *metricCache) Prune() {
 		}
 	}
 }
-func containsMatch(value, substr string) bool {
-	return strings.Contains(strings.ToLower(value), strings.ToLower(substr))
+
+func (c *metricCache) GetAllEntries() []*MetricEntry {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	entries := make([]*MetricEntry, 0, len(c.MetricEntries))
+	for _, entry := range c.MetricEntries {
+		entries = append(entries, entry)
+	}
+	return entries
+}
+
+// Helpers
+
+func AddMetaFieldsToLabels(meta *model.Meta, labels map[string]StringSet) {
+	if meta == nil || labels == nil {
+		return
+	}
+
+	add := func(key, val string) {
+		if val == "" {
+			return
+		}
+		if _, exists := labels[key]; !exists {
+			labels[key] = StringSet{}
+		}
+		labels[key][val] = struct{}{}
+	}
+
+	// Agent Info
+	add("agent_id", meta.AgentID)
+	add("agent_version", meta.AgentVersion)
+
+	// Host Info
+	add("host_id", meta.HostID)
+	add("endpoint_id", meta.EndpointID)
+	add("hostname", meta.Hostname)
+	add("ip_address", meta.IPAddress)
+	add("os", meta.OS)
+	add("os_version", meta.OSVersion)
+	add("platform", meta.Platform)
+	add("platform_family", meta.PlatformFamily)
+	add("platform_version", meta.PlatformVersion)
+	add("kernel_architecture", meta.KernelArchitecture)
+	add("kernel_version", meta.KernelVersion)
+	add("architecture", meta.Architecture)
+	add("virtualization_system", meta.VirtualizationSystem)
+	add("virtualization_role", meta.VirtualizationRole)
+
+	// Cloud Info
+	add("cloud_provider", meta.CloudProvider)
+	add("region", meta.Region)
+	add("availability_zone", meta.AvailabilityZone)
+	add("instance_id", meta.InstanceID)
+	add("instance_type", meta.InstanceType)
+	add("account_id", meta.AccountID)
+	add("project_id", meta.ProjectID)
+	add("resource_group", meta.ResourceGroup)
+	add("vpc_id", meta.VPCID)
+	add("subnet_id", meta.SubnetID)
+	add("image_id", meta.ImageID)
+	add("service_id", meta.ServiceID)
+
+	// Container / K8s
+	add("container_id", meta.ContainerID)
+	add("container_name", meta.ContainerName)
+	add("pod_name", meta.PodName)
+	add("namespace", meta.Namespace)
+	add("cluster_name", meta.ClusterName)
+	add("node_name", meta.NodeName)
+	add("container_image_id", meta.ContainerImageID)
+	add("container_image", meta.ContainerImageName)
+
+	// App Info
+	add("application", meta.Application)
+	add("environment", meta.Environment)
+	add("service", meta.Service)
+	add("version", meta.Version)
+	add("deployment_id", meta.DeploymentID)
+
+	// Network Info
+	add("public_ip", meta.PublicIP)
+	add("private_ip", meta.PrivateIP)
+	add("mac_address", meta.MACAddress)
+	add("network_interface", meta.NetworkInterface)
+
+	// Custom tags
+	for k, v := range meta.Tags {
+		if _, exists := labels[k]; !exists {
+			labels[k] = StringSet{}
+		}
+		labels[k][v] = struct{}{}
+	}
 }

@@ -55,7 +55,7 @@ func (h *StreamHandler) Stream(stream pb.StreamService_StreamServer) error {
 	go func() {
 		for {
 			time.Sleep(5 * time.Second)
-			utils.Debug("server Stream handler alive...")
+			//utils.Debug("server Stream handler alive...")
 		}
 	}()
 
@@ -139,10 +139,10 @@ func (h *StreamHandler) Stream(stream pb.StreamService_StreamServer) error {
 					registered = true
 				}
 
-				// Tag enrichment
+				// Tag enrichment from in-memory cache
 				if converted.Meta != nil && converted.Meta.EndpointID != "" {
-					tags, err := h.Sys.Stores.Data.GetTags(stream.Context(), converted.Meta.EndpointID)
-					if err == nil {
+					tags := h.Sys.Cache.Tags.GetFlattenedTagsForEndpoint(converted.Meta.EndpointID)
+					if len(tags) > 0 {
 						if converted.Meta.Tags == nil {
 							converted.Meta.Tags = make(map[string]string)
 						}
@@ -153,7 +153,22 @@ func (h *StreamHandler) Stream(stream pb.StreamService_StreamServer) error {
 						}
 					}
 				}
+				/*
 
+					if converted.Meta != nil && converted.Meta.EndpointID != "" {
+						tags, err := h.Sys.Stores.Data.GetTags(stream.Context(), converted.Meta.EndpointID)
+						if err == nil {
+							if converted.Meta.Tags == nil {
+								converted.Meta.Tags = make(map[string]string)
+							}
+							for k, v := range tags {
+								if _, exists := converted.Meta.Tags[k]; !exists {
+									converted.Meta.Tags[k] = v
+								}
+							}
+						}
+					}
+				*/
 				// Evaluate rules
 				h.Sys.Tele.Evaluator.EvaluateMetric(h.Sys.Ctx, converted.Metrics, converted.Meta)
 
@@ -169,9 +184,15 @@ func (h *StreamHandler) Stream(stream pb.StreamService_StreamServer) error {
 				if h.Sys.Buffers == nil || h.Sys.Buffers.Metrics == nil {
 					utils.Warn("[stream] Metrics buffer not configured — writing directly to store")
 					// Fall back to writing directly to store
-					h.Sys.Stores.Metrics.Write([]model.MetricPayload{converted})
+					err := h.Sys.Stores.Metrics.Write([]model.MetricPayload{converted})
+					if err != nil {
+						utils.Warn("Failed to store MetricPayload: %v", err)
+					}
 				} else {
-					h.Sys.Buffers.Metrics.WriteAny(converted)
+					err := h.Sys.Buffers.Metrics.WriteAny(converted)
+					if err != nil {
+						utils.Warn("Failed to buffer MetricPayload: %v", err)
+					}
 				}
 
 				// TODO - Need to merge meta + dimensions before sending to metric store, that way it can be done once and sent to both metric index and metric store.
@@ -184,6 +205,9 @@ func (h *StreamHandler) Stream(stream pb.StreamService_StreamServer) error {
 					h.Sys.Tele.Index.Add(m.Namespace, m.SubNamespace, m.Name, merged)
 
 				}
+
+				// Add MetricPayload to MetricCache
+				h.Sys.Cache.Metrics.Add(&converted)
 
 			})
 

@@ -42,7 +42,9 @@ import (
 )
 
 func (s *HttpServer) GetNamespaces(w http.ResponseWriter, r *http.Request) {
-	utils.JSON(w, http.StatusOK, s.Sys.Tele.Index.GetNamespaces())
+	namespaces := s.Sys.Cache.Metrics.GetNamespaces()
+	utils.Debug("Fetching namespaces: %+v", namespaces)
+	utils.JSON(w, http.StatusOK, s.Sys.Cache.Metrics.GetNamespaces())
 }
 
 func (s *HttpServer) GetSubNamespaces(w http.ResponseWriter, r *http.Request) {
@@ -52,9 +54,10 @@ func (s *HttpServer) GetSubNamespaces(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing namespace in URL path", http.StatusBadRequest)
 		return
 	}
-	utils.JSON(w, http.StatusOK, s.Sys.Tele.Index.GetSubNamespaces(ns))
+	utils.JSON(w, http.StatusOK, s.Sys.Cache.Metrics.GetSubNamespaces(ns))
 }
 
+// GetMetricNames retrieves all metric names for a given namespace and subnamespace.
 func (s *HttpServer) GetMetricNames(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	ns := strings.ToLower(vars["namespace"])
@@ -63,13 +66,16 @@ func (s *HttpServer) GetMetricNames(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing namespace or subnamespace in URL path", http.StatusBadRequest)
 		return
 	}
-	utils.JSON(w, http.StatusOK, s.Sys.Tele.Index.GetMetricNames(ns, sub))
+
+	utils.JSON(w, http.StatusOK, s.Sys.Cache.Metrics.GetMetricNames(ns, sub))
 }
 
+// GetDimensions retrieves all available dimensions.
 func (s *HttpServer) GetDimensions(w http.ResponseWriter, r *http.Request) {
-	utils.JSON(w, http.StatusOK, s.Sys.Tele.Index.GetDimensions())
+	utils.JSON(w, http.StatusOK, s.Sys.Cache.Metrics.GetAvailableDimensions())
 }
 
+// GetMetricDimensions retrieves the dimensions for a specific metric.
 func (s *HttpServer) GetMetricDimensions(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	ns := strings.ToLower(vars["namespace"])

@@ -18,21 +18,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
+// Package model contains the data structures used in GoSight.
 
-package cache
+package model
 
-type Cache struct {
-	Processes ProcessCache
-	Metrics   MetricCache
-	Tags      TagCache
-	/*
-		Agents    AgentCache
-		Endpoints EndpointCache
-
-
-		Tags      TagCache
-		Alerts    AlertCache
-		Events    EventCache
-		Metrics   MetricCache
-	*/
+type Tag struct {
+	EndpointID string
+	Key        string
+	Value      string
 }

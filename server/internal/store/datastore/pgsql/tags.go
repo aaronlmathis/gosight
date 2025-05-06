@@ -26,6 +26,8 @@ package pgstore
 
 import (
 	"context"
+
+	"github.com/aaronlmathis/gosight/shared/model"
 )
 
 // GetTags retrieves all tags for a given endpoint ID.
@@ -46,6 +48,27 @@ func (s *PGDataStore) GetTags(ctx context.Context, endpointID string) (map[strin
 		tags[key] = value
 	}
 	return tags, nil
+}
+
+func (s *PGDataStore) GetAllTags(ctx context.Context) ([]model.Tag, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT endpoint_id, key, value
+		FROM tags
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tags []model.Tag
+	for rows.Next() {
+		var t model.Tag
+		if err := rows.Scan(&t.EndpointID, &t.Key, &t.Value); err != nil {
+			return nil, err
+		}
+		tags = append(tags, t)
+	}
+	return tags, rows.Err()
 }
 
 // SetTags replaces all tags for a given endpoint ID with the provided tags.

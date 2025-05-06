@@ -29,6 +29,7 @@ package config
 
 import (
 	"os"
+	"time"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -37,9 +38,10 @@ import (
 
 type Config struct {
 	Server struct {
-		GRPCAddr    string `yaml:"grpc_addr"`
-		HTTPAddr    string `yaml:"http_addr"`
-		Environment string `yaml:"environment"`
+		GRPCAddr     string        `yaml:"grpc_addr"`
+		HTTPAddr     string        `yaml:"http_addr"`
+		Environment  string        `yaml:"environment"`
+		SyncInterval time.Duration `yaml:"sync_interval" default:"5m"`
 	} `yaml:"server"`
 
 	Logs struct {

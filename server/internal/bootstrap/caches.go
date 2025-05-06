@@ -19,23 +19,44 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-// server/internal/bootstrap/agent.go
-// Init agent tracking from in-memory
+// server/internal/bootstrap/caches.go
 
 package bootstrap
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/aaronlmathis/gosight/server/internal/events"
+	"github.com/aaronlmathis/gosight/server/internal/cache"
 	"github.com/aaronlmathis/gosight/server/internal/store/datastore"
-	"github.com/aaronlmathis/gosight/server/internal/tracker"
 )
 
-// InitEndpointTracker initializes the unified endpoint tracker.
-// Tracks both agents and containers, and emits lifecycle events.
-func InitTracker(ctx context.Context, dataStore datastore.DataStore, emitter *events.Emitter) *tracker.EndpointTracker {
-	t := tracker.NewEndpointTracker(ctx, emitter, dataStore)
+// InitCaches initializes caches for the system context.
+func InitCaches(ctx context.Context, dataStore datastore.DataStore) (*cache.Cache, error) {
+	caches := &cache.Cache{}
 
-	return t
+	// Initialize Metric Cache
+	metricCache := cache.NewMetricCache()
+	caches.Metrics = metricCache
+
+	// Initialize tag cache
+	tagCache := cache.NewTagCache()
+
+	// Warm fill tag cache
+	tags, err := dataStore.GetAllTags(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tags for cache: %w", err)
+	}
+
+	tagCache.LoadFromStore(tags)
+
+	caches.Tags = tagCache
+
+	// Initialize Process Cache
+	processCache := cache.NewProcessCache()
+	caches.Processes = processCache
+
+	// Initialize other caches as needed...
+
+	return caches, nil
 }

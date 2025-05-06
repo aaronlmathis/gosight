@@ -59,6 +59,10 @@ func main() {
 	sys, err := bootstrap.InitGoSight(ctx)
 	utils.Must("System Context", err)
 
+	// Start SyncManager for periodic persistence
+	// Start all sync loops — this blocks until ctx is canceled
+	go sys.SyncMgr.Run()
+
 	// Start HTTP server for admin console/api
 	srv := httpserver.NewServer(sys)
 
@@ -100,7 +104,7 @@ func main() {
 	// Close GRPC gracefully.
 
 	grpcServer.Server.GracefulStop()
-	
+
 	// Disconnect from metric store, datastore, and userstore.
 	if err := sys.Stores.Metrics.Close(); err != nil {
 		utils.Warn("Failed to close metric store: %v", err)

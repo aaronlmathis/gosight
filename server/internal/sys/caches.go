@@ -19,20 +19,15 @@ You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
-package cache
+// gosight/agent/internal/sys/caches.go
+// Package sys provides system-level caches and context for the agent.
+// This includes caches for metrics, logs, and processes.
+package sys
 
-type Cache struct {
-	Processes ProcessCache
-	Metrics   MetricCache
-	Tags      TagCache
-	/*
-		Agents    AgentCache
-		Endpoints EndpointCache
+import "github.com/aaronlmathis/gosight/server/internal/cache"
 
-
-		Tags      TagCache
-		Alerts    AlertCache
-		Events    EventCache
-		Metrics   MetricCache
-	*/
+type CacheModule struct {
+	Process cache.ProcessCache
+	Metric  cache.MetricCache
+	// Log     cache.LogCache
 }
