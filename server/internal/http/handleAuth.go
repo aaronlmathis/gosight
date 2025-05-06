@@ -342,5 +342,10 @@ func (s *HttpServer) createFinalSessionAndRedirect(w http.ResponseWriter, r *htt
 	if c, err := r.Cookie("pending_next"); err == nil {
 		next = c.Value
 	}
+	// Validate that the next URL is local
+	next = strings.ReplaceAll(next, "\\", "/") // Normalize backslashes
+	if parsedURL, err := url.Parse(next); err != nil || parsedURL.Hostname() != "" {
+		next = "/"
+	}
 	http.Redirect(w, r, next, http.StatusSeeOther)
 }
