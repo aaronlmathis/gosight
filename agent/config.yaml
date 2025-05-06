@@ -20,16 +20,19 @@ agent:
         - disk
         - net
         - podman
-process_collection:
-    workers: 2
-    interval: 2s
+    process_collection:
+        workers: 2
+        interval: 2s
+
   environment: "dev" # (dev/prod)
 
 # Log Config
 logs:
-  app_log_file: "./agent.log"      # Relative to path of execution
-  error_log_file: "error.log"      # Relative to path of execution
-  log_level: "debug"               # Or "info", etc.
+  error_log_file: "../logs/error_agent.log"
+  app_log_file: "../logs/app_agent.log"
+  access_log_file: "../logs/access_agent.log"
+  debug_log_file: "../logs/debug_agent.log"
+  log_level: "debug"            # Or "info", etc.
 
 # TLS Config
 tls:
