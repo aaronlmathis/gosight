@@ -113,7 +113,7 @@ func (r *LogRunner) Run(ctx context.Context) {
 			endpointID := utils.GenerateEndpointID(meta)
 			meta.EndpointID = endpointID
 
-			utils.Debug("Processing %d log batches for sending.", len(logBatches))
+			//utils.Debug("Processing %d log batches for sending.", len(logBatches))
 
 			// Loop through batches collected (potentially from multiple sources)
 			for _, batch := range logBatches {
@@ -136,7 +136,7 @@ func (r *LogRunner) Run(ctx context.Context) {
 				// if time.Since(startTime) < 30*time.Second {
 				//     time.Sleep(100 * time.Millisecond)
 				// }
-				utils.Debug("Queuing log payload with %d entries from host %s", len(batch), meta.Hostname)
+				//utils.Debug("Queuing log payload with %d entries from host %s", len(batch), meta.Hostname)
 
 				// Send payload to the worker pool queue
 				select {

@@ -75,8 +75,8 @@ func (s *LogSender) SendLogs(payload *model.LogPayload) error {
 			Tags:      log.Tags,
 			Meta:      protohelper.ConvertLogMetaToProto(log.Meta),
 		}
-		utils.Debug("Sender: LogEntry: %v", pbLog)
-		utils.Debug("Sender:LogMeta: %v", pbLog.Meta)
+		//utils.Debug("Sender: LogEntry: %v", pbLog)
+		//utils.Debug("Sender:LogMeta: %v", pbLog.Meta)
 
 		pbLogs = append(pbLogs, pbLog)
 	}
@@ -98,12 +98,12 @@ func (s *LogSender) SendLogs(payload *model.LogPayload) error {
 		Meta:       convertedMeta,
 	}
 	// Marshal manually to check for proto errors
-	b, err := goproto.Marshal(req)
+	_, err := goproto.Marshal(req)
 	if err != nil {
 		utils.Error("Failed to marshal proto.LogPayload: %v", err)
 		return err
 	}
-	utils.Debug("Marshaled LogPayload size = %d bytes", len(b))
+	//utils.Debug("Marshaled LogPayload size = %d bytes", len(b))
 
 	// Try sending
 	err = s.stream.Send(req)
@@ -129,7 +129,7 @@ func (s *LogSender) SendLogs(payload *model.LogPayload) error {
 		return err
 	}
 
-	utils.Debug("Streamed %d logs", len(pbLogs))
+	//utils.Debug("Streamed %d logs", len(pbLogs))
 	return nil
 }
 func (s *LogSender) reconnectStream(ctx context.Context) error {
