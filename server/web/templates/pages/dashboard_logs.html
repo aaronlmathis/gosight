@@ -1,0 +1,279 @@
+{{ define "page-content" }}
+<style>
+    .alert-row.bg-selected-light {
+        background-color: #e0f2fe;
+        /* Tailwind's blue-100 */
+    }
+
+    .alert-row.bg-selected-dark {
+        background-color: #1e293b;
+        /* Tailwind's slate-800 for dark mode */
+    }
+
+    tr.details-expanded {
+        transition: all 0.3s ease-in-out;
+    }
+</style>
+<section class="p-4 space-y-6">
+    <div class="mb-6">
+        <h1 class="text-2xl font-semibold text-gray-800 dark:text-white">Log Explorer</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Create or view alerts on gosight metrics, logs, or
+            events.</p>
+    </div>
+    <!-- Advanced Log Search + Result Filters (Tailwind + Flowbite Compatible) -->
+    <form id="log-search-form" class="space-y-6">
+
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Advanced Log Search</h2>
+
+            <!-- Filter Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Keyword</label>
+                    <input type="text" id="filter-keyword"
+                        class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white shadow-sm focus:ring-blue-500 focus:border-blue-500 min-h-[2.5rem]">
+                </div>
+
+                <!-- LOG LEVEL -->
+                <div>
+                    <label for="filter-level" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Log
+                        Level</label>
+                    <div class="relative">
+                        <button id="filter-level" data-dropdown-toggle="filter-level-dropdown"
+                            class="mt-1 w-full inline-flex justify-between items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-900 dark:text-white shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Select levels
+                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7">
+                                </path>
+                            </svg>
+                        </button>
+
+                        <div id="filter-level-dropdown"
+                            class="z-10 hidden w-full bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700 rounded-lg shadow">
+                            <ul class="p-3 space-y-1 text-sm text-gray-700 dark:text-gray-200"
+                                aria-labelledby="filter-level">
+                                <li>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" value="error"
+                                            class="filter-level-option w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                                        <span class="ml-2">Error</span>
+                                    </label>
+                                </li>
+                                <li>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" value="warning"
+                                            class="filter-level-option w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                                        <span class="ml-2">Warning</span>
+                                    </label>
+                                </li>
+                                <li>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" value="info"
+                                            class="filter-level-option w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                                        <span class="ml-2">Info</span>
+                                    </label>
+                                </li>
+                                <li>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" value="debug"
+                                            class="filter-level-option w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                                        <span class="ml-2">Debug</span>
+                                    </label>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- CATEGORY -->
+
+                    <label for="filter-category"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
+                    <div class="relative">
+                        <button id="filter-category" data-dropdown-toggle="filter-category-dropdown"
+                            class="mt-1 w-full inline-flex justify-between items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-900 dark:text-white shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Select categories
+                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7">
+                                </path>
+                            </svg>
+                        </button>
+                        <div id="filter-category-dropdown"
+                            class="z-10 hidden w-full bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700 rounded-lg shadow">
+                            <ul class="p-3 space-y-1 text-sm text-gray-700 dark:text-gray-200"
+                                aria-labelledby="filter-category">
+                                <li><label class="flex items-center"><input type="checkbox" value="system"
+                                            class="filter-category-option w-4 h-4 ..."><span
+                                            class="ml-2">System</span></label></li>
+                                <li><label class="flex items-center"><input type="checkbox" value="application"
+                                            class="filter-category-option w-4 h-4 ..."><span
+                                            class="ml-2">Application</span></label></li>
+                                <li><label class="flex items-center"><input type="checkbox" value="security"
+                                            class="filter-category-option w-4 h-4 ..."><span
+                                            class="ml-2">Security</span></label></li>
+                                <li><label class="flex items-center"><input type="checkbox" value="performance"
+                                            class="filter-category-option w-4 h-4 ..."><span
+                                            class="ml-2">Performance</span></label></li>
+                                <li><label class="flex items-center"><input type="checkbox" value="auth"
+                                            class="filter-category-option w-4 h-4 ..."><span
+                                            class="ml-2">Auth</span></label></li>
+                                <li><label class="flex items-center"><input type="checkbox" value="network"
+                                            class="filter-category-option w-4 h-4 ..."><span
+                                            class="ml-2">Network</span></label></li>
+                                <li><label class="flex items-center"><input type="checkbox" value="container"
+                                            class="filter-category-option w-4 h-4 ..."><span
+                                            class="ml-2">Container</span></label></li>
+                                <li><label class="flex items-center"><input type="checkbox" value="metric"
+                                            class="filter-category-option w-4 h-4 ..."><span
+                                            class="ml-2">Metric</span></label></li>
+                                <li><label class="flex items-center"><input type="checkbox" value="gosight"
+                                            class="filter-category-option w-4 h-4 ..."><span
+                                            class="ml-2">GoSight</span></label></li>
+                                <li><label class="flex items-center"><input type="checkbox" value="scheduler"
+                                            class="filter-category-option w-4 h-4 ..."><span
+                                            class="ml-2">Scheduler</span></label></li>
+                                <li><label class="flex items-center"><input type="checkbox" value="config"
+                                            class="filter-category-option w-4 h-4 ..."><span
+                                            class="ml-2">Config</span></label></li>
+                                <li><label class="flex items-center"><input type="checkbox" value="audit"
+                                            class="filter-category-option w-4 h-4 ..."><span
+                                            class="ml-2">Audit</span></label></li>
+                                <li><label class="flex items-center"><input type="checkbox" value="alert"
+                                            class="filter-category-option w-4 h-4 ..."><span
+                                            class="ml-2">Alert</span></label></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Source</label>
+                    <input type="text" id="filter-source" placeholder="e.g. docker, systemd"
+                        class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white shadow-sm focus:ring-blue-500 focus:border-blue-500 min-h-[2.5rem]">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Target</label>
+                    <input type="text" id="filter-target" placeholder="e.g. docker, systemd"
+                        class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white shadow-sm focus:ring-blue-500 focus:border-blue-500 min-h-[2.5rem]">
+                </div>
+
+                <div>
+                    <label for="endpoint-name"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">Endpoint
+                        Name</label>
+                    <div class="relative mt-1">
+                        <input type="text" id="endpoint-name" placeholder="Search..." autocomplete="off"
+                            class="endpoint-input w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white shadow-sm focus:ring-blue-500 focus:border-blue-500 min-h-[2.5rem]">
+                        <div id="endpoint-dropdown"
+                            class="absolute z-10 mt-1 hidden w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto text-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">App Name</label>
+                    <input type="text" id="app-name"
+                        class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white shadow-sm min-h-[2.5rem]">
+                </div>
+
+                <div class="flex flex-col md:flex-row md:col-span-2 gap-4">
+                    <div class="w-full">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Start Time</label>
+                        <input type="datetime-local" id="start-time"
+                            class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white shadow-sm min-h-[2.5rem]">
+                    </div>
+                    <div class="w-full">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">End Time</label>
+                        <input type="datetime-local" id="end-time"
+                            class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white shadow-sm min-h-[2.5rem]">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tags -->
+            <div class="mt-6">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags</label>
+                <div id="tag-filters" class="flex flex-wrap gap-2"></div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="mt-6 flex justify-end gap-3">
+                <button
+                    class="text-sm px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-white bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
+                    id="reset-search">Reset</button>
+                <button class="text-sm px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+                    id="search-submit">Search</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Result Table -->
+    <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+        <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <h3 class="text-md font-semibold text-gray-900 dark:text-white">Log Results</h3>
+            <div class="text-sm text-gray-500 dark:text-gray-400">Showing <span id="log-count">0</span> results</div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full table-auto text-sm text-left text-gray-700 dark:text-gray-200">
+                <thead class="bg-gray-50 dark:bg-gray-800 text-xs uppercase text-gray-500 dark:text-gray-300">
+                    <tr>
+                        <th class="px-4 py-3">Time</th>
+                        <th class="px-4 py-3">Level</th>
+                        <th class="px-4 py-3">Source</th>
+                        <th class="px-4 py-3">Container</th>
+                        <th class="px-4 py-3">Message</th>
+                        <th class="px-4 py-3">User</th>
+                        <th class="px-4 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="log-results">
+                    <!-- JS-populated rows -->
+                </tbody>
+            </table>
+            <div id="log-details-modal"
+                class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
+                <div
+                    class="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Log Details</h3>
+                        <button id="close-log-modal"
+                            class="text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 text-xl">&times;</button>
+                    </div>
+                    <pre id="log-details-body"
+                        class="text-sm text-gray-800 dark:text-gray-100 whitespace-pre-wrap font-mono"></pre>
+                </div>
+            </div>
+            <div class="flex justify-center mt-6">
+                <button id="load-more-logs"
+                    class="px-4 py-2 text-sm font-medium text-white bg-gray-800 rounded hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                    Load More Logs
+                </button>
+            </div>
+        </div>
+        <div class="p-4 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
+            <div class="text-sm text-gray-500 dark:text-gray-400">Cursor: <span id="cursor-pos">-</span></div>
+            <div class="flex gap-2">
+                <button
+                    class="text-sm px-3 py-1 border border-gray-300 dark:border-gray-600 rounded bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    id="prev-page">Prev</button>
+                <button
+                    class="text-sm px-3 py-1 border border-gray-300 dark:border-gray-600 rounded bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    id="next-page">Next</button>
+            </div>
+        </div>
+    </div>
+
+    </div>
+
+</section>
+{{ end }}
+
+
+
+{{ define "page-scripts" }}
+<script type="module" src="js/log-page.js"></script>
+<script src="https://unpkg.com/flowbite@latest/dist/datepicker.js"></script>
+{{ end }}

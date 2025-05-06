@@ -28,6 +28,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	gosightauth "github.com/aaronlmathis/gosight/server/internal/auth"

@@ -48,7 +48,6 @@ type LogMeta struct {
 	Executable    string            `json:"exe,omitempty"`            // Path to binary if available
 	Path          string            `json:"path,omitempty"`           // Original source log path
 	Extra         map[string]string `json:"extra,omitempty"`          // For collector-specific fields
-
 }
 
 type LogPayload struct {
@@ -79,10 +78,18 @@ type LogFilter struct {
 	Contains   string // Filter by a substring match in the message
 	Unit       string // Filter by systemd unit name (e.g., "nginx.service")
 	AppName    string // Filter by application name (e.g., "nginx", "sshd")
-
+	Service       string              // For syslog/Windows Event Log
+	EventID       string
+	User          string        
+	ContainerID   string           // if inside a container
+	Platform string
+	ContainerName string      // Windows event ID, etc.
+	
 	// Limit and sorting
 	Limit int    // Max number of logs to return
 	Order string // Order direction: "asc" or "desc"
+	Cursor time.Time
+	Offset int
 }
 
 // Standardized Log Categories

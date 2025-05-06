@@ -1,27 +1,38 @@
 agent:
   server_url: "localhost:50051"    # domain/ip:port
-  interval: 2s              # Metric collection / send interval
   host: "dev-machine-01"    # Hostname of agent machine
-  metrics_enabled:          # Enabled collectors (found in agent/internal/collector and loaded from agent/internal/collector/registry.go)
-    - cpu
-    - mem
-    - host
-    - disk
-    - net
-    - podman
-    - docker
   log_collection:
-    sources:
-      - journald
-    batch_size:  50     # Number of log entries to send in a payload
-    message_max: 1000   # Max size of messages before truncating (like in journald)
+      sources:
+        - journald
+          #- security
+      batch_size:  50     # Number of log entries to send in a payload
+      message_max: 10000   # Max size of messages before truncating (like in journald)
+      buffer_size: 500 # Max size of the buffer before sending
+      workers: 2
+      interval: 30s
+    metric_collection:
+      workers: 2
+      interval: 2s
+      sources:
+        - cpu
+        - mem
+        - host
+        - disk
+        - net
+        - podman
+    process_collection:
+        workers: 2
+        interval: 2s
+
   environment: "dev" # (dev/prod)
 
 # Log Config
 logs:
-  app_log_file: "./agent.log"      # Relative to path of execution
-  error_log_file: "error.log"      # Relative to path of execution
-  log_level: "debug"               # Or "info", etc.
+  error_log_file: "../logs/error_agent.log"
+  app_log_file: "../logs/app_agent.log"
+  access_log_file: "../logs/access_agent.log"
+  debug_log_file: "../logs/debug_agent.log"
+  log_level: "debug"            # Or "info", etc.
 
 # TLS Config
 tls:

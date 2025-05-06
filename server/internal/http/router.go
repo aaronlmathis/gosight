@@ -34,6 +34,7 @@ func (s *HttpServer) setupRoutes() {
 	s.setupStaticRoutes()
 	s.setupAuthRoutes()
 	s.setupAlertsRoutes()
+	s.setupLogRoutes()
 	s.setupMetricExplorerRoutes()
 	s.setupActivityRoutes()
 	s.setupEndpointRoutes()
@@ -123,7 +124,22 @@ func (s *HttpServer) setupIndexRoutes() {
 	)
 }
 
-// setupMetricAlertsRoutes sets up the  alerts routes for the HTTP server.
+// setupLogRoutes sets up the log routes for the HTTP server.
+// This includes the log explorer page
+func (s *HttpServer) setupLogRoutes() {
+	s.Router.Handle("/logs",
+		gosightauth.AuthMiddleware(s.Sys.Stores.Users)(
+			gosightauth.RequirePermission("gosight:dashboard:view",
+				gosightauth.AccessLogMiddleware(
+					http.HandlerFunc(s.HandleLogsPage),
+				),
+				s.Sys.Stores.Users,
+			),
+		),
+	)
+}
+
+// setupAlertsRoutes sets up the  alerts routes for the HTTP server.
 // This includes the alerts page as well as the rule builder page.
 func (s *HttpServer) setupAlertsRoutes() {
 

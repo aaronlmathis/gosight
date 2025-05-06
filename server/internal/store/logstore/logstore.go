@@ -32,5 +32,5 @@ type LogStore interface {
 	Name() string
 	Write(metrics []model.LogPayload) error
 	Close() error
-	GetRecentLogs(filter model.LogFilter) ([]model.LogEntry, error)
+	GetLogs(filter model.LogFilter) ([]model.LogEntry, error)
 }
