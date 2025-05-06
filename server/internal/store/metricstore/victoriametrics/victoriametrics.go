@@ -31,19 +31,22 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/aaronlmathis/gosight/server/internal/cache"
 	"github.com/aaronlmathis/gosight/shared/model"
 )
 
 type VictoriaStore struct {
 	url    string
 	client *http.Client
+	cache  cache.MetricCache
 }
 
 // NewVictoriaStore
-func NewVictoriaStore(url string) (*VictoriaStore, error) {
+func NewVictoriaStore(url string, metricCache cache.MetricCache) (*VictoriaStore, error) {
 	return &VictoriaStore{
 		url:    url,
 		client: &http.Client{Timeout: 10 * time.Second},
+		cache:  metricCache,
 	}, nil
 }
 

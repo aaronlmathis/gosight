@@ -153,7 +153,7 @@ func (v *VictoriaStore) QueryRange(metric string, start, end time.Time, step str
 }
 
 func (v *VictoriaStore) GetAllKnownMetricNames() []string {
-	return []string{}
+	return v.cache.GetAllMetricNames()
 }
 
 func (v *VictoriaStore) QueryMultiInstant(metricNames []string, filters map[string]string) ([]model.MetricRow, error) {

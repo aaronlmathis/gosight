@@ -288,11 +288,12 @@ func applySortAndLimit(data any, sortKey string, limit int) any {
 		return data
 	}
 
-	if sortKey == "asc" {
+	switch sortKey {
+	case "asc":
 		sort.Slice(rows, func(i, j int) bool {
 			return rows[i].Value < rows[j].Value
 		})
-	} else if sortKey == "desc" {
+	case "desc":
 		sort.Slice(rows, func(i, j int) bool {
 			return rows[i].Value > rows[j].Value
 		})
@@ -375,5 +376,7 @@ func (s *HttpServer) HandleExportQuery(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	if _, err := io.Copy(w, resp.Body); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to write response: %v", err), http.StatusInternalServerError)
+	}
 }

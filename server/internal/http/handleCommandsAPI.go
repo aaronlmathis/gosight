@@ -79,9 +79,11 @@ func (s *HttpServer) HandleCommandsAPI(w http.ResponseWriter, r *http.Request) {
 	utils.Info("Enqueued command for agent %s: type=%s command=%s", req.AgentID, req.CommandType, req.CommandData)
 
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(map[string]string{
+	if err := json.NewEncoder(w).Encode(map[string]string{
 		"status":  "queued",
 		"message": "command will be delivered to agent shortly",
-	})
+	}); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
 
 }

@@ -195,10 +195,12 @@ func (s *HttpServer) HandleCreateAlertRuleAPI(w http.ResponseWriter, r *http.Req
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{
+	if err := json.NewEncoder(w).Encode(map[string]string{
 		"status": "ok",
 		"id":     rule.ID,
-	})
+	}); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 func SortBy(alerts *[]model.AlertInstance, field, order string) {

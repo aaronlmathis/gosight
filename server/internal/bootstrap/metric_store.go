@@ -28,6 +28,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aaronlmathis/gosight/server/internal/cache"
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/store/metastore"
 	"github.com/aaronlmathis/gosight/server/internal/store/metricindex"
@@ -45,11 +46,11 @@ func InitMetricIndex() (*metricindex.MetricIndex, error) {
 
 // InitMetricStore initializes the metric store for the GoSight agent.
 // The metric store is responsible for storing and retrieving metrics.
-func InitMetricStore(ctx context.Context, cfg *config.Config, metricIndex *metricindex.MetricIndex) (metricstore.MetricStore, error) {
+func InitMetricStore(ctx context.Context, cfg *config.Config, metricCache cache.MetricCache) (metricstore.MetricStore, error) {
 	engine := cfg.MetricStore.Engine
 	utils.Info("Initializing metric store engine: %s", engine)
 
-	s, err := metricstore.InitStore(ctx, cfg, metricIndex)
+	s, err := metricstore.InitMetricStore(ctx, cfg, metricCache)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init metric store: %w", err)
 	}

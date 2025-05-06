@@ -90,13 +90,12 @@ func (s *HttpServer) HandleEventsAPI(w http.ResponseWriter, r *http.Request) {
 		utils.Error("Error querying events: %v", err)
 		return
 	}
-	if filter.SortOrder == "asc" {
-		// Sort by ascending Timestamp
+	switch filter.SortOrder {
+	case "asc":
 		sort.Slice(results, func(i, j int) bool {
 			return results[i].Timestamp.Before(results[j].Timestamp)
 		})
-	} else if filter.SortOrder == "desc" {
-		// Sort by descending Timestamp
+	case "desc":
 		sort.Slice(results, func(i, j int) bool {
 			return results[i].Timestamp.After(results[j].Timestamp)
 		})

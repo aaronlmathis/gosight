@@ -289,7 +289,7 @@ func FilterAgents(list []*model.Agent, filter EndpointFilter) []*model.Agent {
 		if filter.Hostname != "" && a.Hostname != filter.Hostname {
 			continue
 		}
-		if filter.Status != "" && strings.ToLower(a.Status) != strings.ToLower(filter.Status) {
+		if filter.Status != "" && !strings.EqualFold(a.Status, filter.Status) {
 			continue
 		}
 		if filter.HostID != "" && a.HostID != filter.HostID {
@@ -402,7 +402,7 @@ func FilterContainers(list []*model.Container, filter EndpointFilter) []*model.C
 		if filter.Hostname != "" && c.Labels["hostname"] != filter.Hostname {
 			continue
 		}
-		if filter.Status != "" && strings.ToLower(c.Status) != strings.ToLower(filter.Status) {
+		if filter.Status != "" && !strings.EqualFold(c.Status, filter.Status) {
 			continue
 		}
 		if filter.HostID != "" && c.HostID != filter.HostID {

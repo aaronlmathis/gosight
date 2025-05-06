@@ -71,10 +71,6 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 	logStore, err := InitLogStore(ctx, cfg)
 	utils.Must("Log store", err)
 
-	// Init metric store
-	metricStore, err := InitMetricStore(ctx, cfg, metricIndex)
-	utils.Must("Metric store", err)
-
 	// Initialize data store
 	dataStore, err := InitDataStore(cfg)
 	utils.Must("Data store", err)
@@ -128,6 +124,10 @@ func InitGoSight(ctx context.Context) (*sys.SystemContext, error) {
 	// Initialize cache
 	caches, err := InitCaches(ctx, dataStore)
 	utils.Must("Caches", err)
+
+	// Init metric store
+	metricStore, err := InitMetricStore(ctx, cfg, caches.Metrics)
+	utils.Must("Metric store", err)
 
 	// Initialize SyncManager (synchronization of caches with datastore)
 	syncManager := syncmanager.NewSyncManager(ctx, caches, dataStore, tracker, cfg.Server.SyncInterval)

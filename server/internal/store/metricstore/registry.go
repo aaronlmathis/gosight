@@ -28,18 +28,18 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aaronlmathis/gosight/server/internal/cache"
 	"github.com/aaronlmathis/gosight/server/internal/config"
-	"github.com/aaronlmathis/gosight/server/internal/store/metricindex"
 	victoriametricstore "github.com/aaronlmathis/gosight/server/internal/store/metricstore/victoriametrics"
 
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-func InitStore(ctx context.Context, cfg *config.Config, metricIndex *metricindex.MetricIndex) (MetricStore, error) {
+func InitMetricStore(ctx context.Context, cfg *config.Config, metricCache cache.MetricCache) (MetricStore, error) {
 
 	switch cfg.MetricStore.Engine {
 	case "victoriametrics":
-		s, err := victoriametricstore.NewVictoriaStore(cfg.MetricStore.URL)
+		s, err := victoriametricstore.NewVictoriaStore(cfg.MetricStore.URL, metricCache)
 		if err != nil {
 			return nil, err
 		}

@@ -32,6 +32,8 @@ import (
 	"github.com/aaronlmathis/gosight/shared/model"
 )
 
+// buildPrometheusFormat converts a batch of MetricPayloads into a Prometheus-compatible string format.
+// Each metric is formatted with its name, labels, value, and timestamp.
 func buildPrometheusFormat(batch []model.MetricPayload) string {
 	var sb strings.Builder
 
@@ -42,7 +44,7 @@ func buildPrometheusFormat(batch []model.MetricPayload) string {
 		baseLabels := BuildPromLabels(payload.Meta)
 
 		for _, m := range payload.Metrics {
-			fullName := normalizeMetricName(m.Namespace, m.SubNamespace, m.Name)
+			fullName := normalizeMetricName(m.Name)
 
 			// Start with base Meta + Tags
 			labels := make(map[string]string, len(baseLabels)+len(m.Dimensions))
@@ -67,17 +69,9 @@ func buildPrometheusFormat(batch []model.MetricPayload) string {
 	return sb.String()
 }
 
-func normalizeMetricName(ns, sub, name string) string {
-	var parts []string
-	if ns != "" {
-		parts = append(parts, strings.ToLower(strings.ReplaceAll(ns, "/", ".")))
-	}
-	if sub != "" {
-		parts = append(parts, strings.ToLower(strings.ReplaceAll(sub, "/", ".")))
-	}
-	parts = append(parts, name)
-
-	return strings.Join(parts, ".")
+// normalizeMetricName normalizes the metric name for Prometheus compatibility.
+func normalizeMetricName(name string) string {
+	return strings.ToLower(strings.ReplaceAll(name, "/", "."))
 }
 
 // formatLabelMap prepares potential labels for Prometheus scraping.
@@ -245,29 +239,6 @@ func BuildPromLabels(meta *model.Meta) map[string]string {
 	}
 
 	return labels
-}
-
-// formatLabels formats the labels for Prometheus scraping.
-// It converts the labels map to a string in the format: key1="value1",key2="value2",...
-// This is used for building the Prometheus-compatible metric format.
-
-func formatLabels(meta *model.Meta) string {
-	labels := BuildPromLabels(meta)
-	parts := make([]string, 0, len(labels))
-	for k, v := range labels {
-		parts = append(parts, fmt.Sprintf(`%s="%s"`, k, v))
-	}
-	sort.Strings(parts) // for deterministic output
-	return strings.Join(parts, ",")
-}
-
-// totalMetricCount calculates the total number of metrics across all payloads.
-func totalMetricCount(payloads []model.MetricPayload) int {
-	count := 0
-	for _, p := range payloads {
-		count += len(p.Metrics)
-	}
-	return count
 }
 
 // BuildPromQL constructs a Prometheus Query Language (PromQL) query string
