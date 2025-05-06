@@ -76,7 +76,7 @@ func (s *HttpServer) HandleAlertContext(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Fetch logs based on the filter
-	logs, err := s.Sys.Stores.Logs.GetRecentLogs(filter)
+	logs, err := s.Sys.Stores.Logs.GetLogs(filter)
 	if err != nil {
 		http.Error(w, "failed to fetch logs", http.StatusInternalServerError)
 		return
