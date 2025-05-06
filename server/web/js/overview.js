@@ -152,7 +152,7 @@ function appendMiniPoint(chart, timestamp, val) {
 
     // 🧹 Keep sliding window of 30 seconds
     const now = Date.now();
-    const cutoff = now - 30000; // 30 seconds ago
+    const cutoff = now - 5 * 60 * 1000; // 30 minutes ago
     while (series.length > 0 && series[0].x < cutoff) {
         series.shift();
     }
@@ -166,6 +166,7 @@ window.addEventListener("metrics", ({ detail: payload }) => {
     if (!payload?.metrics || !payload?.meta) return;
 
     if (payload.meta.endpoint_id?.startsWith("host-")) {
+        console.log(payload.metrics)
         updateMiniCharts(payload.metrics);
         const summary = extractHostSummary(payload.metrics, payload.meta);
         renderOverviewSummary(summary);

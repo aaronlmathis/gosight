@@ -20,15 +20,37 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
 // gosight/shared/utils/helpers.go
-// 
+//
 
 package utils
 
-import "strconv"
+import (
+	"strconv"
+	"unicode/utf8"
+)
 
 func ParseIntOrDefault(input string, def int) int {
 	if val, err := strconv.Atoi(input); err == nil {
 		return val
 	}
 	return def
+}
+
+// Truncate safely trims a string to the given length in runes.
+// If truncation occurs, it appends "…" (ellipsis).
+func Truncate(s string, max int) string {
+	if max <= 0 || s == "" {
+		return ""
+	}
+
+	if utf8.RuneCountInString(s) <= max {
+		return s
+	}
+
+	runes := []rune(s)
+	if max <= 1 {
+		return "…"
+	}
+
+	return string(runes[:max-1]) + "…"
 }

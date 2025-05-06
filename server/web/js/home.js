@@ -87,6 +87,7 @@ export async function loadContainerCard() {
     const query = metrics.map(m => `metric=${m}`).join("&");
 
     const res = await gosightFetch(`/api/v1/query?${query}`);
+    console.log(`/api/v1/query?${query}`)
     const rows = await res.json();
 
     const containers = new Map();

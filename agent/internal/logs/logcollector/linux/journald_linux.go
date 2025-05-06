@@ -312,7 +312,7 @@ func (j *JournaldCollector) Close() error {
 func mapPriorityToLevel(priority string) string {
 	switch priority {
 	case "0", "1", "2": // emerg, alert, crit
-		return "error"
+		return "critical"
 	case "3": // err
 		return "error" // Often mapped to error as well
 	case "4": // warning

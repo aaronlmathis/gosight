@@ -127,10 +127,20 @@ function renderPerCoreGrid() {
 function updateCpuUsage(timestamp, value) {
     if (!cpuUsageChart || isNaN(value)) return;
     cpuUsageSeries.push({ x: timestamp, y: value });
-    if (cpuUsageSeries.length > 60) cpuUsageSeries.shift();
+    const now = Date.now();
+    const fiveMinutesAgo = now - 5 * 60 * 1000; // Calculate the cutoff timestamp (5 minutes ago in milliseconds)
+
+    // Remove data points older than 5 minutes from the beginning of the array
+    while (cpuUsageSeries.length > 0 && cpuUsageSeries[0].x < fiveMinutesAgo) {
+        cpuUsageSeries.shift();
+    }
+
+    // Update the chart with the potentially trimmed series
     cpuUsageChart.updateSeries([{ name: "Usage", data: cpuUsageSeries }]);
+
+    // Update the latest value display
     const latest = cpuUsageSeries.at(-1)?.y;
-    document.getElementById("label-cpu-percent").textContent = latest?.toFixed(1) + "%" || "--";
+    document.getElementById("label-cpu-percent").textContent = latest != null ? latest.toFixed(1) + "%" : "--";
 }
 
 function updateCpuLoad(timestamp, load1, load5, load15) {
