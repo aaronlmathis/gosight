@@ -19,7 +19,7 @@ You should have received a copy of the GNU General Public License
 along with GoBright. If not, see https://www.gnu.org/licenses/.
 */
 
-// server/internal/store/victoriametrics.go
+// server/internal/store/logstore/victoriametrics/victoriametrics.go
 
 package victorialogstore
 
@@ -33,30 +33,48 @@ import (
 
 	"github.com/aaronlmathis/gosight/server/internal/cache"
 	"github.com/aaronlmathis/gosight/shared/model"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 type VictoriaLogStore struct {
-	url    string
-	client *http.Client
-	cache  cache.MetricCache
+	url      string
+	client   *http.Client
+	logsPath string
+	cache    cache.LogCache
 }
 
-// NewVictoriaStore
-func NewVictoriaLogStore(url string, logache cache.LogCache) (*VictoriaLogStore, error) {
+// NewVictoriaLogStore
+func NewVictoriaLogStore(url string, dir string, logCache cache.LogCache) (*VictoriaLogStore, error) {
 	return &VictoriaLogStore{
-		url:    url,
-		client: &http.Client{Timeout: 10 * time.Second},
-		cache:  metricCache,
+		url:      url,
+		client:   &http.Client{Timeout: 10 * time.Second},
+		logsPath: dir,
+		cache:    logCache,
 	}, nil
 }
 
-func (v *VictoriaStore) Write(batch []model.MetricPayload) error {
+func (v *VictoriaLogStore) Name() string {
+	return "VictoriaMetrics LogStore"
+}
+
+func (v *VictoriaLogStore) Write(batch []model.LogPayload) error {
 	if len(batch) == 0 {
 		return nil
 	}
 
-	payload := buildPrometheusFormat(batch)
+	// Wrap all logs once — generates log_id and preserves Meta
+	wrapped := wrapLogs(batch)
 
+	// Write full logs to compressed JSON (one entry per line)
+	if err := v.writeCompressedWrappedLogs(wrapped); err != nil {
+		utils.Warn("Failed to write logs to JSON: %v", err)
+	}
+
+	// Generate Prometheus format using consistent log_id and labels
+	payload := buildPrometheusFormatFromWrapped(wrapped)
+	fmt.Println("=== Prometheus Payload ===")
+	fmt.Println(payload)
+	fmt.Println("==========================")
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
 	_, _ = gz.Write([]byte(payload))
@@ -64,6 +82,7 @@ func (v *VictoriaStore) Write(batch []model.MetricPayload) error {
 
 	req, err := http.NewRequest("POST", v.url+"/api/v1/import/prometheus", &buf)
 	if err != nil {
+		utils.Debug("Failed to create VM request: %v", err)
 		return fmt.Errorf("VM request build failed: %w", err)
 	}
 
@@ -72,6 +91,7 @@ func (v *VictoriaStore) Write(batch []model.MetricPayload) error {
 
 	resp, err := v.client.Do(req)
 	if err != nil {
+		utils.Debug("Failed to create VM request: %v", err)
 		return fmt.Errorf("VM request failed: %w", err)
 	}
 	defer resp.Body.Close()
@@ -80,11 +100,11 @@ func (v *VictoriaStore) Write(batch []model.MetricPayload) error {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("VM response error: %s", string(body))
 	}
-
+	utils.Debug("VictoriaMetrics response: %s", resp.Status)
 	return nil
 }
 
-func (v *VictoriaStore) Close() error {
+func (v *VictoriaLogStore) Close() error {
 	// No resources to release
 	// May Need in future
 	return nil

@@ -19,72 +19,109 @@ You should have received a copy of the GNU General Public License
 along with GoBright. If not, see https://www.gnu.org/licenses/.
 */
 
-// server/internal/store/victoriametrics.go
+// server/internal/store/logstore/victoriametricsvictoriametrics.go
 
-package victoriametricstore
+package victorialogstore
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
-	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
 )
 
-// buildPrometheusFormat converts a batch of MetricPayloads into a Prometheus-compatible string format.
-// Each metric is formatted with its name, labels, value, and timestamp.
-func buildPrometheusFormat(batch []model.MetricPayload) string {
+// buildPrometheusFormatFromWrapped converts a slice of StoredLog into a Prometheus-compatible string format.
+
+func buildPrometheusFormatFromWrapped(logs []model.StoredLog) string {
 	var sb strings.Builder
-
-	for _, payload := range batch {
-		ts := payload.Timestamp.UnixNano() / 1e6
-
-		// Core labels from Meta + Tags
-		baseLabels := BuildPromLabels(payload.Meta)
-
-		for _, m := range payload.Metrics {
-			fullName := normalizeMetricName(m.Name)
-
-			// Start with base Meta + Tags
-			labels := make(map[string]string, len(baseLabels)+len(m.Dimensions))
-			for k, v := range baseLabels {
-				labels[k] = v
-			}
-
-			// Apply metric-specific dimensions (override any key)
-			for k, v := range m.Dimensions {
-				labels[k] = v
-			}
-
-			sb.WriteString(fmt.Sprintf("%s{%s} %f %d\n",
-				fullName,
-				formatLabelMap(labels),
-				m.Value,
-				ts,
-			))
+	maxLabels := 38
+	for _, wrapped := range logs {
+		log := wrapped.Log
+		ts := log.Timestamp.UnixNano() / 1e6
+		if ts == 0 {
+			fmt.Printf("WARNING: log with log_id=%s has zero timestamp\n", wrapped.LogID)
 		}
+
+		labels := BuildPromLabels(wrapped.Meta) // base labels from model.Meta
+		labels["log_id"] = wrapped.LogID
+		labels["level"] = log.Level
+		labels["source"] = log.Source
+
+		if log.Category != "" {
+			labels["category"] = log.Category
+		}
+
+		if log.PID != 0 {
+			labels["pid"] = strconv.Itoa(log.PID)
+		}
+		add := func(k, v string) {
+			if len(labels) < maxLabels {
+				labels[k] = v
+			}
+		}
+		for k, v := range log.Tags {
+			add(sanitizeLabelKey(k), v)
+		}
+
+
+
+		if log.Meta != nil {
+			if log.Meta.Platform != "" {
+				labels["platform"] = log.Meta.Platform
+			}
+			if log.Meta.Unit != "" {
+				labels["unit"] = log.Meta.Unit
+			}
+			if log.Meta.ContainerID != "" {
+				labels["container_id"] = log.Meta.ContainerID
+			}
+			if log.Meta.ContainerName != "" {
+				labels["container_name"] = log.Meta.ContainerName
+			}
+			if log.Meta.Service != "" {
+				labels["service"] = log.Meta.Service
+			}
+			if log.Meta.AppName != "" {
+				labels["app_name"] = log.Meta.AppName
+			}
+			if log.Meta.User != "" {
+				labels["user"] = log.Meta.User
+			}
+			if log.Meta.EventID != "" {
+				labels["event_id"] = log.Meta.EventID
+			}
+		}
+
+				// Add fields (structured logs)
+		for k, v := range log.Fields {
+			add(sanitizeLabelKey("field_"+k), v)
+		}
+
+		sb.WriteString(fmt.Sprintf("gosight.logs.entry{%s} 1 %d\n",
+			formatLabelMap(labels), ts))
 	}
 
 	return sb.String()
 }
 
-// normalizeMetricName normalizes the metric name for Prometheus compatibility.
-func normalizeMetricName(name string) string {
-	return strings.ToLower(strings.ReplaceAll(name, "/", "."))
-}
-
 // formatLabelMap prepares potential labels for Prometheus scraping.
-// It combines payload.Meta tags and metric dimensions into a single map.
+// It combines payload.Meta tags and log fields/tags into a single map.
 // It converts the labels map to a string in the format: key1="value1",key2="value2",...
-// It allows Dimensions to override Meta tags if two keys are the same.
+// It escapes values properly to ensure they are valid Prometheus label values.
 
-func formatLabelMap(labels map[string]string) string {
+
+func formatLabelMap(m map[string]string) string {
 	var parts []string
-	for k, v := range labels {
-		parts = append(parts, fmt.Sprintf(`%s="%s"`, k, v))
+	for k, v := range m {
+		// strconv.Quote ensures proper escaping of quotes, slashes, etc.
+		escaped := strconv.Quote(v)             // yields `"escaped string"`
+		escaped = escaped[1 : len(escaped)-1]    // remove outer quotes since we wrap it manually
+		parts = append(parts, fmt.Sprintf(`%s="%s"`, k, escaped))
 	}
-	sort.Strings(parts)
 	return strings.Join(parts, ",")
 }
 
@@ -100,12 +137,7 @@ func BuildPromLabels(meta *model.Meta) map[string]string {
 	labels := map[string]string{}
 
 	// Identity and system labels from Meta
-	if meta.AgentID != "" {
-		labels["agent_id"] = meta.AgentID
-	}
-	if meta.AgentVersion != "" {
-		labels["agent_version"] = meta.AgentVersion
-	}
+
 	if meta.HostID != "" {
 		labels["host_id"] = meta.HostID
 	}
@@ -124,30 +156,7 @@ func BuildPromLabels(meta *model.Meta) map[string]string {
 	if meta.OSVersion != "" {
 		labels["os_version"] = meta.OSVersion
 	}
-	if meta.Platform != "" {
-		labels["platform"] = meta.Platform
-	}
-	if meta.PlatformFamily != "" {
-		labels["platform_family"] = meta.PlatformFamily
-	}
-	if meta.PlatformVersion != "" {
-		labels["platform_version"] = meta.PlatformVersion
-	}
-	if meta.KernelArchitecture != "" {
-		labels["kernel_architecture"] = meta.KernelArchitecture
-	}
-	if meta.KernelVersion != "" {
-		labels["kernel_version"] = meta.KernelVersion
-	}
-	if meta.VirtualizationSystem != "" {
-		labels["virtualization_system"] = meta.VirtualizationSystem
-	}
-	if meta.VirtualizationRole != "" {
-		labels["virtualization_role"] = meta.VirtualizationRole
-	}
-	if meta.Architecture != "" {
-		labels["architecture"] = meta.Architecture
-	}
+	
 	if meta.Environment != "" {
 		labels["environment"] = meta.Environment
 	}
@@ -206,39 +215,18 @@ func BuildPromLabels(meta *model.Meta) map[string]string {
 		labels["container_image_name"] = meta.ContainerImageName
 	}
 
-	if meta.Application != "" {
-		labels["application"] = meta.Application
-	}
-	if meta.Service != "" {
-		labels["service"] = meta.Service
-	}
-	if meta.Version != "" {
-		labels["version"] = meta.Version
-	}
-	if meta.DeploymentID != "" {
-		labels["deployment_id"] = meta.DeploymentID
-	}
-	if meta.PublicIP != "" {
-		labels["public_ip"] = meta.PublicIP
-	}
-	if meta.PrivateIP != "" {
-		labels["private_ip"] = meta.PrivateIP
-	}
-	if meta.MACAddress != "" {
-		labels["mac_address"] = meta.MACAddress
-	}
-	if meta.NetworkInterface != "" {
-		labels["network_interface"] = meta.NetworkInterface
-	}
-
-	// Tags (pre-filtered to avoid duplication)
 	for k, v := range meta.Tags {
-		if _, exists := labels[k]; !exists {
-			labels[k] = v
-		}
+		labels[k] = v
 	}
 
 	return labels
+}
+
+func sanitizeLabelKey(key string) string {
+	key = strings.ToLower(strings.TrimSpace(key))
+	key = strings.ReplaceAll(key, " ", "_")
+	key = strings.ReplaceAll(key, "-", "_")
+	return key
 }
 
 // BuildPromQL constructs a Prometheus Query Language (PromQL) query string
@@ -254,11 +242,26 @@ func BuildPromQL(metric string, filters map[string]string) string {
 	return fmt.Sprintf(`%s{%s}`, metric, strings.Join(parts, ","))
 }
 
-// parseDurationToSeconds converts a duration string (e.g., "5s", "1m", "2h") to seconds.
-func parseDurationToSeconds(step string) (int, error) {
-	d, err := time.ParseDuration(step)
-	if err != nil {
-		return 0, err
+// wrapLogs converts a batch of LogPayloads into a slice of StoredLog.
+func wrapLogs(batch []model.LogPayload) []model.StoredLog {
+	var result []model.StoredLog
+	for _, payload := range batch {
+		meta := payload.Meta
+		for _, log := range payload.Logs {
+			logID := hash(log.Timestamp.String() + log.Message)
+			result = append(result, model.StoredLog{
+				LogID: logID,
+				Log:   log,
+				Meta:  meta,
+			})
+		}
 	}
-	return int(d.Seconds()), nil
+	return result
+}
+
+// hash returns a short SHA1-based hash (first 10 characters).
+func hash(input string) string {
+	h := sha1.New()
+	h.Write([]byte(input))
+	return hex.EncodeToString(h.Sum(nil))[:10]
 }

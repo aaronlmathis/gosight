@@ -56,7 +56,10 @@ func InitCaches(ctx context.Context, dataStore datastore.DataStore) (*cache.Cach
 	processCache := cache.NewProcessCache()
 	caches.Processes = processCache
 
-	// Initialize other caches as needed...
+	// Log Cache
+
+	logCache := cache.NewLogCache()
+	caches.Logs = logCache
 
 	return caches, nil
 }

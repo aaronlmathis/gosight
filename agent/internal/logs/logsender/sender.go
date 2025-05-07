@@ -62,7 +62,7 @@ func (s *LogSender) Close() error {
 
 func (s *LogSender) SendLogs(payload *model.LogPayload) error {
 	pbLogs := make([]*proto.LogEntry, 0, len(payload.Logs))
-
+	utils.Debug("Log Meta: %v", payload.Meta)
 	for _, log := range payload.Logs {
 		pbLog := &proto.LogEntry{
 			Timestamp: timestamppb.New(log.Timestamp),
@@ -129,7 +129,7 @@ func (s *LogSender) SendLogs(payload *model.LogPayload) error {
 		return err
 	}
 
-	//utils.Debug("Streamed %d logs", len(pbLogs))
+	utils.Debug("Streamed %d logs", len(pbLogs))
 	return nil
 }
 func (s *LogSender) reconnectStream(ctx context.Context) error {

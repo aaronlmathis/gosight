@@ -19,432 +19,208 @@ You should have received a copy of the GNU General Public License
 along with GoBright. If not, see https://www.gnu.org/licenses/.
 */
 
-// server/internal/store/victoriametrics.go
+// server/internal/store/logstore/victoriametrics/queries.go
 
-package victoriametricstore
+package victorialogstore
 
 import (
+	"bufio"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
-// QueryInstant fetches the latest data points for a given metric with optional label filters.
-func (v *VictoriaStore) QueryInstant(metric string, filters map[string]string) ([]model.MetricRow, error) {
-	query := BuildPromQL(metric, filters)
-
-	fullURL := fmt.Sprintf("%s/api/v1/query?query=%s", v.url, url.QueryEscape(query))
-
-	resp, err := http.Get(fullURL)
-	if err != nil {
-		return nil, fmt.Errorf("VM instant query failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read failed: %w", err)
-	}
-
-	var parsed struct {
-		Status string `json:"status"`
-		Data   struct {
-			ResultType string `json:"resultType"`
-			Result     []struct {
-				Metric map[string]string `json:"metric"`
-				Value  [2]interface{}    `json:"value"`
-			} `json:"result"`
-		} `json:"data"`
-	}
-
-	if err := json.Unmarshal(body, &parsed); err != nil {
-		return nil, fmt.Errorf("decode error: %w", err)
-	}
-	if parsed.Status != "success" {
-		return nil, fmt.Errorf("query failed: %s", parsed.Status)
-	}
-
-	var rows []model.MetricRow
-	for _, item := range parsed.Data.Result {
-		strVal, ok := item.Value[1].(string)
-		if !ok {
-			continue
-		}
-		val, err := strconv.ParseFloat(strVal, 64)
-		if err != nil {
-			continue
-		}
-		rows = append(rows, model.MetricRow{
-			Tags:  item.Metric,
-			Value: val,
-		})
-	}
-	return rows, nil
+type logRef struct {
+	LogID     string
+	Timestamp time.Time
 }
 
-// QueryRange fetches time series data for a metric over a time range with optional label filters.
-func (v *VictoriaStore) QueryRange(metric string, start, end time.Time, step string, filters map[string]string) ([]model.Point, error) {
-	query := BuildPromQL(metric, filters)
-
-	params := url.Values{}
-	params.Set("query", query)
-	params.Set("start", start.Format(time.RFC3339))
-	params.Set("end", end.Format(time.RFC3339))
-	params.Set("step", step)
-
-	fullURL := fmt.Sprintf("%s/api/v1/query_range?%s", v.url, params.Encode())
-
-	resp, err := http.Get(fullURL)
-	if err != nil {
-		return nil, fmt.Errorf("VM range query failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read failed: %w", err)
-	}
-
-	var parsed struct {
-		Status string `json:"status"`
-		Data   struct {
-			ResultType string `json:"resultType"`
-			Result     []struct {
-				Metric map[string]string `json:"metric"`
-				Values [][]interface{}   `json:"values"`
-			} `json:"result"`
-		} `json:"data"`
-	}
-
-	if err := json.Unmarshal(body, &parsed); err != nil {
-		return nil, fmt.Errorf("decode error: %w", err)
-	}
-	if parsed.Status != "success" {
-		return nil, fmt.Errorf("query failed: %s", parsed.Status)
-	}
-
-	var points []model.Point
-	for _, series := range parsed.Data.Result {
-		for _, val := range series.Values {
-			tsRaw, ok1 := val[0].(float64)
-			valStr, ok2 := val[1].(string)
-			if !ok1 || !ok2 {
-				continue
-			}
-			valFloat, err := strconv.ParseFloat(valStr, 64)
-			if err != nil {
-				continue
-			}
-			points = append(points, model.Point{
-				Timestamp: time.Unix(int64(tsRaw), 0).UTC().Format(time.RFC3339),
-				Value:     valFloat,
-			})
-		}
-	}
-	return points, nil
+type vmExport struct {
+	Metric     map[string]string `json:"metric"`
+	Timestamps []int64           `json:"timestamps"`
+	Values     []float64         `json:"values"`
 }
 
-func (v *VictoriaStore) GetAllKnownMetricNames() []string {
-	return v.cache.GetAllMetricNames()
-}
+func (v *VictoriaLogStore) queryMatchingLogIDs(filter model.LogFilter) ([]logRef, error) {
+	var matchers []string
 
-func (v *VictoriaStore) QueryMultiInstant(metricNames []string, filters map[string]string) ([]model.MetricRow, error) {
-	//utils.Debug("Executing VictoriaStore.QueryMultiInstant")
-	if len(metricNames) == 0 {
-		// Default to all known metric names if available
-		metricNames = v.GetAllKnownMetricNames()
-		//utils.Debug("No metric names provided, using all known metric names: %v", metricNames)
+	add := func(k, v string) {
+		if v != "" {
+			matchers = append(matchers, fmt.Sprintf(`%s="%s"`, k, v))
+		}
+	}
+	add("endpoint_id", filter.EndpointID)
+	add("level", filter.Level)
+	add("category", filter.Category)
+	add("source", filter.Source)
+	add("unit", filter.Unit)
+	add("app_name", filter.AppName)
+	add("service", filter.Service)
+	add("event_id", filter.EventID)
+	add("user", filter.User)
+	add("container_id", filter.ContainerID)
+	add("container_name", filter.ContainerName)
+	add("platform", filter.Platform)
+	for k, v := range filter.Tags {
+		add(k, v)
 	}
 
-	var query string
-	if len(metricNames) == 1 {
-		// Single metric → clean style: metric{label="value"}
-		base := metricNames[0]
-		if len(filters) > 0 {
-			var parts []string
-			for k, v := range filters {
-				parts = append(parts, fmt.Sprintf(`%s="%s"`, k, v))
-			}
-			sort.Strings(parts)
-			query = fmt.Sprintf(`%s{%s}`, base, strings.Join(parts, ","))
-		} else {
-			query = base
-		}
+	query := "gosight.logs.entry"
+	if len(matchers) > 0 {
+		query += "{" + strings.Join(matchers, ",") + "}"
+	}
+
+	var start, end int64
+
+	if filter.Start.IsZero() {
+		start = time.Now().Add(-30 * 24 * time.Hour).UnixMilli()
 	} else {
-		// Multiple metrics → regex match on __name__
-		nameSelector := fmt.Sprintf(`__name__=~"%s"`, strings.Join(metricNames, "|"))
-		var parts []string
-		parts = append(parts, nameSelector)
-		for k, v := range filters {
-			parts = append(parts, fmt.Sprintf(`%s="%s"`, k, v))
-		}
-		sort.Strings(parts)
-		query = fmt.Sprintf("{%s}", strings.Join(parts, ","))
+		start = filter.Start.UnixMilli()
+	}
+	
+	if filter.End.IsZero() {
+		end = time.Now().UnixMilli()
+	} else {
+		end = filter.End.UnixMilli()
 	}
 
-	// Build full URL
-	reqURL := fmt.Sprintf("%s/api/v1/query?query=%s", v.url, url.QueryEscape(query))
-	//utils.Debug("QueryMultiInstant URL: %s", reqURL)
-	// Make HTTP request
-	resp, err := http.Get(reqURL)
+	reqURL := fmt.Sprintf("%s/api/v1/export?match[]=%s&start=%d&end=%d", v.url, url.QueryEscape(query), start, end)
+	utils.Debug("Final VictoriaMetrics query: %s", reqURL)
+
+	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("build request failed: %w", err)
+	}
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := v.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("VM query failed: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("victoriametrics error: %s", string(body))
-	}
+	var refs []logRef
+	scanner := bufio.NewScanner(resp.Body)
 
-	// Parse response
-	var vmResp struct {
-		Status string `json:"status"`
-		Data   struct {
-			Result []struct {
-				Metric map[string]string `json:"metric"`
-				Value  [2]interface{}    `json:"value"`
-			} `json:"result"`
-		} `json:"data"`
-	}
+	for scanner.Scan() {
+		var result vmExport
+		line := scanner.Bytes()
 
-	if err := json.NewDecoder(resp.Body).Decode(&vmResp); err != nil {
-		return nil, err
-	}
-
-	// Convert to MetricRow
-	var rows []model.MetricRow
-	for _, item := range vmResp.Data.Result {
-		// Extract timestamp
-		tsFloat, ok := item.Value[0].(float64)
-		if !ok {
+		if err := json.Unmarshal(line, &result); err != nil {
+			utils.Warn("failed to parse VM export line: %v", err)
 			continue
 		}
-		timestamp := int64(tsFloat * 1000) // seconds → milliseconds
+		utils.Debug("parsed export line: log_id=%s ts=%v", result.Metric["log_id"], result.Timestamps)
 
-		// Extract metric value
-		valStr, ok := item.Value[1].(string)
-		if !ok {
-			continue
+		logID := result.Metric["log_id"]
+		if logID == "" {
+			utils.Warn("no log_id found in line: %v", result.Metric)
 		}
-		val, err := strconv.ParseFloat(valStr, 64)
-		if err != nil {
-			continue
+		if len(result.Timestamps) == 0 {
+			utils.Warn("no timestamps found for log_id=%s", logID)
 		}
-
-		rows = append(rows, model.MetricRow{
-			Value:     val,
-			Tags:      item.Metric,
-			Timestamp: timestamp,
+		refs = append(refs, logRef{
+			LogID:     logID,
+			Timestamp: time.UnixMilli(result.Timestamps[0]),
 		})
 	}
 
-	return rows, nil
+	utils.Debug("queryMatchingLogIDs: matched %d logRefs", len(refs))
+	for _, r := range refs {
+		utils.Debug("queryMatchingLogIDs: log_id=%s ts=%v", r.LogID, r.Timestamp)
+	}
+	return refs, nil
 }
 
-func (v *VictoriaStore) QueryMultiRange(metrics []string, start, end time.Time, step string, filters map[string]string) ([]model.MetricRow, error) {
-	if len(metrics) == 0 {
-		return nil, nil
-	}
-	var query string
-	if len(metrics) == 1 {
-		// Single metric → clean form
-		base := metrics[0]
-		if len(filters) > 0 {
-			var parts []string
-			for k, v := range filters {
-				if k == "step" {
-					continue
-				}
-				parts = append(parts, fmt.Sprintf(`%s="%s"`, k, v))
-			}
-			sort.Strings(parts)
-			query = fmt.Sprintf(`%s{%s}`, base, strings.Join(parts, ","))
-		} else {
-			query = base
-		}
-	} else {
-		// Multi-metric → __name__=~ form
-		nameSelector := fmt.Sprintf(`__name__=~"%s"`, strings.Join(metrics, "|"))
-		var parts []string
-		parts = append(parts, nameSelector)
-		for k, v := range filters {
-			parts = append(parts, fmt.Sprintf(`%s="%s"`, k, v))
-		}
-		sort.Strings(parts)
-		query = fmt.Sprintf("{%s}", strings.Join(parts, ","))
-	}
-
-	// Build URL
-	params := url.Values{}
-	params.Set("query", query)
-	params.Set("start", start.Format(time.RFC3339))
-	params.Set("end", end.Format(time.RFC3339))
-
-	secs, err := parseDurationToSeconds(step)
+func (v *VictoriaLogStore) GetLogs(filter model.LogFilter) ([]model.LogEntry, error) {
+	refs, err := v.queryMatchingLogIDs(filter)
 	if err != nil {
-		return nil, fmt.Errorf("invalid step: %v", err)
-	}
-	params.Set("step", strconv.Itoa(secs))
-
-	fullURL := fmt.Sprintf("%s/api/v1/query_range?%s", v.url, params.Encode())
-	//utils.Debug("QueryMultiRange URL: %s", fullURL)
-	resp, err := http.Get(fullURL)
-	if err != nil {
-		return nil, fmt.Errorf("VM QueryMultiRange failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read failed: %w", err)
-	}
-
-	var parsed struct {
-		Status string `json:"status"`
-		Data   struct {
-			ResultType string `json:"resultType"`
-			Result     []struct {
-				Metric map[string]string `json:"metric"`
-				Values [][]interface{}   `json:"values"` // [ [timestamp, value], ... ]
-			} `json:"result"`
-		} `json:"data"`
-	}
-
-	if err := json.Unmarshal(body, &parsed); err != nil {
-		return nil, fmt.Errorf("decode error: %w", err)
-	}
-	if parsed.Status != "success" {
-		return nil, fmt.Errorf("query failed: %s", parsed.Status)
-	}
-
-	var rows []model.MetricRow
-	for _, series := range parsed.Data.Result {
-		for _, val := range series.Values {
-			tsRaw, ok1 := val[0].(float64)
-			valStr, ok2 := val[1].(string)
-			if !ok1 || !ok2 {
-				continue
-			}
-			valFloat, err := strconv.ParseFloat(valStr, 64)
-			if err != nil {
-				continue
-			}
-			rows = append(rows, model.MetricRow{
-				Timestamp: int64(tsRaw * 1000), // convert seconds → ms
-				Value:     valFloat,
-				Tags:      series.Metric,
-			})
-		}
-	}
-
-	return rows, nil
-}
-
-// FetchDimensionsForMetric queries VictoriaMetrics for a given metric and extracts dimension keys.
-func (v *VictoriaStore) FetchDimensionsForMetric(metric string) ([]string, error) {
-	queryURL := fmt.Sprintf("%s/api/v1/query?query=%s", v.url, url.QueryEscape(metric))
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Get(queryURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query VictoriaMetrics: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("VictoriaMetrics returned %d: %s", resp.StatusCode, string(body))
-	}
-
-	var parsed struct {
-		Status string `json:"status"`
-		Data   struct {
-			ResultType string `json:"resultType"`
-			Result     []struct {
-				Metric map[string]string `json:"metric"`
-				Value  []interface{}     `json:"value"`
-			} `json:"result"`
-		} `json:"data"`
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if err := json.Unmarshal(body, &parsed); err != nil {
-		return nil, fmt.Errorf("failed to decode JSON: %w", err)
-	}
-
-	if parsed.Status != "success" {
-		return nil, fmt.Errorf("VictoriaMetrics query status not success: %s", parsed.Status)
-	}
-
-	// Collect unique dimension keys
-	dimSet := make(map[string]struct{})
-
-	for _, series := range parsed.Data.Result {
-		for key := range series.Metric {
-			if key == "__name__" {
-				continue // skip Prometheus internal field
-			}
-			dimSet[key] = struct{}{}
-		}
-	}
-
-	if len(dimSet) == 0 {
-		return nil, fmt.Errorf("no dimensions found for metric %s", metric)
-	}
-
-	var dims []string
-	for k := range dimSet {
-		dims = append(dims, k)
-	}
-
-	return dims, nil
-}
-
-func (v *VictoriaStore) ListLabelValues(label string, contains string) ([]string, error) {
-	queryURL := fmt.Sprintf("%s/api/v1/label/%s/values", v.url, url.PathEscape(label))
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Get(queryURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query VictoriaMetrics: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("victoria metrics returned %s", resp.Status)
-	}
-
-	var parsed struct {
-		Status string   `json:"status"`
-		Data   []string `json:"data"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
 		return nil, err
 	}
 
-	if contains != "" {
-		contains = strings.ToLower(contains)
-		filtered := make([]string, 0, len(parsed.Data))
-		for _, val := range parsed.Data {
-			if strings.Contains(strings.ToLower(val), contains) {
-				filtered = append(filtered, val)
-			}
+	// Optional: sort by time before offset/limit
+	sort.Slice(refs, func(i, j int) bool {
+		if filter.Order == "asc" {
+			return refs[i].Timestamp.Before(refs[j].Timestamp)
 		}
-		return filtered, nil
+		return refs[i].Timestamp.After(refs[j].Timestamp)
+	})
+
+	if filter.Offset > 0 && filter.Offset < len(refs) {
+		refs = refs[filter.Offset:]
+	}
+	if filter.Limit > 0 && len(refs) > filter.Limit {
+		refs = refs[:filter.Limit]
 	}
 
-	return parsed.Data, nil
+	var result []model.LogEntry
+	for _, ref := range refs {
+		entry, err := v.GetLogByID(ref.LogID)
+		
+		if err == nil {
+			if filter.Contains != "" && !strings.Contains(strings.ToLower(entry.Message), strings.ToLower(filter.Contains)) {
+				continue
+			}
+			// Additional field filtering if needed
+			result = append(result, *entry)
+		}
+		if err != nil {
+			utils.Debug("GetLogs: GetLogByID failed: log_id=%s err=%v", ref.LogID, err)
+			continue
+		}
+		if filter.Contains != "" && !strings.Contains(strings.ToLower(entry.Message), strings.ToLower(filter.Contains)) {
+			utils.Debug("GetLogs: skipped due to filter.Contains on log_id=%s", ref.LogID)
+			continue
+		}
+	}
+	utils.Debug("GetLogs: returning %d logs", len(result))
+	return result, nil
+}
+
+func (v *VictoriaLogStore) GetLogByID(logID string) (*model.LogEntry, error) {
+	files, err := filepath.Glob(filepath.Join(v.logsPath, "logs", "*", "*", "*", "*.json.gz"))
+	if err != nil {
+		return nil, fmt.Errorf("glob failed: %w", err)
+	}
+
+	for _, file := range files {
+		f, err := os.Open(file)
+		if err != nil {
+			continue
+		}
+		gz, err := gzip.NewReader(f)
+		if err != nil {
+			f.Close()
+			continue
+		}
+
+		dec := json.NewDecoder(gz)
+		for dec.More() {
+			var entry model.StoredLog
+			if err := dec.Decode(&entry); err != nil {
+				break
+			}
+			if entry.LogID == logID {
+				_ = gz.Close()
+				_ = f.Close()
+				utils.Debug("scanning file for log_id=%s: %s", logID, file)
+				return &entry.Log, nil
+			}
+		}
+
+		_ = gz.Close()
+		_ = f.Close()
+	}
+
+	return nil, fmt.Errorf("log_id %s not found", logID)
 }
