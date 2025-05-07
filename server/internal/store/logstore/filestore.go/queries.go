@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/aaronlmathis/gosight/shared/model"
 )
@@ -17,7 +18,6 @@ func (v *FileStore) GetLogs(filter model.LogFilter) ([]model.LogEntry, error) {
 		return nil, err
 	}
 
-	// Sort files by order (affects load direction)
 	if filter.Order == "asc" {
 		sort.Strings(files)
 	} else {
@@ -25,14 +25,12 @@ func (v *FileStore) GetLogs(filter model.LogFilter) ([]model.LogEntry, error) {
 	}
 
 	var result []model.LogEntry
-	maxScan := filter.Limit * 5
-	if maxScan == 0 {
-		maxScan = 5000
-	}
+
+	maxScan := 20000
 
 	count := 0
 	for _, file := range files {
-		if count >= maxScan || (filter.Limit > 0 && len(result) >= filter.Limit) {
+		if count >= maxScan {
 			break
 		}
 
@@ -48,11 +46,19 @@ func (v *FileStore) GetLogs(filter model.LogFilter) ([]model.LogEntry, error) {
 
 		var payload model.LogPayload
 		if err := json.NewDecoder(gz).Decode(&payload); err == nil {
+			// Optional: sort entries within file
+			sort.Slice(payload.Logs, func(i, j int) bool {
+				if filter.Order == "asc" {
+					return payload.Logs[i].Timestamp.Before(payload.Logs[j].Timestamp)
+				}
+				return payload.Logs[i].Timestamp.After(payload.Logs[j].Timestamp)
+			})
+
 			for _, entry := range payload.Logs {
 				count++
 				ts := entry.Timestamp
 
-				// Add enriched tags
+				// Enrich tags
 				if entry.Tags == nil {
 					entry.Tags = make(map[string]string)
 				}
@@ -65,17 +71,18 @@ func (v *FileStore) GetLogs(filter model.LogFilter) ([]model.LogEntry, error) {
 					entry.Tags[k] = v
 				}
 
-				// Cursor filter
+				// Cursor filtering
 				if !filter.Cursor.IsZero() {
-					if filter.Order == "asc" && !ts.After(filter.Cursor) {
+					cursor := filter.Cursor.Add(-1 * time.Nanosecond)
+					if filter.Order == "asc" && !ts.After(cursor) {
 						continue
 					}
-					if filter.Order != "asc" && !ts.Before(filter.Cursor) {
+					if filter.Order != "asc" && !ts.Before(cursor) {
 						continue
 					}
 				}
 
-				// Time range
+				// Time range filtering
 				if !filter.Start.IsZero() && ts.Before(filter.Start) {
 					continue
 				}
@@ -83,19 +90,26 @@ func (v *FileStore) GetLogs(filter model.LogFilter) ([]model.LogEntry, error) {
 					continue
 				}
 
-				// Property filters
+				if filter.Level != "" && !strings.EqualFold(entry.Level, filter.Level) {
+					continue
+				}
+				if filter.Source != "" && !strings.EqualFold(entry.Source, filter.Source) {
+					continue
+				}
+
+				if filter.Category != "" && !strings.EqualFold(entry.Category, filter.Category) {
+					continue
+				}
+
+				// Flat field filter
 				match := func(key, want string) bool {
 					if want == "" {
 						return true
 					}
 					return strings.EqualFold(entry.Tags[key], want)
 				}
-
 				if !match("endpoint_id", filter.EndpointID) ||
-					!match("target", filter.Target) ||
-					!match("level", filter.Level) ||
-					!match("category", filter.Category) ||
-					!match("source", filter.Source) ||
+
 					!match("unit", filter.Unit) ||
 					!match("app_name", filter.AppName) ||
 					!match("service", filter.Service) ||
@@ -111,28 +125,99 @@ func (v *FileStore) GetLogs(filter model.LogFilter) ([]model.LogEntry, error) {
 					continue
 				}
 
-				result = append(result, entry)
+				// Meta match
+				meta := entry.Meta
 
+				// Tags match
+				for k, v := range filter.Tags {
+					if actual, ok := entry.Tags[k]; !ok || !strings.EqualFold(actual, v) {
+						goto skip
+					}
+				}
+
+				// Fields match
+				for k, v := range filter.Fields {
+					if actual, ok := entry.Fields[k]; !ok || !strings.EqualFold(actual, v) {
+						goto skip
+					}
+				}
+
+				for k, v := range filter.Meta {
+					switch strings.ToLower(k) {
+					case "platform":
+						if !strings.EqualFold(meta.Platform, v) {
+							goto skip
+						}
+					case "app_name":
+						if !strings.EqualFold(meta.AppName, v) {
+							goto skip
+						}
+					case "app_version":
+						if !strings.EqualFold(meta.AppVersion, v) {
+							goto skip
+						}
+					case "container_id":
+						if !strings.EqualFold(meta.ContainerID, v) {
+							goto skip
+						}
+					case "container_name":
+						if !strings.EqualFold(meta.ContainerName, v) {
+							goto skip
+						}
+					case "unit":
+						if !strings.EqualFold(meta.Unit, v) {
+							goto skip
+						}
+					case "service":
+						if !strings.EqualFold(meta.Service, v) {
+							goto skip
+						}
+					case "event_id":
+						if !strings.EqualFold(meta.EventID, v) {
+							goto skip
+						}
+					case "user":
+						if !strings.EqualFold(meta.User, v) {
+							goto skip
+						}
+					case "exe":
+						if !strings.EqualFold(meta.Executable, v) {
+							goto skip
+						}
+					case "path":
+						if !strings.EqualFold(meta.Path, v) {
+							goto skip
+						}
+					default:
+						if actual, ok := meta.Extra[k]; !ok || !strings.EqualFold(actual, v) {
+							goto skip
+						}
+					}
+				}
+
+				// Add to result
+				result = append(result, entry)
 				if filter.Limit > 0 && len(result) >= filter.Limit {
 					break
 				}
+			skip:
 			}
 		}
 		_ = gz.Close()
 		_ = f.Close()
 	}
 
-	// Final sort
-	if filter.Order == "asc" {
-		sort.Slice(result, func(i, j int) bool {
+	// Final safety sort
+	sort.Slice(result, func(i, j int) bool {
+		if filter.Order == "asc" {
 			return result[i].Timestamp.Before(result[j].Timestamp)
-		})
-	} else {
-		sort.Slice(result, func(i, j int) bool {
-			return result[i].Timestamp.After(result[j].Timestamp)
-		})
+		}
+		return result[i].Timestamp.After(result[j].Timestamp)
+	})
+	// Trim after sort
+	if filter.Limit > 0 && len(result) > filter.Limit {
+		result = result[:filter.Limit]
 	}
 
 	return result, nil
 }
-

@@ -83,10 +83,10 @@ func (s *HttpServer) HandleRecentLogs(w http.ResponseWriter, r *http.Request) {
 // it defaults to 100 logs. The function also handles errors and returns
 // appropriate HTTP status codes and messages.
 type LogResponse struct {
-	Logs     []model.LogEntry `json:"logs"`
-	NextCursor string         `json:"next_cursor,omitempty"`
-	HasMore  bool             `json:"has_more"`
-	Count    int              `json:"count"`
+	Logs       []model.LogEntry `json:"logs"`
+	NextCursor string           `json:"next_cursor,omitempty"`
+	HasMore    bool             `json:"has_more"`
+	Count      int              `json:"count"`
 }
 
 func (s *HttpServer) HandleLogAPI(w http.ResponseWriter, r *http.Request) {
@@ -115,10 +115,10 @@ func (s *HttpServer) HandleLogAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := LogResponse{
-		Logs:      logs,
+		Logs:       logs,
 		NextCursor: nextCursor,
-		HasMore:   hasMore,
-		Count:     len(logs),
+		HasMore:    hasMore,
+		Count:      len(logs),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -159,12 +159,24 @@ func parseLogFilterFromQuery(r *http.Request) model.LogFilter {
 		return def
 	}
 
+	// Map extract helper
+	extractPrefixed := func(prefix string) map[string]string {
+		out := make(map[string]string)
+		for key, values := range q {
+			if strings.HasPrefix(key, prefix) && len(values) > 0 {
+				k := strings.TrimPrefix(key, prefix)
+				out[k] = values[0]
+			}
+		}
+		return out
+	}
+
 	filter := model.LogFilter{
 		Start:         parseTime("start"),
 		End:           parseTime("end"),
 		Cursor:        parseTime("cursor"),
 		Limit:         parseInt("limit", 100),
-		Order:         q.Get("order"), // "asc" or "desc"
+		Order:         q.Get("order"),
 		EndpointID:    q.Get("endpoint_id"),
 		Target:        q.Get("target"),
 		Level:         q.Get("level"),
@@ -179,6 +191,10 @@ func parseLogFilterFromQuery(r *http.Request) model.LogFilter {
 		ContainerID:   q.Get("container_id"),
 		ContainerName: q.Get("container_name"),
 		Platform:      q.Get("platform"),
+
+		Tags:   extractPrefixed("tag_"),
+		Fields: extractPrefixed("field_"),
+		Meta:   extractPrefixed("meta_"),
 	}
 
 	return filter

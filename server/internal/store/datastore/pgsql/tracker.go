@@ -20,7 +20,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
 // gosight/agent/internal/store/datastore/pgdatastore/tracker.go
-// tracker.go - defines the db fucntions for tracking endpoints
+// tracker.go - defines the db functions for tracking endpoints
 
 package pgstore
 

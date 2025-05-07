@@ -20,7 +20,7 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
 
 // gosight/agent/internal/store/datastore/pgdatastore/tags.go
-// tracker.go - defines the db fucntions for managing resource tags.
+// tracker.go - defines the db functions for managing resource tags.
 
 package pgstore
 

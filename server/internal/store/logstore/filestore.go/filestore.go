@@ -57,7 +57,11 @@ func (f *FileStore) Write(payloads []model.LogPayload) error {
 			continue
 		}
 
-		timestamp := time.Now().UTC().Format("20060102T150405Z")
+		ts := payload.Timestamp
+		if ts.IsZero() {
+			ts = time.Now().UTC()
+		}
+		timestamp := ts.Format("20060102T150405Z")
 		filename := fmt.Sprintf("logs_%s_%s.json.gz", payload.EndpointID, timestamp)
 		path := filepath.Join(f.dir, filename)
 

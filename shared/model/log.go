@@ -70,24 +70,27 @@ type LogFilter struct {
 	End   time.Time // Filter logs until this time
 
 	// Filtering by log properties
-	EndpointID string // Filter by endpoint ID (e.g., "host-123", "container-xyz")
-	Target     string // Filter by target (e.g., "gosight-core", "host-123")
-	Level      string // Filter by log level (e.g., "info", "warning", "error")
-	Category   string // Filter by category (e.g., "system", "metric", "security")
-	Source     string // Filter by source (e.g., "docker", "podman", "system")
-	Contains   string // Filter by a substring match in the message
-	Unit       string // Filter by systemd unit name (e.g., "nginx.service")
-	AppName    string // Filter by application name (e.g., "nginx", "sshd")
-	Service       string              // For syslog/Windows Event Log
+	EndpointID    string // Filter by endpoint ID (e.g., "host-123", "container-xyz")
+	Target        string // Filter by target (e.g., "gosight-core", "host-123")
+	Level         string // Filter by log level (e.g., "info", "warning", "error")
+	Category      string // Filter by category (e.g., "system", "metric", "security")
+	Source        string // Filter by source (e.g., "docker", "podman", "system")
+	Contains      string // Filter by a substring match in the message
+	Unit          string // Filter by systemd unit name (e.g., "nginx.service")
+	AppName       string // Filter by application name (e.g., "nginx", "sshd")
+	Service       string // For syslog/Windows Event Log
 	EventID       string
-	User          string        
-	ContainerID   string           // if inside a container
-	Platform string
-	ContainerName string      // Windows event ID, etc.
-	
+	User          string
+	ContainerID   string // if inside a container
+	Platform      string
+	ContainerName string // Windows event ID, etc.
+	Meta          map[string]string
+	Tags          map[string]string // Additional tags to filter by
+	Extra         map[string]string
+	Fields        map[string]string // Additional fields to filter by
 	// Limit and sorting
-	Limit int    // Max number of logs to return
-	Order string // Order direction: "asc" or "desc"
+	Limit  int    // Max number of logs to return
+	Order  string // Order direction: "asc" or "desc"
 	Cursor time.Time
 	Offset int
 }
