@@ -21,19 +21,40 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 
 package cache
 
-type Cache struct {
-	Processes ProcessCache
-	Metrics   MetricCache
-	Tags      TagCache
-	Logs      LogCache
-	/*
-		Agents    AgentCache
-		Endpoints EndpointCache
+import (
+	"sync"
 
+	"github.com/aaronlmathis/gosight/shared/model"
+)
 
-		Tags      TagCache
-		Alerts    AlertCache
-		Events    EventCache
-		Metrics   MetricCache
-	*/
+type LogCache interface {
+	Add(entry model.StoredLog)
+	Get(logID string) (*model.LogEntry, bool)
+}
+
+type logCache struct {
+	mu    sync.RWMutex
+	store map[string]model.StoredLog
+}
+
+func NewLogCache() LogCache {
+	return &logCache{
+		store: make(map[string]model.StoredLog),
+	}
+}
+
+func (c *logCache) Add(entry model.StoredLog) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.store[entry.LogID] = entry
+}
+
+func (c *logCache) Get(logID string) (*model.LogEntry, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	entry, ok := c.store[logID]
+	if !ok {
+		return nil, false
+	}
+	return &entry.Log, true
 }

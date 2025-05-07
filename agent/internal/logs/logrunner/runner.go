@@ -106,12 +106,16 @@ func (r *LogRunner) Run(ctx context.Context) {
 				continue
 			}
 
+			// set job tag for victoriametrics.
+			r.Meta.Tags["job"] = "gosight-logs"
+
 			// clone base meta before modifying it
 			meta := meta.CloneMetaWithTags(r.Meta, nil)
 
 			// Generate Endpoint ID
 			endpointID := utils.GenerateEndpointID(meta)
 			meta.EndpointID = endpointID
+			meta.Tags["instance"] = meta.Hostname
 
 			//utils.Debug("Processing %d log batches for sending.", len(logBatches))
 

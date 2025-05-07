@@ -359,7 +359,7 @@ func buildLogEntry(entry *sdjournal.JournalEntry, maxSize int) model.LogEntry {
 		}
 	}
 	// Classify the category based on SYSLOG_IDENTIFIER or SYSTEMD_UNIT using the classifyCategory function
-	category := classifyCategory(fields["SYSLOG_IDENTIFIER"], fields["SYSTEMD_UNIT"])
+	source := classifySource(fields["SYSLOG_IDENTIFIER"], fields["SYSTEMD_UNIT"])
 
 	// Try to extact user information from fields
 	user := extractUserFromFields(entry.Fields)
@@ -396,8 +396,8 @@ func buildLogEntry(entry *sdjournal.JournalEntry, maxSize int) model.LogEntry {
 		Timestamp: timestamp,
 		Level:     mapPriorityToLevel(entry.Fields["PRIORITY"]),
 		Message:   msg,
-		Source:    "systemd", // e.g., systemd, auth, gosight
-		Category:  category,  // e.g., systemd unit or slice
+		Source:    source,   // e.g., systemd, auth, gosight
+		Category:  "system", // e.g., systemd unit or slice
 		PID:       parsePID(entry.Fields["_PID"]),
 		Fields:    fields, // Richer metadata goes here
 		Tags:      tags,   // Minimal, high-value tags
@@ -465,12 +465,12 @@ func extractUserFromFields(fields map[string]string) string {
 }
 
 // Category mapping for journald logs based on SYSLOG_IDENTIFIER or SYSTEMD_UNIT
-// This mapping is used to categorize logs into predefined categories.
+// This mapping is used to categorize logs into predefined sources
 
-// journaldCategoryMap is a mapping of common journald identifiers to categories.
-var journaldCategoryMap = []struct {
+// journaldCategoryMap is a mapping of common journald identifiers to sources.
+var journaldSourceMap = []struct {
 	MatchKey string // lowercased value of SYSLOG_IDENTIFIER or SYSTEMD_UNIT
-	Category string
+	Source   string
 }{
 	// Authentication
 	{"sshd", "auth"},
@@ -509,14 +509,14 @@ var journaldCategoryMap = []struct {
 }
 
 // classifyCategory determines the category of a log entry based on its syslog identifier or systemd unit.
-func classifyCategory(syslogID, unit string) string {
+func classifySource(syslogID, unit string) string {
 	inputs := []string{strings.ToLower(syslogID), strings.ToLower(unit)}
 	for _, input := range inputs {
-		for _, rule := range journaldCategoryMap {
+		for _, rule := range journaldSourceMap {
 			if strings.Contains(input, rule.MatchKey) {
-				return rule.Category
+				return rule.Source
 			}
 		}
 	}
-	return "system" // default fallback
+	return "systemd" // default fallback
 }

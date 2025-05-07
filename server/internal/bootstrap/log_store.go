@@ -26,6 +26,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aaronlmathis/gosight/server/internal/cache"
 	"github.com/aaronlmathis/gosight/server/internal/config"
 	"github.com/aaronlmathis/gosight/server/internal/store/logstore"
 	"github.com/aaronlmathis/gosight/shared/utils"
@@ -33,11 +34,11 @@ import (
 
 // InitLogStore initializes the log store for the GoSight agent.
 // The log store is responsible for storing and retrieving logs.
-func InitLogStore(ctx context.Context, cfg *config.Config) (logstore.LogStore, error) {
+func InitLogStore(ctx context.Context, cfg *config.Config, logCache cache.LogCache) (logstore.LogStore, error) {
 	engine := cfg.LogStore.Engine
 	utils.Info("Initializing log store engine: %s", engine)
 
-	s, err := logstore.InitLogStore(ctx, cfg)
+	s, err := logstore.InitLogStore(ctx, cfg, logCache)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init log store: %w", err)
 	}

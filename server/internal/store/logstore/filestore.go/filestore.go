@@ -89,13 +89,3 @@ func (f *FileStore) Close() error {
 	// No-op for file store currently
 	return nil
 }
-
-// HELPERS
-
-func totalLogCount(payloads []model.LogPayload) int {
-	count := 0
-	for _, p := range payloads {
-		count += len(p.Logs)
-	}
-	return count
-}

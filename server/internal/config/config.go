@@ -85,6 +85,7 @@ type Config struct {
 	LogStore struct {
 		Engine        string `yaml:"engine"` // file, victoriametric etc
 		Dir           string `yaml:"dir"`
+		Url           string `yaml:"url,omitempty"` // optional URL for remote storage
 		Workers       int    `yaml:"workers"`
 		QueueSize     int    `yaml:"queue_size"`
 		BatchSize     int    `yaml:"batch_size"`

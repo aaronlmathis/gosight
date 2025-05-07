@@ -147,7 +147,6 @@ func parseLogFilterFromQuery(r *http.Request) model.LogFilter {
 		}
 		return t
 	}
-
 	parseInt := func(key string, def int) int {
 		val := q.Get(key)
 		if val == "" {
@@ -200,16 +199,6 @@ func parseLogFilterFromQuery(r *http.Request) model.LogFilter {
 	return filter
 }
 
-func parseTime(s string) time.Time {
-	if s == "" {
-		return time.Time{}
-	}
-	t, err := time.Parse("2006-01-02T15:04:05", s)
-	if err != nil {
-		return time.Time{}
-	}
-	return t
-}
 
 // matchesSearch checks if a log entry matches the search keyword.
 // It checks if the keyword is present in the message, source, category,

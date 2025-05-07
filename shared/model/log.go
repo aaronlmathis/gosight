@@ -60,6 +60,12 @@ type LogPayload struct {
 	Meta       *Meta
 }
 
+type StoredLog struct {
+	LogID string   `json:"log_id"`
+	Log   LogEntry `json:"log"`
+	Meta  *Meta    `json:"meta,omitempty"` // from LogPayload
+}
+
 // LogFilter is used to filter logs based on various criteria.
 // It includes the limit of logs to return, the log levels to filter by,
 // the unit of the logs, the source of the logs, a string to search for in the logs,
