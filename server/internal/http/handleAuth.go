@@ -28,7 +28,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -346,7 +345,16 @@ func (s *HttpServer) createFinalSessionAndRedirect(w http.ResponseWriter, r *htt
 	}
 	// Validate that the next URL is local
 	next = strings.ReplaceAll(next, "\\", "/") // Normalize backslashes
-	if parsedURL, err := url.Parse(next); err != nil || parsedURL.Hostname() != "" {
+	allowedPaths := map[string]bool{
+		"/":          true,
+		"/dashboard": true,
+		"/profile":   true,
+		"/alerts":   true,
+		"/logs":   true,
+		"/events":   true,
+		"/metrics":   true,
+	}
+	if _, ok := allowedPaths[next]; !ok {
 		next = "/"
 	}
 	http.Redirect(w, r, next, http.StatusSeeOther)
