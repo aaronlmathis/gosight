@@ -48,7 +48,7 @@ type ProcessHub struct {
 func NewProcessHub(metaTracker *metastore.MetaTracker) *ProcessHub {
 	return &ProcessHub{
 		clients:     make(map[*Client]bool),
-		broadcast:   make(chan model.ProcessPayload, 2000), // high buffer for frequent metric bursts
+		broadcast:   make(chan model.ProcessPayload, 2000), 
 		metaTracker: metaTracker,
 	}
 }
@@ -62,7 +62,7 @@ func (h *ProcessHub) Run(ctx context.Context) {
 
 			h.lock.Lock()
 
-			var deadClients []*Client // NEW: list to track which clients to remove
+			var deadClients []*Client
 
 			for client := range h.clients {
 				if h.shouldDeliver(payload, client) {
@@ -96,7 +96,7 @@ func (h *ProcessHub) Run(ctx context.Context) {
 
 // ServeWS upgrades HTTP to WebSocket and registers client to ProcessHub.
 func (h *ProcessHub) ServeWS(w http.ResponseWriter, r *http.Request) {
-	// Authenticate the request
+	
 	_, err := gosightauth.GetSessionClaims(r)
 	if err != nil {
 		utils.Warn("Unauthorized WebSocket attempt: %v", err)
@@ -146,7 +146,7 @@ func (h *ProcessHub) ServeWS(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	// Register client
+
 	h.lock.Lock()
 	h.clients[client] = true
 	h.lock.Unlock()

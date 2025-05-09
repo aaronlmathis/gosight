@@ -87,7 +87,7 @@ func (v *VictoriaLogStore) queryMatchingLogIDs(filter model.LogFilter) ([]logRef
 	} else {
 		start = filter.Start.UnixMilli()
 	}
-	
+
 	if filter.End.IsZero() {
 		end = time.Now().UnixMilli()
 	} else {
@@ -166,7 +166,7 @@ func (v *VictoriaLogStore) GetLogs(filter model.LogFilter) ([]model.LogEntry, er
 	var result []model.LogEntry
 	for _, ref := range refs {
 		entry, err := v.GetLogByID(ref.LogID)
-		
+
 		if err == nil {
 			if filter.Contains != "" && !strings.Contains(strings.ToLower(entry.Message), strings.ToLower(filter.Contains)) {
 				continue
@@ -214,6 +214,17 @@ func (v *VictoriaLogStore) GetLogByID(logID string) (*model.LogEntry, error) {
 				_ = gz.Close()
 				_ = f.Close()
 				utils.Debug("scanning file for log_id=%s: %s", logID, file)
+				if entry.Log.Tags == nil {
+					entry.Log.Tags = make(map[string]string)
+				}
+				entry.Log.Tags["endpoint_id"] = entry.Meta.EndpointID
+				entry.Log.Tags["agent_id"] = entry.Meta.AgentID
+				entry.Log.Tags["host_id"] = entry.Meta.HostID
+				entry.Log.Tags["hostname"] = entry.Meta.Hostname
+
+				for k, v := range entry.Meta.Tags {
+					entry.Log.Tags[k] = v
+				}
 				return &entry.Log, nil
 			}
 		}

@@ -57,8 +57,7 @@ func (g *GoogleAuth) HandleCallback(w http.ResponseWriter, r *http.Request) (*us
 	}
 	user, err := g.Store.GetUserByEmail(ctx, userInfo.Email)
 	if err != nil {
-		//  Optional: return unauthorized if not found
-		return nil, ErrUnauthorized // you can define this in errors.go
+		return nil, ErrUnauthorized 
 	}
 
 	//  If user has SSO info, verify match
