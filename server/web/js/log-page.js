@@ -135,7 +135,13 @@ document.addEventListener("DOMContentLoaded", () => {
     delete copy.extra;
     return copy;
   }
-
+  function formatTimestampForDisplay(isoString) {
+    const date = new Date(isoString);
+    return date.toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short"
+    });
+  }
   function updateURLFromForm() {
     const params = new URLSearchParams();
 
@@ -162,15 +168,21 @@ document.addEventListener("DOMContentLoaded", () => {
     for (const [key, id] of Object.entries(mappings)) {
       const val = document.getElementById(id)?.value;
       if (val) {
-        params.set(key, key === "start" || key === "end" ? new Date(val).toISOString() : val);
+        if (key === "start" || key === "end") {
+          const iso = new Date(val).toISOString(); // e.g. 2025-05-06T14:51:00.000Z
+          params.set(key, iso);
+        } else {
+          params.set(key, val);
+        }
       }
     }
 
-    // Add tags
+    const builtInKeys = new Set(["level", "category", "source", "endpoint", "app", "start", "end", "contains"]);
+
     document.querySelectorAll("#tag-filters span").forEach(span => {
       const raw = span.textContent.replace("×", "").trim();
       const [k, v] = raw.split(":");
-      if (k && v) {
+      if (k && v && !builtInKeys.has(k)) {
         params.append(`tag_${k}`, v);
       }
     });
@@ -257,7 +269,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (key.startsWith("tag_")) {
         const tagKey = key.slice(4);
         const span = document.createElement("span");
-        span.className = "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100";
+        span.className = "inline-flex items-center px-3 py-1 rounded-sm text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100";
         span.innerHTML = `${tagKey}:${value} <button class="ml-1 text-xs remove-tag" type="button">&times;</button>`;
         tagContainer.appendChild(span);
       }
@@ -265,6 +277,60 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Cursor
     currentCursor = params.get("cursor") || null;
+  }
+  function renderActiveFiltersFromForm() {
+    const tagContainer = document.getElementById("tag-filters");
+    tagContainer.innerHTML = ""; // clear all first
+
+    const mappings = {
+      contains: "filter-keyword",
+      source: "filter-source",
+      container: "container-name",
+      endpoint: "endpoint-name",
+      app: "app-name",
+      start: "start-time",
+      end: "end-time"
+    };
+
+    for (const [key, id] of Object.entries(mappings)) {
+      const val = document.getElementById(id)?.value?.trim();
+      if (val) {
+        addTagPill(key, val);
+      }
+    }
+
+    const getChecked = cls =>
+      Array.from(document.querySelectorAll(`.${cls}:checked`)).map(el => el.value);
+
+    getChecked("filter-level-option").forEach(v => addTagPill("level", v));
+    getChecked("filter-category-option").forEach(v => addTagPill("category", v));
+
+    // Add custom tags already in tag-filters
+    const existingSpans = document.querySelectorAll("#tag-filters span[data-custom-tag]");
+    existingSpans.forEach(span => tagContainer.appendChild(span));
+  }
+  function addTagPill(key, value) {
+    const span = document.createElement("span");
+    span.className =
+      "inline-flex items-center text-sm font-medium me-2 px-3 py-1 rounded-sm bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 hover:bg-blue-200 dark:hover:bg-blue-800";
+
+    const display = (key === "start" || key === "end")
+      ? formatTimestampForDisplay(value)
+      : `${key}:${value}`;
+
+    const label = document.createElement("span");
+    label.textContent = (key === "start" || key === "end") ? `${key}: ${display}` : `${key}:${value}`;
+    span.appendChild(label);
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ms-2 inline-flex items-center justify-center w-4 h-4 text-xs text-blue-800 hover:text-blue-900 dark:text-blue-200 dark:hover:text-white focus:outline-none remove-tag";
+    button.title = "Remove filter";
+    button.innerHTML = "&times;";
+    span.appendChild(button);
+
+    span.dataset.customTag = "true";
+    document.getElementById("tag-filters").appendChild(span);
   }
 
 
@@ -308,8 +374,13 @@ document.addEventListener("DOMContentLoaded", () => {
           opt.className = "cursor-pointer px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-white";
           opt.textContent = item;
           opt.addEventListener("click", () => {
-            input.value = item;
-            dropdown.classList.add("hidden");
+            setTimeout(() => {
+              input.value = item;
+              dropdown.classList.add("hidden");
+              renderActiveFiltersFromForm(); // update pill after value is set
+              updateURLFromForm();
+              fetchLogs();
+            }, 10); // short delay to ensure value is actually set
           });
           dropdown.appendChild(opt);
         });
@@ -374,14 +445,57 @@ document.addEventListener("DOMContentLoaded", () => {
     currentCursor = null;
     previousCursors = [];
     fetchLogs();
+    renderActiveFiltersFromForm();
     updateURLFromForm();
   });
 
   document.getElementById("tag-filters").addEventListener("click", (e) => {
-    if (e.target.classList.contains("remove-tag")) {
-      e.target.parentElement.remove();
+    if (!e.target.classList.contains("remove-tag")) return;
+
+    const pill = e.target.closest("span");
+    if (!pill) return;
+
+    // Parse the key:value
+    const raw = pill.textContent.replace("×", "").trim();
+    const [key, value] = raw.split(":");
+
+    // Remove matching form values
+    if (key === "level") {
+      document.querySelectorAll(".filter-level-option:checked").forEach(cb => {
+        if (cb.value === value) cb.checked = false;
+      });
+    } else if (key === "category") {
+      document.querySelectorAll(".filter-category-option:checked").forEach(cb => {
+        if (cb.value === value) cb.checked = false;
+      });
+    } else {
+      // Handle individual fields like source, endpoint, app, etc.
+      const id = {
+        contains: "filter-keyword",
+        source: "filter-source",
+        container: "container-name",
+        endpoint: "endpoint-name",
+        app: "app-name",
+        start: "start-time",
+        end: "end-time"
+      }[key];
+      if (id) {
+        const input = document.getElementById(id);
+        if (input && input.value === value) input.value = "";
+      }
     }
+
+    // Remove the pill visually
+    pill.remove();
+
+    // Trigger new search + update URL
+    currentCursor = null;
+    previousCursors = [];
+    fetchLogs();
+    updateURLFromForm();
+    renderActiveFiltersFromForm(); // rebuild pills to reflect any additional changes
   });
+
   resultsTable.addEventListener("click", (e) => {
     if (e.target.classList.contains("copy-btn")) {
       const value = e.target.dataset.copy;
@@ -404,7 +518,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if ([...tagContainer.querySelectorAll("span")].some(span => span.textContent.includes(`${key}:${value}`))) return;
 
     const span = document.createElement("span");
-    span.className = "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100";
+    span.className = "inline-flex items-center px-3 py-1 rounded-sm text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100";
     span.innerHTML = `${key}:${value} <button class="ml-1 text-xs remove-tag" type="button">&times;</button>`;
     tagContainer.appendChild(span);
     updateURLFromForm();
@@ -421,7 +535,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if ([...tagContainer.querySelectorAll("span")].some(span => span.textContent.includes(`${key}:${value}`))) return;
 
       const span = document.createElement("span");
-      span.className = "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100";
+      span.className = "inline-flex items-center px-3 py-1 rounded-sm text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100";
       span.innerHTML = `${key}:${value} <button class="ml-1 text-xs remove-tag" type="button">&times;</button>`;
       tagContainer.appendChild(span);
       currentCursor = null;
@@ -430,9 +544,48 @@ document.addEventListener("DOMContentLoaded", () => {
       updateURLFromForm();
     }
   });
+  function bindFormAutoTags() {
+    const inputs = [
+      "filter-keyword", "filter-source", "container-name", "endpoint-name",
+      "app-name", "start-time", "end-time"
+    ];
 
+    inputs.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("change", () => {
+          renderActiveFiltersFromForm();
+          updateURLFromForm();
+          fetchLogs();
+        });
+      }
+    });
+
+    // Multi-select checkboxes (levels/categories)
+    document.querySelectorAll(".filter-level-option, .filter-category-option").forEach(cb => {
+      cb.addEventListener("change", () => {
+        renderActiveFiltersFromForm();
+        updateURLFromForm();
+        fetchLogs();
+      });
+    });
+
+    // Enter key on any input triggers submit
+    document.querySelectorAll("#log-search-form input").forEach(input => {
+      input.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          currentCursor = null;
+          previousCursors = [];
+          fetchLogs();
+          renderActiveFiltersFromForm();
+          updateURLFromForm();
+        }
+      });
+    });
+  }
   loadFormFromURL();
   populateEndpointDropdown();
-
+  bindFormAutoTags();
   fetchLogs();
 });

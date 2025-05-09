@@ -27,178 +27,113 @@
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Advanced Log Search</h2>
 
             <!-- Filter Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
+            <div class="space-y-4">
+
+                <!-- Row 1: Keyword | Endpoint | Source -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Keyword</label>
                     <input type="text" id="filter-keyword"
-                        class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white shadow-sm focus:ring-blue-500 focus:border-blue-500 min-h-[2.5rem]">
-                </div>
-
-                <!-- LOG LEVEL -->
-                <div>
-                    <label for="filter-level" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Log
-                        Level</label>
-                    <div class="relative">
-                        <button id="filter-level" data-dropdown-toggle="filter-level-dropdown"
-                            class="mt-1 w-full inline-flex justify-between items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-900 dark:text-white shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            Select levels
-                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M19 9l-7 7-7-7">
-                                </path>
-                            </svg>
-                        </button>
-
-                        <div id="filter-level-dropdown"
-                            class="z-10 hidden w-full bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700 rounded-lg shadow">
-                            <ul class="p-3 space-y-1 text-sm text-gray-700 dark:text-gray-200"
-                                aria-labelledby="filter-level">
-                                <li>
-                                    <label class="flex items-center">
-                                        <input type="checkbox" value="error"
-                                            class="filter-level-option w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                                        <span class="ml-2">Error</span>
-                                    </label>
-                                </li>
-                                <li>
-                                    <label class="flex items-center">
-                                        <input type="checkbox" value="warning"
-                                            class="filter-level-option w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                                        <span class="ml-2">Warning</span>
-                                    </label>
-                                </li>
-                                <li>
-                                    <label class="flex items-center">
-                                        <input type="checkbox" value="info"
-                                            class="filter-level-option w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                                        <span class="ml-2">Info</span>
-                                    </label>
-                                </li>
-                                <li>
-                                    <label class="flex items-center">
-                                        <input type="checkbox" value="debug"
-                                            class="filter-level-option w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                                        <span class="ml-2">Debug</span>
-                                    </label>
-                                </li>
-                            </ul>
-                        </div>
+                      class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white shadow-sm focus:ring-blue-500 focus:border-blue-500 min-h-[2.5rem]">
+                  </div>
+              
+                  <div>
+                    <label for="endpoint-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Endpoint Name</label>
+                    <div class="relative mt-1">
+                      <input type="text" id="endpoint-name" placeholder="Search..." autocomplete="off"
+                        class="endpoint-input w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white shadow-sm focus:ring-blue-500 focus:border-blue-500 min-h-[2.5rem]">
+                      <div id="endpoint-dropdown"
+                        class="absolute z-10 mt-1 hidden w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto text-sm">
+                      </div>
                     </div>
-
-                    <!-- CATEGORY -->
-
-                    <label for="filter-category"
-                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
-                    <div class="relative">
-                        <button id="filter-category" data-dropdown-toggle="filter-category-dropdown"
-                            class="mt-1 w-full inline-flex justify-between items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-900 dark:text-white shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            Select categories
-                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M19 9l-7 7-7-7">
-                                </path>
-                            </svg>
-                        </button>
-                        <div id="filter-category-dropdown"
-                            class="z-10 hidden w-full bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700 rounded-lg shadow">
-                            <ul class="p-3 space-y-1 text-sm text-gray-700 dark:text-gray-200"
-                                aria-labelledby="filter-category">
-                                <li><label class="flex items-center"><input type="checkbox" value="system"
-                                            class="filter-category-option w-4 h-4 ..."><span
-                                            class="ml-2">System</span></label></li>
-                                <li><label class="flex items-center"><input type="checkbox" value="application"
-                                            class="filter-category-option w-4 h-4 ..."><span
-                                            class="ml-2">Application</span></label></li>
-                                <li><label class="flex items-center"><input type="checkbox" value="security"
-                                            class="filter-category-option w-4 h-4 ..."><span
-                                            class="ml-2">Security</span></label></li>
-                                <li><label class="flex items-center"><input type="checkbox" value="performance"
-                                            class="filter-category-option w-4 h-4 ..."><span
-                                            class="ml-2">Performance</span></label></li>
-                                <li><label class="flex items-center"><input type="checkbox" value="auth"
-                                            class="filter-category-option w-4 h-4 ..."><span
-                                            class="ml-2">Auth</span></label></li>
-                                <li><label class="flex items-center"><input type="checkbox" value="network"
-                                            class="filter-category-option w-4 h-4 ..."><span
-                                            class="ml-2">Network</span></label></li>
-                                <li><label class="flex items-center"><input type="checkbox" value="container"
-                                            class="filter-category-option w-4 h-4 ..."><span
-                                            class="ml-2">Container</span></label></li>
-                                <li><label class="flex items-center"><input type="checkbox" value="metric"
-                                            class="filter-category-option w-4 h-4 ..."><span
-                                            class="ml-2">Metric</span></label></li>
-                                <li><label class="flex items-center"><input type="checkbox" value="gosight"
-                                            class="filter-category-option w-4 h-4 ..."><span
-                                            class="ml-2">GoSight</span></label></li>
-                                <li><label class="flex items-center"><input type="checkbox" value="scheduler"
-                                            class="filter-category-option w-4 h-4 ..."><span
-                                            class="ml-2">Scheduler</span></label></li>
-                                <li><label class="flex items-center"><input type="checkbox" value="config"
-                                            class="filter-category-option w-4 h-4 ..."><span
-                                            class="ml-2">Config</span></label></li>
-                                <li><label class="flex items-center"><input type="checkbox" value="audit"
-                                            class="filter-category-option w-4 h-4 ..."><span
-                                            class="ml-2">Audit</span></label></li>
-                                <li><label class="flex items-center"><input type="checkbox" value="alert"
-                                            class="filter-category-option w-4 h-4 ..."><span
-                                            class="ml-2">Alert</span></label></li>
-                            </ul>
-                        </div>
-                    </div>
-
-                </div>
-
-                <div>
+                  </div>
+              
+                  <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Source</label>
                     <input type="text" id="filter-source" placeholder="e.g. docker, systemd"
-                        class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white shadow-sm focus:ring-blue-500 focus:border-blue-500 min-h-[2.5rem]">
+                      class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white shadow-sm focus:ring-blue-500 focus:border-blue-500 min-h-[2.5rem]">
+                  </div>
                 </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Target</label>
-                    <input type="text" id="filter-target" placeholder="e.g. docker, systemd"
-                        class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white shadow-sm focus:ring-blue-500 focus:border-blue-500 min-h-[2.5rem]">
-                </div>
-
-                <div>
-                    <label for="endpoint-name"
-                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">Endpoint
-                        Name</label>
-                    <div class="relative mt-1">
-                        <input type="text" id="endpoint-name" placeholder="Search..." autocomplete="off"
-                            class="endpoint-input w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white shadow-sm focus:ring-blue-500 focus:border-blue-500 min-h-[2.5rem]">
-                        <div id="endpoint-dropdown"
-                            class="absolute z-10 mt-1 hidden w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto text-sm">
-                        </div>
+              
+                <!-- Row 2: Log Level | Category | Start/End Time -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label for="filter-level" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Log Level</label>
+                    <div class="relative">
+                      <button id="filter-level" data-dropdown-toggle="filter-level-dropdown"
+                        class="mt-1 w-full inline-flex justify-between items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-900 dark:text-white shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        Select levels
+                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      <div id="filter-level-dropdown"
+                        class="z-10 hidden w-full bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700 rounded-lg shadow">
+                        <ul class="p-3 space-y-1 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="filter-level">
+                          <li><label class="flex items-center"><input type="checkbox" value="critical" class="filter-level-option w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"><span class="ml-2">Critical</span></label></li>
+                          <li><label class="flex items-center"><input type="checkbox" value="error" class="filter-level-option w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"><span class="ml-2">Error</span></label></li>
+                          <li><label class="flex items-center"><input type="checkbox" value="warning" class="filter-level-option w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"><span class="ml-2">Warning</span></label></li>
+                          <li><label class="flex items-center"><input type="checkbox" value="info" class="filter-level-option w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"><span class="ml-2">Info</span></label></li>
+                          <li><label class="flex items-center"><input type="checkbox" value="debug" class="filter-level-option w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"><span class="ml-2">Debug</span></label></li>
+                        </ul>
+                      </div>
                     </div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">App Name</label>
-                    <input type="text" id="app-name"
+                  </div>
+              
+                  <div>
+                    <label for="filter-category" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
+                    <div class="relative">
+                      <button id="filter-category" data-dropdown-toggle="filter-category-dropdown"
+                        class="mt-1 w-full inline-flex justify-between items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-900 dark:text-white shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        Select categories
+                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      <div id="filter-category-dropdown"
+                        class="z-10 hidden w-full bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700 rounded-lg shadow">
+                        <ul class="p-3 space-y-1 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="filter-category">
+                          <li><label class="flex items-center"><input type="checkbox" value="system" class="filter-category-option w-4 h-4"><span class="ml-2">System</span></label></li>
+                          <li><label class="flex items-center"><input type="checkbox" value="application" class="filter-category-option w-4 h-4"><span class="ml-2">Application</span></label></li>
+                          <li><label class="flex items-center"><input type="checkbox" value="security" class="filter-category-option w-4 h-4"><span class="ml-2">Security</span></label></li>
+                          <li><label class="flex items-center"><input type="checkbox" value="performance" class="filter-category-option w-4 h-4"><span class="ml-2">Performance</span></label></li>
+                          <li><label class="flex items-center"><input type="checkbox" value="auth" class="filter-category-option w-4 h-4"><span class="ml-2">Auth</span></label></li>
+                          <li><label class="flex items-center"><input type="checkbox" value="network" class="filter-category-option w-4 h-4"><span class="ml-2">Network</span></label></li>
+                          <li><label class="flex items-center"><input type="checkbox" value="container" class="filter-category-option w-4 h-4"><span class="ml-2">Container</span></label></li>
+                          <li><label class="flex items-center"><input type="checkbox" value="metric" class="filter-category-option w-4 h-4"><span class="ml-2">Metric</span></label></li>
+                          <li><label class="flex items-center"><input type="checkbox" value="gosight" class="filter-category-option w-4 h-4"><span class="ml-2">GoSight</span></label></li>
+                          <li><label class="flex items-center"><input type="checkbox" value="scheduler" class="filter-category-option w-4 h-4"><span class="ml-2">Scheduler</span></label></li>
+                          <li><label class="flex items-center"><input type="checkbox" value="config" class="filter-category-option w-4 h-4"><span class="ml-2">Config</span></label></li>
+                          <li><label class="flex items-center"><input type="checkbox" value="audit" class="filter-category-option w-4 h-4"><span class="ml-2">Audit</span></label></li>
+                          <li><label class="flex items-center"><input type="checkbox" value="alert" class="filter-category-option w-4 h-4"><span class="ml-2">Alert</span></label></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+              
+                  <div class="flex flex-col md:flex-row gap-4">
+                    <div class="w-full">
+                      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Start Time</label>
+                      <input type="datetime-local" id="start-time"
                         class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white shadow-sm min-h-[2.5rem]">
-                </div>
-
-                <div class="flex flex-col md:flex-row md:col-span-2 gap-4">
-                    <div class="w-full">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Start Time</label>
-                        <input type="datetime-local" id="start-time"
-                            class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white shadow-sm min-h-[2.5rem]">
                     </div>
                     <div class="w-full">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">End Time</label>
-                        <input type="datetime-local" id="end-time"
-                            class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white shadow-sm min-h-[2.5rem]">
+                      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">End Time</label>
+                      <input type="datetime-local" id="end-time"
+                        class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white shadow-sm min-h-[2.5rem]">
                     </div>
+                  </div>
                 </div>
-            </div>
+              
+              </div>
 
-            <!-- Tags -->
-            <div class="mt-6">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags</label>
-                <div id="tag-filters" class="flex flex-wrap gap-2"></div>
-            </div>
-
+<!-- Active Filters -->
+<div class="mt-6">
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Active Filters</label>
+    <div id="tag-filters" class="flex flex-wrap gap-2 items-center">
+      <!-- Tags will be dynamically injected here -->
+    </div>
+  </div>
             <!-- Buttons -->
             <div class="mt-6 flex justify-end gap-3">
                 <button
