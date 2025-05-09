@@ -311,20 +311,24 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   function addTagPill(key, value) {
     const span = document.createElement("span");
+    span.className =
+      "inline-flex items-center text-sm font-medium me-2 px-3 py-1 rounded-sm bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 hover:bg-blue-200 dark:hover:bg-blue-800";
+
     const display = (key === "start" || key === "end")
       ? formatTimestampForDisplay(value)
       : `${key}:${value}`;
-    span.className =
-      "inline-flex items-center text-sm font-medium me-2 px-3 py-1 rounded-sm bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 hover:bg-blue-200 dark:hover:bg-blue-800";
-    span.innerHTML = `
-    ${key === "start" || key === "end" ? `${key}: ${display}` : `${key}:${value}`}
-      <button type="button"
-        class="ms-2 inline-flex items-center justify-center w-4 h-4 text-xs text-blue-800 hover:text-blue-900 dark:text-blue-200 dark:hover:text-white focus:outline-none remove-tag"
-        title="Remove filter"
-      >
-        &times;
-      </button>
-    `;
+
+    const label = document.createElement("span");
+    label.textContent = (key === "start" || key === "end") ? `${key}: ${display}` : `${key}:${value}`;
+    span.appendChild(label);
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ms-2 inline-flex items-center justify-center w-4 h-4 text-xs text-blue-800 hover:text-blue-900 dark:text-blue-200 dark:hover:text-white focus:outline-none remove-tag";
+    button.title = "Remove filter";
+    button.innerHTML = "&times;";
+    span.appendChild(button);
+
     span.dataset.customTag = "true";
     document.getElementById("tag-filters").appendChild(span);
   }
