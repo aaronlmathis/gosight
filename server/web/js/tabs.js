@@ -7,7 +7,6 @@ const observer = new MutationObserver(() => {
         if (panel && !panel.classList.contains("hidden") && !panel._initialized) {
             panel._initialized = true;
             initFn();
-            console.log(`✅ Initialized tab: ${tabId}`);
         }
     }
 });
