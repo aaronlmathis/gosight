@@ -1,9 +1,11 @@
 import { registerTabInitializer } from "./tabs.js";
+import { createApexAreaChart } from "./apex_helpers.js";
 
 const seenInterfaces = new Set();
 let selectedInterface = null;
 
-let networkTrafficLineChart = null;
+let networkTrafficChart = null;
+let errorRateChart = null;
 const lastMetrics = {}; // key: interface, value: { metricName: value }
 const lastBandwidth = {}; // key: iface, value: { tx: Mbps, rx: Mbps }
 const lastBytesAndTime = {}; // key: iface, value: { sent, recv, timestamp }
@@ -15,11 +17,14 @@ const queuedBandwidthSample = {
 const lastBandwidthHistory = {}; // key: iface, value: { tx: [], rx: [] }
 
 function resetNetworkTrafficChart() {
-    if (!networkTrafficLineChart) return;
-    networkTrafficLineChart.data.labels = [];
-    networkTrafficLineChart.data.datasets.forEach(ds => ds.data = []);
-    networkTrafficLineChart.update();
+    if (!networkTrafficChart) return;
+    // Clear data for ApexCharts
+    networkTrafficChart.updateSeries([
+        { name: "Upload (Mbps)", data: [] },
+        { name: "Download (Mbps)", data: [] }
+    ], true);
 }
+
 function addToBandwidthHistory(iface, direction, value) {
     if (!lastBandwidthHistory[iface]) {
         lastBandwidthHistory[iface] = { tx: [], rx: [] };
@@ -34,6 +39,7 @@ function addToBandwidthHistory(iface, direction, value) {
         history.shift();
     }
 }
+
 function updateCurrentBandwidthDisplay() {
     const bw = lastBandwidth[selectedInterface];
     const tx = bw?.tx;
@@ -48,8 +54,8 @@ function updateCurrentBandwidthDisplay() {
     document.getElementById("current-interface-label").textContent = selectedInterface;
     const peak = getPeakBandwidthMbps(selectedInterface);
     document.getElementById("peak-bandwidth").textContent = `↑ ${formatMbps(peak.tx)} / ↓ ${formatMbps(peak.rx)}`;
-
 }
+
 function formatMbps(val) {
     if (val >= 1) return val.toFixed(1);
     if (val > 0.01) return val.toFixed(2);
@@ -65,6 +71,7 @@ function getPeakBandwidthMbps(iface) {
     const peakRx = Math.max(...hist.rx.map(p => p.value), 0);
     return { tx: peakTx, rx: peakRx };
 }
+
 function calculateAndUpdateBandwidth(iface, metricName, newValue) {
     const now = Date.now();
 
@@ -93,10 +100,9 @@ function calculateAndUpdateBandwidth(iface, metricName, newValue) {
         const deltaSec = (now - state.timestamp_sent) / 1000;
         if (deltaSec > 0) {
             const mbps = (deltaBytes * 8) / 1_000_000 / deltaSec;
-            //console.log(`[${iface}] bytes_sent deltaSec=${deltaSec.toFixed(3)}, deltaBytes=${deltaBytes}, Mbps=${mbps.toFixed(3)}`);
             lastBandwidth[iface].tx = Math.max(mbps, 0);
         }
-        //console.log(`✅ BANDWIDTH :: ${iface} → TX=${lastBandwidth[iface].tx.toFixed(2)} Mbps | RX=${lastBandwidth[iface].rx.toFixed(2)} Mbps`);
+
         state.sent = newValue;
         state.timestamp_sent = now;
     }
@@ -111,18 +117,15 @@ function calculateAndUpdateBandwidth(iface, metricName, newValue) {
         const deltaSec = (now - state.timestamp_recv) / 1000;
         if (deltaSec > 0) {
             const mbps = (deltaBytes * 8) / 1_000_000 / deltaSec;
-            //console.log(`[${iface}] bytes_recv deltaSec=${deltaSec.toFixed(3)}, deltaBytes=${deltaBytes}, Mbps=${mbps.toFixed(3)}`);
             lastBandwidth[iface].rx = Math.max(mbps, 0);
         }
-        //console.log(`✅ BANDWIDTH :: ${iface} → TX=${lastBandwidth[iface].tx.toFixed(2)} Mbps | RX=${lastBandwidth[iface].rx.toFixed(2)} Mbps`);
+
         state.recv = newValue;
         state.timestamp_recv = now;
     }
     addToBandwidthHistory(iface, "tx", lastBandwidth[iface].tx);
     addToBandwidthHistory(iface, "rx", lastBandwidth[iface].rx);
-
 }
-
 
 function updateStaticStatCardsFromCache() {
     const cached = lastMetrics[selectedInterface];
@@ -158,30 +161,33 @@ function updateStaticStatCardsFromCache() {
         }
     }
 }
-function updateNetworkTrafficLineChart(direction, valueMbps) {
-    if (!networkTrafficLineChart) return;
 
-    const label = new Date().toLocaleTimeString();
-    const chart = networkTrafficLineChart;
+function updateNetworkTrafficChart(direction, valueMbps) {
+    if (!networkTrafficChart) return;
 
-    chart.data.labels.push(label);
+    const now = new Date().getTime();
+    const seriesIndex = direction === "tx" ? 0 : 1;
 
-    // Add to the appropriate dataset
-    if (direction === "tx") {
-        chart.data.datasets[0].data.push(valueMbps);
-    } else {
-        chart.data.datasets[1].data.push(valueMbps);
-    }
+    // Get current series data
+    let series = networkTrafficChart.w.config.series.map(s => ({
+        name: s.name,
+        data: s.data ? [...s.data] : []
+    }));
 
-    // Keep everything in sync
+    // Ensure value is non-negative
+    const safeValue = Math.max(0, valueMbps);
+
+    // Add new data point
+    series[seriesIndex].data.push([now, safeValue]);
+
+    // Keep only last 60 data points
     const maxPoints = 60;
-    if (chart.data.labels.length > maxPoints) {
-        chart.data.labels.shift();
-        chart.data.datasets[0].data.shift();
-        chart.data.datasets[1].data.shift();
+    if (series[seriesIndex].data.length > maxPoints) {
+        series[seriesIndex].data.splice(0, series[seriesIndex].data.length - maxPoints);
     }
 
-    chart.update();
+    // Update chart
+    networkTrafficChart.updateSeries(series, false);
 }
 
 function updateInterfaceTable(metric) {
@@ -213,7 +219,6 @@ function updateInterfaceTable(metric) {
     if (metric.name.startsWith("bytes_")) {
         const bw = lastBandwidth[iface]?.[metric.name === "bytes_sent" ? "tx" : "rx"] ?? 0;
         cell.textContent = `${bw.toFixed(1)} Mbps`;
-
     } else {
         cell.textContent = value.toLocaleString();
     }
@@ -240,164 +245,131 @@ function addInterfaceRow(iface) {
     `;
     tbody.appendChild(tr);
 }
-// Error Rate Chart Initialization
-let errorRateChart = null;
 
 function updateErrorRateChart(inErrors, outErrors, packetsIn, packetsOut) {
     if (!errorRateChart) return;
-    const timestamp = new Date().toLocaleTimeString();
+
+    const now = new Date().getTime();
     const errorPercentIn = packetsIn > 0 ? (inErrors / (packetsIn + inErrors)) * 100 : 0;
     const errorPercentOut = packetsOut > 0 ? (outErrors / (packetsOut + outErrors)) * 100 : 0;
 
-    errorRateChart.data.labels.push(timestamp);
-    errorRateChart.data.datasets[0].data.push(errorPercentIn);
-    errorRateChart.data.datasets[1].data.push(errorPercentOut);
+    // Get current series data
+    let series = errorRateChart.w.config.series.map(s => ({
+        name: s.name,
+        data: s.data ? [...s.data] : []
+    }));
 
-    if (errorRateChart.data.labels.length > 60) {
-        errorRateChart.data.labels.shift();
-        errorRateChart.data.datasets[0].data.shift();
-        errorRateChart.data.datasets[1].data.shift();
+    // Add new data points (ensuring non-negative values)
+    series[0].data.push([now, Math.max(0, errorPercentIn)]);
+    series[1].data.push([now, Math.max(0, errorPercentOut)]);
+
+    // Keep only last 60 data points
+    const maxPoints = 60;
+    if (series[0].data.length > maxPoints) {
+        series[0].data.splice(0, series[0].data.length - maxPoints);
     }
-    errorRateChart.update();
+    if (series[1].data.length > maxPoints) {
+        series[1].data.splice(0, series[1].data.length - maxPoints);
+    }
+
+    // Update chart
+    errorRateChart.updateSeries(series, false);
 }
+
 function createErrorRateChart() {
-    const canvas = document.getElementById("errorRateChart");
-    if (!canvas || typeof Chart === "undefined") return;
-    errorRateChart = new Chart(canvas, {
-        type: "line",
-        data: {
-            labels: [],
-            datasets: [
-                {
-                    label: "Input Errors",
-                    data: [],
-                    borderColor: "#f87171",
-                    backgroundColor: "rgba(248, 113, 113, 0.1)",
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 2,
-                },
-                {
-                    label: "Output Errors",
-                    data: [],
-                    borderColor: "#facc15",
-                    backgroundColor: "rgba(250, 204, 21, 0.1)",
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 2,
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100,
-                    ticks: {
-                        callback: (val) => `${val}%`,
-                        color: "#9CA3AF"
-                    }
-                },
-                x: {
-                    ticks: { color: "#9CA3AF" }
-                }
+    const container = document.getElementById("errorRateChart");
+    if (!container) return;
+
+    errorRateChart = createApexAreaChart(
+        "errorRateChart",
+        "Error Rate",
+        ["Input Errors", "Output Errors"],
+        false
+    );
+
+    // Customize Y axis to show percentages
+    errorRateChart.updateOptions({
+        yaxis: {
+            min: 0,
+            max: 100,
+            forceNiceScale: true,
+            labels: {
+                formatter: (val) => `${val.toFixed(1)}%`
             },
-            plugins: {
-                legend: { labels: { color: "#4B5563" } }
+            title: {
+                text: "Error Rate (%)"
             }
-        }
+        },
+        stroke: {
+            curve: "smooth",
+            width: 2
+        },
+        title: {
+            text: undefined,
+            show: false
+        },
+        colors: ["#f87171", "#facc15"]
     });
-    //console.log("✅ errorRateChart initialized");
 }
 
-function createNetworkTrafficLineChart() {
-    const canvas = document.getElementById("networkTrafficLineChart");
-    if (!canvas || typeof Chart === "undefined") return;
+function createNetworkTrafficChart() {
+    const container = document.getElementById("networkTrafficLineChart");
+    if (!container) return;
 
-    networkTrafficLineChart = new Chart(canvas, {
-        type: "line",
-        data: {
-            labels: [], // populated dynamically
-            datasets: [
-                {
-                    label: "Upload (Mbps)",
-                    data: [],
-                    borderColor: "#3b82f6",
-                    backgroundColor: "rgba(59, 130, 246, 0.1)",
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 2,
-                    spanGaps: true
-                },
-                {
-                    label: "Download (Mbps)",
-                    data: [],
-                    borderColor: "#10b981",
-                    backgroundColor: "rgba(16, 185, 129, 0.1)",
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 2,
-                    spanGaps: true
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: {
-                duration: 0  // ⛔ disable animation so shift is immediate
+    networkTrafficChart = createApexAreaChart(
+        "networkTrafficLineChart",
+        "Network Traffic",
+        ["Upload (Mbps)", "Download (Mbps)"],
+        false
+    );
+
+
+    networkTrafficChart.updateOptions({
+        yaxis: {
+            min: 0,
+            forceNiceScale: true,
+            labels: {
+                formatter: (val) => `${val.toFixed(1)} Mbps`
             },
-            scales: {
-                x: {
-                    ticks: {
-                        autoSkip: true,
-                        maxTicksLimit: 10,
-                        color: "#9CA3AF"
-                    }
-                },
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: (val) => `${val} Mbps`,
-                        color: "#9CA3AF"
-                    }
-                }
-            },
-            plugins: {
-                legend: {
-                    labels: {
-                        color: "#4B5563"
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)} Mbps`
-                    }
-                }
+            title: {
+                text: "Bandwidth (Mbps)"
             }
-        }
+        },
+        colors: ["#3b82f6", "#10b981"],
+        stroke: {
+            curve: "smooth",
+            width: 2
+        },
+        title: {
+            text: undefined,
+            show: false
+        },
+        tooltip: {
+            enabled: true,
+            x: { format: 'HH:mm:ss' },
+            y: { formatter: (val) => `${val.toFixed(2)} Mbps` }
+        },
     });
 
-    console.log("✅ networkTrafficLineChart initialized");
 }
 
-function redrawNetworkTrafficLineChartFromCache() {
+function redrawNetworkTrafficChartFromCache() {
     const iface = selectedInterface;
     const bw = lastBandwidth[iface];
     if (!bw) return;
 
-    // You could optionally store historical samples per interface
-    // For now, we just seed with the latest point
-    updateNetworkTrafficLineChart("tx", bw.tx ?? 0);
-    updateNetworkTrafficLineChart("rx", bw.rx ?? 0);
+    // For ApexCharts, we need to clear and add a single point
+    const now = new Date().getTime();
+
+    networkTrafficChart.updateSeries([
+        { name: "Upload (Mbps)", data: [[now, Math.max(0, bw.tx ?? 0)]] },
+        { name: "Download (Mbps)", data: [[now, Math.max(0, bw.rx ?? 0)]] }
+    ], true);
 }
 
 // INIT NETWORK TAB
 function initNetworkTab() {
-
-    createNetworkTrafficLineChart();
+    createNetworkTrafficChart();
     createErrorRateChart();
 
     const dropdown = document.getElementById("interface-select");
@@ -407,21 +379,15 @@ function initNetworkTab() {
             resetNetworkTrafficChart();
             updateCurrentBandwidthDisplay();
             updateStaticStatCardsFromCache();
-            redrawNetworkTrafficLineChartFromCache();
+            redrawNetworkTrafficChartFromCache();
         });
 
         dropdown._bound = true;
-        console.log("✅ Bound interface switcher");
     }
 }
 
-
 window.networkMetricHandler = function (metrics) {
     for (const metric of metrics) {
-        if (metric.name.startsWith("err_")) {
-            //console.log(`🧪 Error Metric: ${metric.name} (${metric.dimensions?.interface}) = ${metric.value}`);
-        }
-
         if (
             metric.namespace !== "System" ||
             metric.subnamespace !== "Network" ||
@@ -451,10 +417,6 @@ window.networkMetricHandler = function (metrics) {
         }
 
         if (iface === selectedInterface) {
-            //console.log(`📦 ${iface} :: ${metric.name} = ${metric.value}`);
-            //console.log(`➡ TX: ${lastBandwidth[iface]?.tx?.toFixed(2)} Mbps`);
-            //console.log(`⬅ RX: ${lastBandwidth[iface]?.rx?.toFixed(2)} Mbps`);
-
             if (metric.name === "bytes_sent") {
                 calculateAndUpdateBandwidth(iface, metric.name, metric.value);
                 queuedBandwidthSample.tx = lastBandwidth[iface].tx;
@@ -470,27 +432,43 @@ window.networkMetricHandler = function (metrics) {
             } else if (metric.name === "err_out") {
                 document.getElementById("stat-errors-out").textContent = metric.value.toLocaleString();
             }
-            if (!networkTrafficLineChart) return; // Prevent crash if metric arrives mid-tab-load
+
+            if (!networkTrafficChart) return; // Prevent crash if metric arrives mid-tab-load
 
             if (iface === selectedInterface && queuedBandwidthSample.tx != null && queuedBandwidthSample.rx != null) {
-                const label = new Date().toLocaleTimeString();
-                networkTrafficLineChart.data.labels.push(label);
-                networkTrafficLineChart.data.datasets[0].data.push(queuedBandwidthSample.tx);
-                networkTrafficLineChart.data.datasets[1].data.push(queuedBandwidthSample.rx);
 
-                // keep sync
-                const max = 60;
-                if (networkTrafficLineChart.data.labels.length > max) {
-                    networkTrafficLineChart.data.labels.shift();
-                    networkTrafficLineChart.data.datasets[0].data.shift();
-                    networkTrafficLineChart.data.datasets[1].data.shift();
+
+                if (
+                    queuedBandwidthSample.tx != null &&
+                    queuedBandwidthSample.rx != null
+                ) {
+                    const now = Date.now();
+                    const txPoint = [now, Math.max(0, queuedBandwidthSample.tx)];
+                    const rxPoint = [now, Math.max(0, queuedBandwidthSample.rx)];
+
+                    let series = networkTrafficChart.w.config.series.map(s => ({
+                        name: s.name,
+                        data: s.data ? [...s.data] : []
+                    }));
+
+                    series[0].data.push(txPoint);
+                    series[1].data.push(rxPoint);
+
+                    const maxPoints = 60;
+                    if (series[0].data.length > maxPoints) {
+                        series[0].data.splice(0, series[0].data.length - maxPoints);
+                    }
+                    if (series[1].data.length > maxPoints) {
+                        series[1].data.splice(0, series[1].data.length - maxPoints);
+                    }
+
+                    networkTrafficChart.updateSeries(series, false);
+
+                    // Clear queue after successful chart update
+                    queuedBandwidthSample.tx = null;
+                    queuedBandwidthSample.rx = null;
                 }
 
-                networkTrafficLineChart.update();
-
-                // reset for next tick
-                queuedBandwidthSample.tx = null;
-                queuedBandwidthSample.rx = null;
             }
 
             updateCurrentBandwidthDisplay();
@@ -524,16 +502,23 @@ window.networkMetricHandler = function (metrics) {
             if (errPctOutElem) {
                 errPctOutElem.textContent = outPct != null ? outPct.toFixed(2) + "%" : "--";
             }
+
+            // Update error rate chart if we have all needed data
+            if (errIn != null && errOut != null && pktIn != null && pktOut != null) {
+                updateErrorRateChart(errIn, errOut, pktIn, pktOut);
+            }
         }
 
         updateInterfaceTable(metric);
     }
 };
+
 registerTabInitializer("network", initNetworkTab);
 
 window.addEventListener("metrics", ({ detail: payload }) => {
     if (payload?.metrics && payload?.meta?.endpoint_id?.startsWith("host-")) {
         // Call your existing function directly:
         window.networkMetricHandler(payload.metrics);
+        console.log("Network metrics received:", payload.metrics);
     }
 });
