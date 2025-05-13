@@ -1,36 +1,4 @@
-![Go](https://img.shields.io/badge/built%20with-Go-blue)  ![License](https://img.shields.io/github/license/aaronlmathis/gosight) ![Status](https://img.shields.io/badge/status-in--progress-yellow)  [![Go Report Card](https://goreportcard.com/badge/github.com/aaronlmathis/gosight/server)](https://goreportcard.com/report/github.com/aaronlmathis/gosight/server) [![Go Report Card](https://goreportcard.com/badge/github.com/aaronlmathis/gosight/agent)](https://goreportcard.com/report/github.com/aaronlmathis/gosight/agent) 
-# GoSight
-
-GoSight is a high-performance, modular, and vendor-agnostic observability platform written in Go. It includes a lightweight agent for collecting metrics and logs from Windows, macOS, and Linux systems (including Docker and Podman containers), and a server that aggregates, stores, and exposes those metrics securely over gRPC, with TLS/mTLS.
-
-GoSight supports a full observability pipeline including:
-- System and container metrics (CPU, memory, disk, network, uptime, etc.)
-- Structured and unstructured log collection (journald, flat files, syslog)
-- Cloud-native metrics via extensible integrations (AWS CloudWatch, GCP Monitoring, Azure Monitor)
-- WebSocket-based live streaming of telemetry
-- Advanced alerting, filtering, and incident correlation
-- Remote-safe command dispatch and automation hooks (Ansible runbooks)
-
----
-
-## ✨ Core Features
-
-- Robust metric and log collection on Windows, Linux, and macOS  
-- Container observability via Docker and Podman  
-- Secure agent-server communication using TLS/mTLS  
-- Metric storage in VictoriaMetrics with in-memory indexing  
-- Rich API for querying logs and metrics  
-- Dynamic dashboard with tabs, charts, and filters (responsive UI)  
-- **Metric Explorer** for building complex multi-series graphs with filters, grouping, aggregation, and timespan  
-- **Alert Engine** supporting threshold-based and multi-condition rules with cooldowns and repeat intervals  
-- **Action Routes** to send alerts via Webhook, Email, or execute a local Script (configurable routing)  
-- **Incident View** with logs, metrics, and timeline context  
-- Support for **approved command execution** (e.g. podman/docker or scripts) with safety checks
-- Support for executing Ansible Runbooks on endpoints  
-- Full **IAM support**: roles, permissions, SSO, RBAC, session security  
-
----
-
+![Go](https://img.shields.io/badge/built%20with-Go-blue)  ![License](https://img.shields.io/github/license/aaronlmathis/gosight) ![Status](https://img.shields.io/badge/status-in--progress-yellow)  [![Go Report Card](https://goreportcard.com/badge/github.com/aaronlmathis/gosight-server)](https://goreportcard.com/report/github.com/aaronlmathis/gosight-server) [![Go Report Card](https://goreportcard.com/badge/github.com/aaronlmathis/gosight-agent)](https://goreportcard.com/report/github.com/aaronlmathis/gosight-agent) 
 > 🚧 **Development Status**
 >
 > GoSight is under active development and **not yet production-ready**. However, many core features are implemented and functional:
@@ -45,6 +13,36 @@ GoSight supports a full observability pipeline including:
 > - Permission-based access control  
 >
 > See [Project Status](https://github.com/aaronlmathis/gosight/blob/main/PROJECT_STATUS.md) for detailed roadmap.
+
+# GoSight
+
+GoSight is a high-performance, modular, and vendor-agnostic observability platform written in Go. It includes a lightweight agent for collecting metrics and logs from Windows, macOS, and Linux systems (including Docker and Podman containers), and a server that aggregates, stores, and exposes those metrics securely over gRPC, with TLS/mTLS.
+
+GoSight supports a full observability pipeline including:
+- System and container metrics (CPU, memory, disk, network, uptime, etc.)
+- Structured and unstructured log collection (journald, flat files, syslog)
+- Cloud-native metrics via extensible integrations (AWS CloudWatch, GCP Monitoring, Azure Monitor)
+- WebSocket-based live streaming of telemetry
+- Advanced alerting, filtering, and incident correlation
+- Remote-safe command dispatch and automation hooks (Ansible runbooks)
+
+---
+
+## Core Features
+
+- Robust metric and log collection on Windows, Linux, and macOS  
+- Container observability via Docker and Podman  
+- Secure agent-server communication using TLS/mTLS  
+- Metric storage in VictoriaMetrics with in-memory indexing  
+- Rich API for querying logs and metrics  
+- Dynamic dashboard with tabs, charts, and filters (responsive UI)  
+- **Metric Explorer** for building complex multi-series graphs with filters, grouping, aggregation, and timespan  
+- **Alert Engine** supporting threshold-based and multi-condition rules with cooldowns and repeat intervals  
+- **Action Routes** to send alerts via Webhook, Email, or execute a local Script (configurable routing)  
+- **Incident View** with logs, metrics, and timeline context  
+- Support for **approved command execution** (e.g. podman/docker or scripts) with safety checks
+- Support for executing Ansible Runbooks on endpoints  
+- Full **IAM support**: roles, permissions, SSO, RBAC, session security  
 
 ---
 
@@ -75,17 +73,24 @@ Observability tools are often bloated, vendor-locked, or inflexible. GoSight aim
 ## Components
 
 ### Agent
+[`gosight-agent`](https://github.com/aaronlmathis/gosight-agent)
 - Collects system metrics, container stats, and logs  
 - Sends telemetry via gRPC (TLS/mTLS)  
 - Supports runtime-safe command execution (whitelisted)  
 - Configurable via YAML, env, or flags  
 
 ### Server
+[`gosight-server`](https://github.com/aaronlmathis/gosight-server)
 - Receives telemetry from agents  
 - Stores metrics (VictoriaMetrics) and logs (compressed JSON or pluggable backend)  
 - Hosts dashboards, WebSocket broadcasters, and API endpoints  
 - Evaluates alert rules and dispatches actions via routes (email, webhook, script)  
 - Exposes query endpoints for metric explorer and log search  
+
+### Shared
+
+- [`gosight-shared`](https://github.com/aaronlmathis/gosight-shared) – Shared proto definitions, model structs, and utilities
+
 
 ---
 
