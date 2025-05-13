@@ -65,6 +65,9 @@ func (v *VictoriaLogStore) Write(batch []model.LogPayload) error {
 	// Wrap all logs once — generates log_id and preserves Meta
 	wrapped := wrapLogs(batch)
 
+	// Store in cache
+	v.cache.Add(wrapped)
+
 	// Write full logs to compressed JSON (one entry per line)
 	if err := v.writeCompressedWrappedLogs(wrapped); err != nil {
 		utils.Warn("Failed to write logs to JSON: %v", err)
@@ -72,9 +75,7 @@ func (v *VictoriaLogStore) Write(batch []model.LogPayload) error {
 
 	// Generate Prometheus format using consistent log_id and labels
 	payload := buildPrometheusFormatFromWrapped(wrapped)
-	fmt.Println("=== Prometheus Payload ===")
-	fmt.Println(payload)
-	fmt.Println("==========================")
+
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
 	_, _ = gz.Write([]byte(payload))

@@ -34,56 +34,8 @@ import (
 	"github.com/aaronlmathis/gosight/shared/model"
 )
 
-func (v *VictoriaLogStore) writeCompressedJSONToDisk(batch []model.LogPayload) error {
-	for _, payload := range batch {
-		if len(payload.Logs) == 0 {
-			continue
-		}
-
-		t := payload.Timestamp
-		if t.IsZero() && len(payload.Logs) > 0 {
-			t = payload.Logs[0].Timestamp
-		}
-		if t.IsZero() {
-			t = time.Now()
-		}
-
-		dir := filepath.Join(v.logsPath, "logs", t.Format("2006"), t.Format("01"), t.Format("02"))
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return fmt.Errorf("create dir: %w", err)
-		}
-
-		hour := t.Format("15")
-		filename := fmt.Sprintf("%s_%s.json.gz", payload.EndpointID, hour)
-		fullPath := filepath.Join(dir, filename)
-
-		f, err := os.OpenFile(fullPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-		if err != nil {
-			return fmt.Errorf("open file: %w", err)
-		}
-		defer f.Close()
-
-		gz := gzip.NewWriter(f)
-		defer gz.Close()
-
-		var wrapped []model.StoredLog
-		for _, log := range payload.Logs {
-			logID := hash(log.Timestamp.String() + log.Message)
-			wrapped = append(wrapped, model.StoredLog{
-				LogID: logID,
-				Log:   log,
-			})
-		}
-
-		if err := json.NewEncoder(gz).Encode(wrapped); err != nil {
-			return fmt.Errorf("write logs: %w", err)
-		}
-	}
-
-	return nil
-}
-
-func (v *VictoriaLogStore) writeCompressedWrappedLogs(logs []model.StoredLog) error {
+// writeCompressedWrappedLogs writes StoredLogs to disk
+func (v *VictoriaLogStore) writeCompressedWrappedLogs(logs []*model.StoredLog) error {
 	if len(logs) == 0 {
 		return nil
 	}

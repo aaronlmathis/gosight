@@ -179,7 +179,7 @@ func AccessLogMiddleware(next http.Handler) http.Handler {
 		// Wrap writer to capture status code
 		rr := &statusRecorder{ResponseWriter: w, status: 200}
 
-		// ⏱Call next handler
+		// Call next handler
 		next.ServeHTTP(rr, r.WithContext(ctx))
 
 		duration := time.Since(start)

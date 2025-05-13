@@ -25,28 +25,42 @@ import (
 	"sync"
 
 	"github.com/aaronlmathis/gosight/shared/model"
+	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
 type LogCache interface {
-	Add(entry model.StoredLog)
+	Add(batch []*model.StoredLog)
 	Get(logID string) (*model.LogEntry, bool)
 }
 
 type logCache struct {
-	mu    sync.RWMutex
-	store map[string]model.StoredLog
+	mu        sync.RWMutex
+	store     map[string]*model.StoredLog
+	endpoints map[string]struct{}
 }
 
 func NewLogCache() LogCache {
 	return &logCache{
-		store: make(map[string]model.StoredLog),
+		store:     make(map[string]*model.StoredLog),
+		endpoints: make(map[string]struct{}),
 	}
 }
 
-func (c *logCache) Add(entry model.StoredLog) {
+func (c *logCache) Add(batch []*model.StoredLog) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.store[entry.LogID] = entry
+
+	for _, storedLog := range batch {
+		if storedLog.LogID == "" {
+			utils.Warn("log entry found with no LogID")
+			continue
+		}
+		utils.Debug("Adding logcache: %v", storedLog.Meta.EndpointID)
+		c.store[storedLog.LogID] = storedLog
+		c.endpoints[storedLog.Meta.EndpointID] = struct{}{}
+
+	}
+
 }
 
 func (c *logCache) Get(logID string) (*model.LogEntry, bool) {

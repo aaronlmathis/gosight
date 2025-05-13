@@ -95,7 +95,6 @@ func (v *VictoriaLogStore) queryMatchingLogIDs(filter model.LogFilter) ([]logRef
 	}
 
 	reqURL := fmt.Sprintf("%s/api/v1/export?match[]=%s&start=%d&end=%d", v.url, url.QueryEscape(query), start, end)
-	utils.Debug("Final VictoriaMetrics query: %s", reqURL)
 
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
@@ -120,7 +119,6 @@ func (v *VictoriaLogStore) queryMatchingLogIDs(filter model.LogFilter) ([]logRef
 			utils.Warn("failed to parse VM export line: %v", err)
 			continue
 		}
-		utils.Debug("parsed export line: log_id=%s ts=%v", result.Metric["log_id"], result.Timestamps)
 
 		logID := result.Metric["log_id"]
 		if logID == "" {
@@ -135,10 +133,6 @@ func (v *VictoriaLogStore) queryMatchingLogIDs(filter model.LogFilter) ([]logRef
 		})
 	}
 
-	utils.Debug("queryMatchingLogIDs: matched %d logRefs", len(refs))
-	for _, r := range refs {
-		utils.Debug("queryMatchingLogIDs: log_id=%s ts=%v", r.LogID, r.Timestamp)
-	}
 	return refs, nil
 }
 
@@ -183,11 +177,17 @@ func (v *VictoriaLogStore) GetLogs(filter model.LogFilter) ([]model.LogEntry, er
 			continue
 		}
 	}
-	utils.Debug("GetLogs: returning %d logs", len(result))
+
 	return result, nil
 }
 
 func (v *VictoriaLogStore) GetLogByID(logID string) (*model.LogEntry, error) {
+
+	if entry, ok := v.cache.Get(logID); ok {
+		utils.Debug("Log was found in cache: %v", entry.Message)
+		return entry, nil
+	}
+
 	files, err := filepath.Glob(filepath.Join(v.logsPath, "logs", "*", "*", "*", "*.json.gz"))
 	if err != nil {
 		return nil, fmt.Errorf("glob failed: %w", err)
@@ -213,7 +213,7 @@ func (v *VictoriaLogStore) GetLogByID(logID string) (*model.LogEntry, error) {
 			if entry.LogID == logID {
 				_ = gz.Close()
 				_ = f.Close()
-				utils.Debug("scanning file for log_id=%s: %s", logID, file)
+
 				if entry.Log.Tags == nil {
 					entry.Log.Tags = make(map[string]string)
 				}

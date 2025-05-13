@@ -1,6 +1,6 @@
 import { formatBytes, formatUptime } from "./format.js";
 import { registerTabInitializer } from "./tabs.js";
-
+import { createApexDonutChart } from "./apex_helpers.js";
 // disk.js
 let diskMetricsBuffer = [];
 let diskTabInitialized = false;
@@ -10,51 +10,10 @@ let selectedDevice = null;
 const deviceMetricCache = {};  // { [device]: { timestamps: [], readCount: [], writeCount: [], readBytes: [], writeBytes: [] } }
 const MAX_POINTS = 30;         // Keep the charts to last 30 intervals
 
-//
-// Disk Summary Donut Chart
-// ------------------------------------------------
-// This chart shows the disk usage as a donut chart
-// with two segments: used and free space.
-
 let diskUsageDonutChart = null;
+
 function createDiskUsageDonut() {
-    const ctx = document.getElementById("diskUsageDonutChart").getContext("2d");
-    diskUsageDonutChart = new Chart(ctx, {
-        type: "doughnut",
-        data: {
-            labels: ["Used", "Free"],
-            datasets: [{
-                label: "Disk Usage",
-                data: [0, 0],
-                backgroundColor: ["#3b82f6", "#10b981"],
-                borderWidth: 1,
-            }],
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: "65%",
-            plugins: {
-                legend: {
-                    position: "bottom",
-                    labels: {
-                        color: "#6B7280", // gray-500
-                        boxWidth: 14,
-                        font: { size: 12, weight: "500" },
-                    },
-                },
-                tooltip: {
-                    callbacks: {
-                        label: (ctx) => {
-                            const value = ctx.parsed ?? 0;
-                            const pct = ctx.percentage ?? 0;
-                            return `${ctx.label}: ${formatBytes(value)} (${pct.toFixed(1)}%)`;
-                        },
-                    },
-                },
-            },
-        },
-    });
+    diskUsageDonutChart = createApexDonutChart("diskUsageDonutChart", "Disk Usage");
 }
 
 function renderDiskDonut(usageByMount) {
@@ -76,10 +35,21 @@ function renderDiskDonut(usageByMount) {
     document.getElementById("disk-percent").textContent = percent.toFixed(1);
     document.getElementById("disk-free").textContent = formatBytes(free);
 
-    // Update donut chart
+    // Update Apex donut chart
     if (diskUsageDonutChart) {
-        diskUsageDonutChart.data.datasets[0].data = [used, free];
-        diskUsageDonutChart.update();
+        diskUsageDonutChart.updateOptions({
+            labels: ["Used", "Free"],
+            series: [used, free],
+            tooltip: {
+                y: {
+                    formatter: (val, opts) => {
+                        const total = used + free;
+                        const pct = total > 0 ? (val / total) * 100 : 0;
+                        return `${formatBytes(val)} (${pct.toFixed(1)}%)`;
+                    }
+                }
+            }
+        });
     }
 }
 //

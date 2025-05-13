@@ -36,7 +36,7 @@ import (
 
 // buildPrometheusFormatFromWrapped converts a slice of StoredLog into a Prometheus-compatible string format.
 
-func buildPrometheusFormatFromWrapped(logs []model.StoredLog) string {
+func buildPrometheusFormatFromWrapped(logs []*model.StoredLog) string {
 	var sb strings.Builder
 	maxLabels := 38
 	for _, wrapped := range logs {
@@ -67,8 +67,6 @@ func buildPrometheusFormatFromWrapped(logs []model.StoredLog) string {
 			add(sanitizeLabelKey(k), v)
 		}
 
-
-
 		if log.Meta != nil {
 			if log.Meta.Platform != "" {
 				labels["platform"] = log.Meta.Platform
@@ -96,7 +94,7 @@ func buildPrometheusFormatFromWrapped(logs []model.StoredLog) string {
 			}
 		}
 
-				// Add fields (structured logs)
+		// Add fields (structured logs)
 		for k, v := range log.Fields {
 			add(sanitizeLabelKey("field_"+k), v)
 		}
@@ -113,13 +111,12 @@ func buildPrometheusFormatFromWrapped(logs []model.StoredLog) string {
 // It converts the labels map to a string in the format: key1="value1",key2="value2",...
 // It escapes values properly to ensure they are valid Prometheus label values.
 
-
 func formatLabelMap(m map[string]string) string {
 	var parts []string
 	for k, v := range m {
 		// strconv.Quote ensures proper escaping of quotes, slashes, etc.
-		escaped := strconv.Quote(v)             // yields `"escaped string"`
-		escaped = escaped[1 : len(escaped)-1]    // remove outer quotes since we wrap it manually
+		escaped := strconv.Quote(v)           // yields `"escaped string"`
+		escaped = escaped[1 : len(escaped)-1] // remove outer quotes since we wrap it manually
 		parts = append(parts, fmt.Sprintf(`%s="%s"`, k, escaped))
 	}
 	return strings.Join(parts, ",")
@@ -156,7 +153,7 @@ func BuildPromLabels(meta *model.Meta) map[string]string {
 	if meta.OSVersion != "" {
 		labels["os_version"] = meta.OSVersion
 	}
-	
+
 	if meta.Environment != "" {
 		labels["environment"] = meta.Environment
 	}
@@ -243,13 +240,13 @@ func BuildPromQL(metric string, filters map[string]string) string {
 }
 
 // wrapLogs converts a batch of LogPayloads into a slice of StoredLog.
-func wrapLogs(batch []model.LogPayload) []model.StoredLog {
-	var result []model.StoredLog
+func wrapLogs(batch []model.LogPayload) []*model.StoredLog {
+	var result []*model.StoredLog
 	for _, payload := range batch {
 		meta := payload.Meta
 		for _, log := range payload.Logs {
 			logID := hash(log.Timestamp.String() + log.Message)
-			result = append(result, model.StoredLog{
+			result = append(result, &model.StoredLog{
 				LogID: logID,
 				Log:   log,
 				Meta:  meta,
