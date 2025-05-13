@@ -30,6 +30,8 @@ import (
 	"github.com/aaronlmathis/gosight/shared/model"
 )
 
+// Collector is an interface that defines the methods for a log collector.
+// It includes methods for collecting logs and returning them in a specific format.
 type Collector interface {
 	Name() string
 	Collect(ctx context.Context) ([][]model.LogEntry, error)

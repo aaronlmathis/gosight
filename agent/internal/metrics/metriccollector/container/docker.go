@@ -43,6 +43,9 @@ type DockerCollector struct {
 	client *client.Client
 }
 
+// NewDockerCollector creates a new Docker collector
+// It initializes the Docker client using environment variables
+// and API version negotiation.
 func NewDockerCollector() *DockerCollector {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -51,10 +54,15 @@ func NewDockerCollector() *DockerCollector {
 	return &DockerCollector{client: cli}
 }
 
+// Name returns the name of the collector
+// This is used to identify the collector in logs and metrics.
 func (c *DockerCollector) Name() string {
 	return "docker"
 }
 
+// Collect retrieves metrics from Docker containers
+// It uses the Docker API to get a list of containers and their stats.
+// It returns a slice of metrics that can be sent to the server.
 func (c *DockerCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	if c.client == nil {
 		return nil, nil
@@ -133,6 +141,12 @@ func (c *DockerCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	return metrics, nil
 }
 
+// ExtractAllDockerMetrics extracts all Docker metrics from the given stats
+// and returns them as a slice of model.Metric.
+// It includes CPU, memory, network, and block I/O metrics.
+// The metrics are tagged with the provided dimensions and timestamp.
+// This function is used to collect detailed metrics for each container.
+// It is called from the Collect method after retrieving the container stats.
 func ExtractAllDockerMetrics(stats types.StatsJSON, dims map[string]string, ts time.Time) []model.Metric {
 	var metrics []model.Metric
 

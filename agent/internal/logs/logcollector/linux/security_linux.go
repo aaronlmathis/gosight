@@ -21,7 +21,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
-
+// internal/logs/logcollector/linux/security_linux.go
+// Package linuxcollector provides log collection functionality for Linux systems.
+// It includes a SecurityLogCollector that tails and parses security logs
+// from common log files like /var/log/secure and /var/log/auth.log.
 package linuxcollector
 
 import (
@@ -39,6 +42,9 @@ import (
 	"github.com/nxadm/tail" // Import the tail library
 )
 
+// SecurityLogCollector is a log collector for security logs.
+// It uses the tail library to follow log files and parse log entries.
+// It collects logs from common security log files like /var/log/secure and /var/log/auth.log.
 type SecurityLogCollector struct {
 	Config     *config.Config
 	logPath    string
@@ -52,6 +58,9 @@ type SecurityLogCollector struct {
 	mu     sync.Mutex          // Mutex to protect access during shutdown
 }
 
+// NewSecurityLogCollector initializes a new SecurityLogCollector.
+// It checks for the existence of common security log files and sets up a tailer.
+// If no log file is found, it returns a non-functional collector.
 func NewSecurityLogCollector(cfg *config.Config) *SecurityLogCollector {
 	paths := []string{"/var/log/secure", "/var/log/auth.log"}
 	var selected string
@@ -188,13 +197,15 @@ func (c *SecurityLogCollector) Close() {
 	utils.Info("Security log collector closed for: %s", c.logPath)
 }
 
+// Name returns the name of the collector.
+// This is used for logging and debugging purposes.
 func (c *SecurityLogCollector) Name() string {
 	return "security"
 }
 
 // Collect drains the internal 'lines' channel and batches the entries.
 // This is called periodically by the LogRunner.
-func (c *SecurityLogCollector) Collect(ctx context.Context) ([][]model.LogEntry, error) {
+func (c *SecurityLogCollector) Collect(_ context.Context) ([][]model.LogEntry, error) {
 	// If collector is disabled (no logPath or tailer failed)
 	if c.logPath == "" {
 		return nil, nil
@@ -245,8 +256,9 @@ collectLoop:
 	return allBatches, nil
 }
 
-// --- Keep your existing parseLogLine and detectSeverity ---
-// (Copied from previous answer for completeness)
+// parseLogLine parses a single log line into a LogEntry.
+// It extracts the timestamp, hostname, source process, message, and severity level.
+// The log format is expected to be similar to syslog format.
 func (c *SecurityLogCollector) parseLogLine(line string) model.LogEntry {
 	// Typical format: "Apr 26 07:15:01 myhost CRON[12345]: pam_unix(cron:session): session opened for user root by (uid=0)"
 	parts := strings.Fields(line)
@@ -312,6 +324,9 @@ func (c *SecurityLogCollector) parseLogLine(line string) model.LogEntry {
 	}
 }
 
+// detectSeverity determines the severity level of a log message based on its content.
+// It uses simple string matching to classify the log message into different severity levels.
+// The function is case-insensitive and looks for keywords that indicate the severity.
 func detectSeverity(msg string) string {
 	l := strings.ToLower(msg)
 	switch {

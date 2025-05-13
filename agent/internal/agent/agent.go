@@ -22,6 +22,11 @@ along with GoSight. If not, see https://www.gnu.org/licenses/.
 // internal/agent.go
 // gosight/agent/internal/agent.go
 
+// Package agent provides the main functionality for the GoSight agent.
+// It handles the initialization and management of various components
+// such as metrics, logs, and processes. The agent is responsible for
+// collecting data from the system and sending it to the GoSight server.
+// It also manages the agent's identity and configuration.
 package gosightagent
 
 import (
@@ -39,6 +44,9 @@ import (
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
+// Agent is a struct that represents the GoSight agent.
+// It contains the configuration, metric runner, log runner, process runner,
+// agent ID, agent version, and metadata.
 type Agent struct {
 	Config        *config.Config
 	MetricRunner  *metricrunner.MetricRunner
@@ -50,6 +58,11 @@ type Agent struct {
 	Ctx           context.Context
 }
 
+// NewAgent creates a new instance of the GoSight agent.
+// It initializes the agent with the provided configuration, context, and agent version.
+// It retrieves the agent ID and builds the base metadata for the agent.
+// It also creates instances of the metric runner, log runner, and process runner.
+// If any of these steps fail, it returns an error.
 func NewAgent(ctx context.Context, cfg *config.Config, agentVersion string) (*Agent, error) {
 
 	// Retrieve (or set) the agent ID
@@ -87,6 +100,10 @@ func NewAgent(ctx context.Context, cfg *config.Config, agentVersion string) (*Ag
 	}, nil
 }
 
+// Start initializes and starts the metric, log, and process runners.
+// It runs each runner in a separate goroutine.
+// The context is used to manage the lifecycle of the runners.
+// The function logs the start of each runner and handles any errors that may occur.
 func (a *Agent) Start(ctx context.Context) {
 
 	// Start runner.
@@ -101,7 +118,9 @@ func (a *Agent) Start(ctx context.Context) {
 
 }
 
-func (a *Agent) Close(ctx context.Context) {
+// Close stops all runners and closes the gRPC connection.
+// It waits for all runners to finish before closing the connection.
+func (a *Agent) Close() {
 	// Stop All Runners
 	a.MetricRunner.Close()
 	a.LogRunner.Close()

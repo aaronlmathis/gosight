@@ -1,7 +1,28 @@
+/*
+SPDX-License-Identifier: GPL-3.0-or-later
+
+Copyright (C) 2025 Aaron Mathis aaron.mathis@gmail.com
+
+This file is part of GoSight.
+
+GoSight is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+GoSight is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with GoSight. If not, see https://www.gnu.org/licenses/.
+*/
+// agent/internal/grpc/connection.go
+// Package grpcconn provides a singleton gRPC connection for the GoSight agent.
 package grpcconn
 
 import (
-	"context"
 	"sync"
 	"time"
 
@@ -18,8 +39,12 @@ var (
 	connMu sync.Mutex
 )
 
-// GetGRPCConn returns the singleton ClientConn
-func GetGRPCConn(ctx context.Context, cfg *config.Config) (*grpc.ClientConn, error) {
+// GetGRPCConn returns the singleton ClientConn for the gRPC connection.
+// It creates a new connection if one does not already exist.
+// The connection is configured with TLS and various gRPC options.
+// It is safe for concurrent use.
+// Note: This function does not block until the connection is established.
+func GetGRPCConn(cfg *config.Config) (*grpc.ClientConn, error) {
 	connMu.Lock()
 	defer connMu.Unlock()
 
@@ -34,7 +59,6 @@ func GetGRPCConn(ctx context.Context, cfg *config.Config) (*grpc.ClientConn, err
 		return nil, err
 	}
 
-	// Options previously passed to DialContext
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
@@ -48,31 +72,15 @@ func GetGRPCConn(ctx context.Context, cfg *config.Config) (*grpc.ClientConn, err
 		grpc.WithWriteBufferSize(8 * 1024 * 1024),
 		grpc.WithDefaultCallOptions(
 			grpc.UseCompressor(gzip.Name),
-			grpc.MaxCallRecvMsgSize(32 * 1024 * 1024),
-			grpc.MaxCallSendMsgSize(32 * 1024 * 1024),
+			grpc.MaxCallRecvMsgSize(32*1024*1024),
+			grpc.MaxCallSendMsgSize(32*1024*1024),
 		),
-		// If you were relying on DialContext's implicit "passthrough" resolver for non-standard
-		// targets (like in-memory listeners for testing), you might need to explicitly specify
-		// the "passthrough" scheme with NewClient:
-		// grpc.WithDefaultServiceConfig(`{"loadBalancingConfig": [{"passthrough":{}}]}`),
-		// For standard "host:port" addresses that should use DNS resolution, no extra option is needed
-		// as "dns" is the default for NewClient.
 	}
 
-	// Use grpc.NewClient instead of grpc.DialContext
 	c, err := grpc.NewClient(cfg.Agent.ServerURL, opts...)
 	if err != nil {
 		return nil, err
 	}
-
-	// Note: NewClient returns a ClientConn immediately.
-	// It does NOT block until the connection is established, unlike DialContext with WithBlock.
-	// The connection happens in the background. RPC calls made on the connection will block
-	// until the connection is ready or the call's context times out.
-	// If you need to wait for the connection to be established before returning,
-	// you would need to implement a mechanism to wait for the connection state to become READY,
-	// possibly using conn.WaitForStateChange(). However, for most use cases, this isn't necessary
-	// as the RPC calls themselves handle the waiting.
 
 	conn = c
 	return conn, nil

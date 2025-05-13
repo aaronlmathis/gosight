@@ -18,7 +18,13 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
-
+// internal/config/config.go
+// Package config provides functions to load and manage the configuration for the GoSight agent.
+// It handles loading the configuration from a YAML file, applying environment variable overrides,
+// and parsing CSV strings into slices. The configuration includes settings for TLS, logging,
+// Podman and Docker integration, custom tags, and various collection intervals for metrics,
+// logs, and processes. The configuration is structured to allow for easy modification and
+// extension as needed.
 package config
 
 import (
@@ -30,27 +36,42 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// LogCollectionConfig defines the configuration for log collection
+// It includes settings for the collection interval, sources, services,
+// batch size, buffer size, number of workers, and maximum message size.
+
 type LogCollectionConfig struct {
-	Interval time.Duration `yaml:"interval"`
-	Sources    []string `yaml:"sources"`
-	Services   []string `yaml:"services"`
-	BatchSize  int      `yaml:"batch_size"`
-	BufferSize int      `yaml:"buffer_size"`
-	Workers    int      `yaml:"workers"`
-	MessageMax int      `yaml:"message_max"`
-}
-
-type MetricCollectionConfig struct {
 	Interval   time.Duration `yaml:"interval"`
-	Sources    []string `yaml:"sources"`
-	Workers    int      `yaml:"workers"`
+	Sources    []string      `yaml:"sources"`
+	Services   []string      `yaml:"services"`
+	BatchSize  int           `yaml:"batch_size"`
+	BufferSize int           `yaml:"buffer_size"`
+	Workers    int           `yaml:"workers"`
+	MessageMax int           `yaml:"message_max"`
 }
 
+// MetricCollectionConfig defines the configuration for metric collection
+// It includes settings for the collection interval, sources, and number of workers.
+// The sources can be a list of metrics to collect, such as CPU, memory, etc.
+type MetricCollectionConfig struct {
+	Interval time.Duration `yaml:"interval"`
+	Sources  []string      `yaml:"sources"`
+	Workers  int           `yaml:"workers"`
+}
+
+// ProcessCollectionConfig defines the configuration for process collection
+// It includes settings for the collection interval and number of workers.
+// The process collection can be used to monitor running processes and their resource usage.
 type ProcessCollectionConfig struct {
 	Interval time.Duration `yaml:"interval"`
-	Workers int      `yaml:"workers"`
+	Workers  int           `yaml:"workers"`
 }
 
+// Config holds the configuration for the GoSight agent.
+// It includes settings for TLS, logging, Podman and Docker integration,
+// custom tags, and various collection intervals for metrics, logs, and processes.
+// The configuration is loaded from a YAML file and can be overridden by environment variables.
+// The configuration is structured to allow for easy modification and extension as needed.
 type Config struct {
 	TLS struct {
 		CAFile   string `yaml:"ca_file"`   // used by agent to trust the server
@@ -78,23 +99,29 @@ type Config struct {
 	CustomTags map[string]string `yaml:"custom_tags"` // static tags to be sent with every metric
 
 	Agent struct {
-		ServerURL      string              `yaml:"server_url"`
-		Interval       time.Duration       `yaml:"interval"`
-		HostOverride   string              `yaml:"host"`
-		
-		MetricCollection MetricCollectionConfig `yaml:"metric_collection"`
-		LogCollection  LogCollectionConfig `yaml:"log_collection"`
+		ServerURL    string        `yaml:"server_url"`
+		Interval     time.Duration `yaml:"interval"`
+		HostOverride string        `yaml:"host"`
+
+		MetricCollection  MetricCollectionConfig  `yaml:"metric_collection"`
+		LogCollection     LogCollectionConfig     `yaml:"log_collection"`
 		ProcessCollection ProcessCollectionConfig `yaml:"process_collection"`
-		
-		Environment    string              `yaml:"environment"`
-		AppLogFile     string              `yaml:"app_log_file"`
-		ErrorLogFile   string              `yaml:"error_log_file"`
-		AccessLogFile  string              `yaml:"access_log_file"`
-		DebugLogFile   string              `yaml:"debug_log_file"`
-		LogLevel       string              `yaml:"log_level"`
+
+		Environment   string `yaml:"environment"`
+		AppLogFile    string `yaml:"app_log_file"`
+		ErrorLogFile  string `yaml:"error_log_file"`
+		AccessLogFile string `yaml:"access_log_file"`
+		DebugLogFile  string `yaml:"debug_log_file"`
+		LogLevel      string `yaml:"log_level"`
 	}
 }
 
+// LoadConfig loads the configuration from a YAML file.
+// It returns a Config struct and an error if any occurred during loading.
+// The configuration file path is passed as an argument.
+// The function reads the file, unmarshals the YAML data into the Config struct,
+// and returns the struct. If the file cannot be read or the data cannot be unmarshaled,
+// an error is returned.
 func LoadConfig(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -108,6 +135,14 @@ func LoadConfig(path string) (*Config, error) {
 	return &cfg, nil
 }
 
+// ApplyEnvOverrides applies environment variable overrides to the configuration.
+// It checks for specific environment variables and updates the corresponding fields
+// in the Config struct. If an environment variable is set, it overrides the value
+// in the configuration. The function prints the overridden values to the console.
+// This allows users to customize the configuration without modifying the YAML file.
+// The function handles various settings such as server URL, collection intervals,
+// log file paths, TLS certificates, and custom tags. It also validates the format
+// of the GOSIGHT_INTERVAL environment variable to ensure it is a valid duration.
 func ApplyEnvOverrides(cfg *Config) {
 	if val := os.Getenv("GOSIGHT_SERVER_URL"); val != "" {
 		cfg.Agent.ServerURL = val
@@ -204,6 +239,9 @@ func ApplyEnvOverrides(cfg *Config) {
 	}
 }
 
+// SplitCSV splits a CSV string into a slice of strings.
+// It trims whitespace from each element and ignores empty elements.
+// This function is useful for parsing comma-separated values from configuration files.
 func SplitCSV(input string) []string {
 	var out []string
 	for _, s := range strings.Split(input, ",") {

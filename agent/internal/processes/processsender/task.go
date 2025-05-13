@@ -34,7 +34,12 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (s *ProcessSender) StartWorkerPool(ctx context.Context, queue <-chan *model.ProcessPayload, workerCount int) {
+// StartWorkerPool starts a pool of workers to process incoming process payloads.
+// Each worker will attempt to send the payload to the gRPC server.
+// The number of workers is determined by the workerCount parameter.
+// The workers will run until the context is done or an error occurs.
+// The function uses a goroutine for each worker, allowing them to run concurrently.
+func (s *ProcessSender) StartWorkerPool(_ context.Context, queue <-chan *model.ProcessPayload, workerCount int) {
 	for i := 0; i < workerCount; i++ {
 		s.wg.Add(1)
 		go func(id int) {
@@ -54,6 +59,10 @@ func (s *ProcessSender) StartWorkerPool(ctx context.Context, queue <-chan *model
 	}
 }
 
+// trySendWithBackoff attempts to send the process payload to the gRPC server.
+// It uses exponential backoff for retries in case of transient errors.
+// The function will retry sending the payload up to 5 times with increasing backoff times.
+// If the send fails after 5 attempts, it returns an error.
 func (s *ProcessSender) trySendWithBackoff(payload *model.ProcessPayload) error {
 	var err error
 	backoff := 500 * time.Millisecond

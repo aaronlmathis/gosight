@@ -73,5 +73,5 @@ func main() {
 
 	utils.Info("Context canceled, beginning agent shutdown...")
 
-	agent.Close(ctx)
+	agent.Close()
 }

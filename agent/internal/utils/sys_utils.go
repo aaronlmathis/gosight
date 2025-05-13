@@ -33,6 +33,11 @@ import (
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
+// Metric creates a new model.Metric instance with the provided parameters.
+// It sets the namespace, sub-namespace, name, value, type, unit, dimensions,
+// and timestamp for the metric.
+// The value is converted to a float64 using the ToFloat64 function.
+// The function returns the created model.Metric instance.
 func Metric(ns, sub, name string, value interface{}, typ, unit string, dims map[string]string, ts time.Time) model.Metric {
 	return model.Metric{
 		Namespace:    ns,
@@ -45,6 +50,11 @@ func Metric(ns, sub, name string, value interface{}, typ, unit string, dims map[
 		Dimensions:   dims,
 	}
 }
+
+// ToFloat64 converts a given value to float64.
+// It handles various numeric types such as float64, int, uint64, uint32,
+// int64, and int32.
+// If the value is of an unknown type, it logs a warning and returns 0.
 func ToFloat64(v interface{}) float64 {
 	switch n := v.(type) {
 	case float64:
@@ -82,6 +92,8 @@ func ErrMsg(err error) string {
 	return ""
 }
 
+// Keys returns a slice of keys from the given map[string]bool.
+// It iterates over the map and appends each key to a slice.
 func Keys(m map[string]bool) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {

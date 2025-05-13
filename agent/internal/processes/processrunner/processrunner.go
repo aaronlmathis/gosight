@@ -37,12 +37,19 @@ import (
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
+// ProcessRunner is a struct that handles the collection and sending of process data.
+// It manages the process collection interval, the task queue, and the
+// process sender. It implements the Run method to start the collection process
+// and the Close method to clean up resources.
 type ProcessRunner struct {
 	Config        *config.Config
 	ProcessSender *processsender.ProcessSender
 	Meta          *model.Meta
 }
 
+// NewRunner creates a new ProcessRunner instance.
+// It initializes the process sender and sets up the context for the runner.
+// It returns a pointer to the ProcessRunner and an error if any occurs during initialization.
 func NewRunner(ctx context.Context, cfg *config.Config, baseMeta *model.Meta) (*ProcessRunner, error) {
 	sender, err := processsender.NewSender(ctx, cfg)
 	if err != nil {
@@ -52,20 +59,31 @@ func NewRunner(ctx context.Context, cfg *config.Config, baseMeta *model.Meta) (*
 		Config:        cfg,
 		ProcessSender: sender,
 		Meta:          baseMeta,
-	
 	}, nil
 }
 
+// SetDisconnectHandler sets a handler function to be called when the process sender disconnects.
+// This allows the user to define custom behavior when the connection to the server is lost.
+// The handler function will be called when the disconnect event occurs.
 func (r *ProcessRunner) SetDisconnectHandler(fn func()) {
 	r.ProcessSender.SetDisconnectHandler(fn)
 }
 
+// Close closes the process sender and cleans up resources.
+// It ensures that all resources are released and the connection to the server is properly closed.
+// This method should be called when the process runner is no longer needed.
 func (r *ProcessRunner) Close() {
 	if r.ProcessSender != nil {
 		_ = r.ProcessSender.Close()
 	}
 }
 
+// Run starts the process collection and sending loop.
+// It collects process data at the specified interval and sends it to the server.
+// The method runs indefinitely until the context is done or an error occurs.
+// It uses a ticker to trigger the collection process at regular intervals.
+// The collected process data is sent to a task queue, which is processed by a worker pool.
+// The worker pool is managed by the ProcessSender, which handles the sending of data to the server.
 func (r *ProcessRunner) Run(ctx context.Context) {
 	taskQueue := make(chan *model.ProcessPayload, 100)
 	go r.ProcessSender.StartWorkerPool(ctx, taskQueue, r.Config.Agent.ProcessCollection.Workers)

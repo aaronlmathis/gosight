@@ -33,16 +33,21 @@ import (
 
 	"github.com/aaronlmathis/gosight/agent/internal/config"
 	linuxcollector "github.com/aaronlmathis/gosight/agent/internal/logs/logcollector/linux"
+	windowscollector "github.com/aaronlmathis/gosight/agent/internal/logs/logcollector/windows"
 
 	"github.com/aaronlmathis/gosight/shared/model"
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
+// LogRegistry holds active log collectors keyed by name
+// It is responsible for managing the lifecycle of log collectors,
+// including their initialization, collection of logs, and closing them when no longer needed.
 type LogRegistry struct {
 	LogCollectors map[string]Collector
 }
 
-// NewRegistry initializes and registers enabled log collectors
+// NewRegistry initializes and registers enabled log collectors based on the configuration.
+// It creates a new LogRegistry instance and populates it with the specified collectors.
 func NewRegistry(cfg *config.Config) *LogRegistry {
 	reg := &LogRegistry{LogCollectors: make(map[string]Collector)}
 
@@ -60,6 +65,10 @@ func NewRegistry(cfg *config.Config) *LogRegistry {
 				continue
 			}
 			reg.LogCollectors["security"] = linuxcollector.NewSecurityLogCollector(cfg)
+		case "eventViewer":
+			if runtime.GOOS == "windows" {
+				reg.LogCollectors["eventViewer"] = windowscollector.NewEventViewerCollector(cfg, "System")
+			}
 		default:
 			utils.Warn("Unknown collector: %s (skipping) \n", name)
 		}
@@ -69,7 +78,9 @@ func NewRegistry(cfg *config.Config) *LogRegistry {
 	return reg
 }
 
-// Collect runs all active collectors and returns all collected metrics
+// Collect runs all active collectors and returns all collected metrics as a slice.
+// It iterates over the registered collectors, calls their Collect method,
+// and appends the resulting metrics to a slice.
 func (r *LogRegistry) Collect(ctx context.Context) ([][]model.LogEntry, error) {
 	var allBatches [][]model.LogEntry
 
@@ -86,6 +97,9 @@ func (r *LogRegistry) Collect(ctx context.Context) ([][]model.LogEntry, error) {
 	return allBatches, nil
 }
 
+// Close cleans up the resources used by the LogRegistry.
+// It closes all log collectors and handles any errors that occur during the closing process.
+// It should be called when the LogRegistry is no longer needed.
 func (r *LogRegistry) Close() error {
 	utils.Info("Closing log registry and collectors...")
 	var errs []string // Collect errors non-blockingly

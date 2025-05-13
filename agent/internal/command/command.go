@@ -31,6 +31,8 @@ import (
 )
 
 // HandleCommand processes incoming command requests based on their type.
+// It supports "shell" commands for executing shell commands and "ansible"
+// commands for running Ansible playbooks.
 func HandleCommand(ctx context.Context, cmd *proto.CommandRequest) *proto.CommandResponse {
 
 	switch cmd.CommandType {
@@ -38,7 +40,7 @@ func HandleCommand(ctx context.Context, cmd *proto.CommandRequest) *proto.Comman
 		return runShellCommand(ctx, cmd.Command, cmd.Args...)
 	case "ansible":
 		return runAnsiblePlaybook(ctx, cmd.Command)
-	
+
 	default:
 		utils.Warn("Unknown command type: %s", cmd.CommandType)
 		return &proto.CommandResponse{

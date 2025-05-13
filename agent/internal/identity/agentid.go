@@ -53,6 +53,10 @@ func LoadOrCreateAgentID() (string, error) {
 
 	return id, nil
 }
+
+// getAgentIDPath returns the path to the agent ID file based on the operating system.
+// It uses the APPDATA environment variable for Windows and XDG_STATE_HOME for Linux.
+// If these variables are not set, it falls back to a default path in the user's home directory.
 func getAgentIDPath() string {
 	switch runtime.GOOS {
 	case "windows":

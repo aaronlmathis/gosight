@@ -39,15 +39,22 @@ import (
 
 type MEMCollector struct{}
 
+// NewMemCollector creates a new MEMCollector instance.
+// It initializes the collector and returns a pointer to it.
 func NewMemCollector() *MEMCollector {
 	return &MEMCollector{}
 }
 
+// Name returns the name of the collector.
+// This is used to identify the collector in logs and metrics.
 func (c *MEMCollector) Name() string {
 	return "mem"
 }
 
-func (c *MEMCollector) Collect(ctx context.Context) ([]model.Metric, error) {
+// Collect gathers memory metrics and returns them as a slice of model.Metric.
+// It uses the gopsutil library to get virtual and swap memory information.
+// The metrics include total, available, used memory, and swap memory details.
+func (c *MEMCollector) Collect(_ context.Context) ([]model.Metric, error) {
 	var metrics []model.Metric
 	now := time.Now()
 

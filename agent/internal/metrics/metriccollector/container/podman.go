@@ -38,22 +38,112 @@ import (
 	"github.com/aaronlmathis/gosight/shared/model"
 )
 
+// PodmanCollector collects metrics from Podman containers.
+// It uses the Podman API to fetch container stats and metadata.
 type PodmanCollector struct {
 	SocketPath string
 }
 
+// PodmanContainer represents a Podman container.
+// It contains metadata about the container, including its ID, name, image, state, labels, and ports.
+// The ID is a unique identifier for the container.
+// The Names field contains the names of the container.
+// The Image field contains the name of the image used to create the container.
+// The State field indicates the current state of the container (e.g., running, stopped).
+// The Labels field contains key-value pairs of labels associated with the container.
+// The Ports field contains a list of port mappings for the container.
+// The Mounts field contains information about the mounts used by the container.
+// The StartedAt field contains the time when the container was started.
+type PodmanContainer struct {
+	ID        string            `json:"Id"`
+	Names     []string          `json:"Names"`
+	Image     string            `json:"Image"`
+	State     string            `json:"State"`
+	Labels    map[string]string `json:"Labels"`
+	Ports     []PortMapping     `json:"Ports"`
+	Mounts    []any             `json:"Mounts"`
+	StartedAt time.Time
+}
+
+// PodmanInspect represents the inspect data for a Podman container.
+// It contains the state of the container, including the time when it was started.
+// The State field contains information about the container's state.
+// The StartedAt field contains the time when the container was started.
+// The State field is a nested struct that contains the StartedAt field.
+// The StartedAt field is a string in RFC3339 format.
+type PodmanInspect struct {
+	State struct {
+		StartedAt string `json:"StartedAt"`
+	} `json:"State"`
+}
+
+// PodmanStats represents the stats data for a Podman container.
+// It contains information about CPU usage, memory usage, and network statistics.
+// The CPUStats field contains information about CPU usage.
+// The MemoryStats field contains information about memory usage.
+// The Networks field contains information about network statistics.
+// The CPUStats field is a nested struct that contains the CPUUsage field.
+// The CPUUsage field contains information about CPU usage in kernel mode and user mode.
+
+type PodmanStats struct {
+	Read     string `json:"read"`
+	Name     string `json:"name"`
+	ID       string `json:"id"`
+	CPUStats struct {
+		CPUUsage struct {
+			TotalUsage        uint64 `json:"total_usage"`
+			UsageInKernelmode uint64 `json:"usage_in_kernelmode"`
+			UsageInUsermode   uint64 `json:"usage_in_usermode"`
+		} `json:"cpu_usage"`
+		SystemCPUUsage uint64 `json:"system_cpu_usage"`
+		OnlineCPUs     int    `json:"online_cpus"`
+	} `json:"cpu_stats"`
+	MemoryStats struct {
+		Usage uint64 `json:"usage_bytes"`
+		Limit uint64 `json:"limit_bytes"`
+	} `json:"memory_stats"`
+	Networks map[string]struct {
+		RxBytes uint64 `json:"rx_bytes"`
+		TxBytes uint64 `json:"tx_bytes"`
+	} `json:"networks"`
+}
+
+// PortMapping represents a port mapping for a Podman container.
+// It contains the private port, public port, and type of mapping.
+// The PrivatePort field contains the private port number.
+// The PublicPort field contains the public port number.
+// The Type field contains the type of mapping (e.g., tcp, udp).
+type PortMapping struct {
+	PrivatePort int    `json:"PrivatePort"`
+	PublicPort  int    `json:"PublicPort"`
+	Type        string `json:"Type"`
+}
+
+// NewPodmanCollector creates a new PodmanCollector with the default socket path.
+// The default socket path is "/run/podman/podman.sock".
 func NewPodmanCollector() *PodmanCollector {
 	return &PodmanCollector{SocketPath: "/run/podman/podman.sock"}
 }
+
+// NewPodmanCollectorWithSocket creates a new PodmanCollector with a custom socket path.
+// This is useful for testing or if the Podman socket is located in a different path.
+// The socket path should be the full path to the Podman socket file.
 func NewPodmanCollectorWithSocket(path string) *PodmanCollector {
 	return &PodmanCollector{SocketPath: path}
 }
 
+// Name returns the name of the collector.
+// This is used for logging and debugging purposes.
+// It returns "podman" for the PodmanCollector.
 func (c *PodmanCollector) Name() string {
 	return "podman"
 }
 
-func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
+// Collect fetches container metrics from the Podman API.
+// It returns a slice of model.Metric containing the collected metrics.
+// If an error occurs during the collection process, it returns the error.
+// The metrics include CPU usage, memory usage, network statistics, and container state.
+func (c *PodmanCollector) Collect(_ context.Context) ([]model.Metric, error) {
 	containers, err := fetchContainers[PodmanContainer](c.SocketPath, "/v4.0.0/containers/json?all=true")
 	if err != nil {
 		return nil, err
@@ -127,6 +217,11 @@ func (c *PodmanCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	return metrics, nil
 }
 
+// extractAllPodmanMetrics extracts all available metrics from the PodmanStats struct.
+// It returns a slice of model.Metric containing the extracted metrics.
+// The metrics include CPU usage, memory usage, network statistics, and other container stats.
+// The metrics are tagged with the provided dimensions and timestamp.
+// The dimensions are a map of key-value pairs that provide additional context for the metrics.
 func extractAllPodmanMetrics(stats *PodmanStats, dims map[string]string, ts time.Time) []model.Metric {
 	var metrics []model.Metric
 
@@ -177,6 +272,8 @@ func extractAllPodmanMetrics(stats *PodmanStats, dims map[string]string, ts time
 	return metrics
 }
 
+// fetchContainers fetches all containers from the Podman API.
+// It returns a slice of PodmanContainer structs containing the container metadata.
 func fetchContainers[T any](socketPath, endpoint string) ([]T, error) {
 	client := &http.Client{Transport: unixTransport(socketPath), Timeout: 5 * time.Second}
 	req, _ := http.NewRequest("GET", "http://unix"+endpoint, nil)
@@ -193,14 +290,22 @@ func fetchContainers[T any](socketPath, endpoint string) ([]T, error) {
 	return out, nil
 }
 
+// fetchStats fetches the stats for a specific container from the Podman API.
+// It returns a PodmanStats struct containing the container stats.
 func fetchStats(socketPath, containerID string) (*PodmanStats, error) {
 	return fetchGeneric[PodmanStats](socketPath, fmt.Sprintf("/v4.0.0/containers/%s/stats?stream=false", containerID))
 }
 
+// fetchInspect fetches the inspect data for a specific container from the Podman API.
+// It returns a PodmanInspect struct containing the container inspect data.
+// The inspect data includes the container's state, labels, and other metadata.
 func fetchInspect(socketPath, containerID string) (*PodmanInspect, error) {
 	return fetchGeneric[PodmanInspect](socketPath, fmt.Sprintf("/v4.5.0/containers/%s/json", containerID))
 }
 
+// fetchGeneric fetches generic data from the Podman API.
+// It takes a socket path and an endpoint as arguments.
+// It returns a pointer to a generic type T and an error.
 func fetchGeneric[T any](socketPath, endpoint string) (*T, error) {
 	client := &http.Client{Transport: unixTransport(socketPath), Timeout: 5 * time.Second}
 	req, _ := http.NewRequest("GET", "http://unix"+endpoint, nil)
@@ -217,74 +322,13 @@ func fetchGeneric[T any](socketPath, endpoint string) (*T, error) {
 	return &result, nil
 }
 
+// unixTransport creates a new HTTP transport that uses a Unix socket.
+// It takes a socket path as an argument and returns a pointer to http.Transport.
+// This is used to communicate with the Podman API over a Unix socket.
 func unixTransport(socketPath string) *http.Transport {
 	return &http.Transport{
 		DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
 			return net.Dial("unix", socketPath)
 		},
 	}
-}
-
-type PodmanContainer struct {
-	ID        string            `json:"Id"`
-	Names     []string          `json:"Names"`
-	Image     string            `json:"Image"`
-	State     string            `json:"State"`
-	Labels    map[string]string `json:"Labels"`
-	Ports     []PortMapping     `json:"Ports"`
-	Mounts    []any             `json:"Mounts"`
-	StartedAt time.Time
-}
-
-type PodmanInspect struct {
-	State struct {
-		StartedAt string `json:"StartedAt"`
-	} `json:"State"`
-}
-
-type PodmanStats struct {
-	Read     string `json:"read"`
-	Name     string `json:"name"`
-	ID       string `json:"id"`
-	CPUStats struct {
-		CPUUsage struct {
-			TotalUsage        uint64 `json:"total_usage"`
-			UsageInKernelmode uint64 `json:"usage_in_kernelmode"`
-			UsageInUsermode   uint64 `json:"usage_in_usermode"`
-		} `json:"cpu_usage"`
-		SystemCPUUsage uint64 `json:"system_cpu_usage"`
-		OnlineCPUs     int    `json:"online_cpus"`
-	} `json:"cpu_stats"`
-	MemoryStats struct {
-		Usage uint64 `json:"usage_bytes"`
-		Limit uint64 `json:"limit_bytes"`
-	} `json:"memory_stats"`
-	Networks map[string]struct {
-		RxBytes uint64 `json:"rx_bytes"`
-		TxBytes uint64 `json:"tx_bytes"`
-	} `json:"networks"`
-}
-
-type PortMapping struct {
-	PrivatePort int    `json:"PrivatePort"`
-	PublicPort  int    `json:"PublicPort"`
-	Type        string `json:"Type"`
-}
-
-func dumpStatsRaw(socketPath, containerID string) {
-	raw := make(map[string]interface{})
-	err := fetchGenericJSON(socketPath, fmt.Sprintf("/v4.0.0/containers/%s/stats?stream=false", containerID), &raw)
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		return
-	}
-	fmt.Printf("Available Podman stats fields: %v\n", reflectKeys(raw))
-}
-
-func reflectKeys(m map[string]interface{}) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	return keys
 }

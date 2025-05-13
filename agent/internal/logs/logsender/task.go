@@ -33,6 +33,9 @@ import (
 )
 
 // StartWorkerPool launches N workers and processes metric payloads with retries
+// in case of transient errors. Each worker will attempt to send the payload
+// to the gRPC server. The number of workers is determined by the workerCount
+// parameter. The workers will run until the context is done or an error occurs.
 func (s *LogSender) StartWorkerPool(ctx context.Context, queue <-chan *model.LogPayload, workerCount int) {
 	for i := 0; i < workerCount; i++ {
 		s.wg.Add(1) // track worker
@@ -53,6 +56,10 @@ func (s *LogSender) StartWorkerPool(ctx context.Context, queue <-chan *model.Log
 	}
 }
 
+// trySendWithBackoff attempts to send the log payload to the server with exponential backoff.
+// It retries sending the payload up to 5 times with increasing wait times between attempts.
+// If all attempts fail, it returns the last error encountered.
+// The backoff starts at 500ms and doubles each time, up to a maximum of 10 seconds.
 func (s *LogSender) trySendWithBackoff(payload *model.LogPayload) error {
 	var err error
 	backoff := 500 * time.Millisecond

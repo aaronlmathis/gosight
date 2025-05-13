@@ -40,15 +40,28 @@ import (
 
 type DiskCollector struct{}
 
+// NewDiskCollector creates a new DiskCollector instance.
+// It uses the gopsutil library to gather disk metrics.
+// The collector is platform-neutral and will skip virtual, pseudo, and temp filesystems on Linux/macOS.
+// On Windows, it will skip reserved, empty, mapped, and unmounted drives.
+// The collector gathers metrics such as total, used, free space, used percentage, inodes total, used, free, and used percentage.
+// It also collects disk I/O metrics such as read/write counts, bytes, time, and merged counts.
+// The metrics are returned as a slice of model.Metric.
 func NewDiskCollector() *DiskCollector {
 	return &DiskCollector{}
 }
 
+// Name returns the name of the collector.
+// This is used for logging and debugging purposes.
 func (c *DiskCollector) Name() string {
 	return "disk"
 }
 
-func (c *DiskCollector) Collect(ctx context.Context) ([]model.Metric, error) {
+// Collect gathers disk metrics using the gopsutil library.
+// It retrieves information about disk partitions, usage, and I/O statistics.
+// The metrics are filtered based on the platform (Linux/macOS/Windows) to exclude virtual, pseudo, and temp filesystems.
+// The function returns a slice of model.Metric containing the collected metrics.
+func (c *DiskCollector) Collect(_ context.Context) ([]model.Metric, error) {
 	var metrics []model.Metric
 	now := time.Now()
 

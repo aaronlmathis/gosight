@@ -18,10 +18,11 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with GoSight. If not, see https://www.gnu.org/licenses/.
 */
-// Package model contains the data structures used in GoSight.
 
 // agent/processes/processsender/sender.go
-
+// Package processsender provides functionality to send process data to a gRPC server.
+// It handles the connection to the server, sending process snapshots, and
+// reconnecting the stream in case of disconnection.
 package processsender
 
 import (
@@ -43,20 +44,29 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// ProcessSender is a struct that handles sending process data to a gRPC server.
+// It manages the connection to the server, sending process snapshots, and
+// reconnecting the stream in case of disconnection.
+// It implements the Close method to clean up resources and the SendSnapshot method
+// to send process data.
 type ProcessSender struct {
-	cfg    *config.Config
-	ctx    context.Context
-	cc     *grpc.ClientConn
-	client proto.StreamServiceClient
-	stream proto.StreamService_StreamClient
-	wg     sync.WaitGroup
+	cfg          *config.Config
+	ctx          context.Context
+	cc           *grpc.ClientConn
+	client       proto.StreamServiceClient
+	stream       proto.StreamService_StreamClient
+	wg           sync.WaitGroup
 	streamCtx    context.Context
 	streamCancel context.CancelFunc
 	onDisconnect func()
 }
 
+// NewSender creates a new ProcessSender instance.
+// It initializes the gRPC connection and stream to the server.
+// It returns a pointer to the ProcessSender and an error if any occurs during initialization.
+// The context is used to manage the lifecycle of the sender.
 func NewSender(ctx context.Context, cfg *config.Config) (*ProcessSender, error) {
-	cc, err := grpcconn.GetGRPCConn(ctx, cfg)
+	cc, err := grpcconn.GetGRPCConn(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -69,20 +79,25 @@ func NewSender(ctx context.Context, cfg *config.Config) (*ProcessSender, error) 
 	}
 
 	return &ProcessSender{
-		cfg:    cfg,
-		ctx:    ctx,
-		cc:     cc,
-		client: client,
-		stream: stream,
+		cfg:          cfg,
+		ctx:          ctx,
+		cc:           cc,
+		client:       client,
+		stream:       stream,
 		streamCtx:    streamCtx,
 		streamCancel: cancel,
 	}, nil
 }
 
+// SetDisconnectHandler sets a callback function to be called when the sender disconnects.
+// This is useful for handling reconnections or cleanup tasks when the sender is no longer able to send data.
 func (s *ProcessSender) SetDisconnectHandler(fn func()) {
 	s.onDisconnect = fn
 }
 
+// Close closes the gRPC connection and waits for all background workers to finish.
+// It cancels the stream context to stop any active Send operations.
+// It returns an error if any occurs during the closing process.
 func (s *ProcessSender) Close() error {
 	utils.Info("Closing ProcessSender...")
 
@@ -107,6 +122,10 @@ func (s *ProcessSender) Close() error {
 	return nil
 }
 
+// SendSnapshot sends a snapshot of process data to the gRPC server.
+// It marshals the process data into a protobuf message and sends it over the stream.
+// It handles reconnections in case of disconnection or errors during sending.
+// It returns an error if any occurs during the sending process.
 func (s *ProcessSender) SendSnapshot(payload *model.ProcessPayload) error {
 	pb := &proto.ProcessPayload{
 		AgentId:    payload.AgentID,
@@ -115,7 +134,6 @@ func (s *ProcessSender) SendSnapshot(payload *model.ProcessPayload) error {
 		EndpointId: payload.EndpointID,
 		Timestamp:  timestamppb.New(payload.Timestamp),
 		Meta:       protohelper.ConvertMetaToProtoMeta(payload.Meta),
-		
 	}
 
 	for _, p := range payload.Processes {
@@ -195,7 +213,9 @@ func (s *ProcessSender) SendSnapshot(payload *model.ProcessPayload) error {
 	return fmt.Errorf("send failed after %d attempts: EOF", maxAttempts)
 }
 
-
+// reconnectStream attempts to reconnect the gRPC stream to the server.
+// It closes the old connection and stream context, creates a new connection,
+// and initializes a new stream.
 func (s *ProcessSender) reconnectStream() error {
 	utils.Warn("Attempting to reconnect process stream...")
 
@@ -207,10 +227,10 @@ func (s *ProcessSender) reconnectStream() error {
 		_ = s.cc.Close()
 	}
 
-	ctx, cancel := context.WithTimeout(s.ctx, 10*time.Second)
+	_, cancel := context.WithTimeout(s.ctx, 10*time.Second)
 	defer cancel()
 
-	cc, err := grpcconn.GetGRPCConn(ctx, s.cfg)
+	cc, err := grpcconn.GetGRPCConn(s.cfg)
 	if err != nil {
 		return err
 	}

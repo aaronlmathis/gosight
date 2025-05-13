@@ -52,9 +52,11 @@ type MetricSender struct {
 }
 
 // NewSender establishes a gRPC connection
+// and creates a stream for sending metrics
+// It returns a MetricSender instance
 func NewSender(ctx context.Context, cfg *config.Config) (*MetricSender, error) {
 
-	clientConn, err := grpcconn.GetGRPCConn(ctx, cfg)
+	clientConn, err := grpcconn.GetGRPCConn(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -82,6 +84,9 @@ func NewSender(ctx context.Context, cfg *config.Config) (*MetricSender, error) {
 	return sender, nil
 }
 
+// Close waits for all workers to finish and closes the gRPC connection
+// It returns an error if the connection could not be closed
+// or if any worker failed
 func (s *MetricSender) Close() error {
 	utils.Info("Closing MetricSender... waiting for workers")
 	s.wg.Wait()
@@ -89,6 +94,9 @@ func (s *MetricSender) Close() error {
 	return s.cc.Close()
 }
 
+// SendMetrics sends a MetricPayload to the server
+// It converts the MetricPayload to a protobuf message
+// and sends it over the gRPC stream
 func (s *MetricSender) SendMetrics(payload *model.MetricPayload) error {
 	pbMetrics := make([]*proto.Metric, 0, len(payload.Metrics))
 	for _, m := range payload.Metrics {
@@ -164,7 +172,9 @@ func (s *MetricSender) SendMetrics(payload *model.MetricPayload) error {
 }
 
 // receiveResponses listens for commands sent from server.
-
+// It handles the commands and sends back responses.
+// It runs in a separate goroutine and handles reconnections
+// in case of errors.
 func (s *MetricSender) receiveResponses() {
 	for {
 		resp, err := s.stream.Recv()
@@ -197,6 +207,9 @@ func (s *MetricSender) receiveResponses() {
 	}
 }
 
+// reconnectStream attempts to reconnect the gRPC stream.
+// It closes the old connection and creates a new one.
+// It returns an error if the reconnection fails.
 func (s *MetricSender) reconnectStream() error {
 	var err error
 	// Close old connection safely if you want (optional)
@@ -208,7 +221,7 @@ func (s *MetricSender) reconnectStream() error {
 	defer cancel()
 
 	// Rebuild gRPC client connection
-	conn, err := grpcconn.GetGRPCConn(ctx, s.cfg) // Use your same logic
+	conn, err := grpcconn.GetGRPCConn(s.cfg) // Use your same logic
 	if err != nil {
 		return fmt.Errorf("failed to reconnect gRPC: %w", err)
 	}
@@ -226,7 +239,9 @@ func (s *MetricSender) reconnectStream() error {
 }
 
 // sendCommandResponseWithRetry attempts to send a CommandResponse with retries
-
+// It uses exponential backoff for retries
+// It sends the CommandResponse over the gRPC stream
+// It handles errors and timeouts
 func (s *MetricSender) sendCommandResponseWithRetry(resp *proto.CommandResponse) {
 	const maxAttempts = 3
 

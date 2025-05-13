@@ -39,14 +39,23 @@ import (
 
 type HostCollector struct{}
 
+// NewHostCollector creates a new HostCollector instance.
+// It initializes the collector and returns a pointer to it.
+// This collector gathers host system information such as uptime, number of processes,
+// and number of logged-in users.
 func NewHostCollector() *HostCollector {
 	return &HostCollector{}
 }
 
+// Name returns the name of the collector.
+// This is used to identify the collector in logs and metrics.
 func (c *HostCollector) Name() string {
 	return "host"
 }
 
+// Collect gathers host system information and returns it as a slice of model.Metric.
+// It uses the gopsutil library to get host information such as uptime, number of processes,
+// and number of logged-in users.
 func (c *HostCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	var metrics []model.Metric
 	now := time.Now()

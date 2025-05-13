@@ -1,3 +1,24 @@
+/*
+SPDX-License-Identifier: GPL-3.0-or-later
+
+Copyright (C) 2025 Aaron Mathis aaron.mathis@gmail.com
+
+This file is part of GoSight.
+
+GoSight is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+GoSight is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with GoSight. If not, see https://www.gnu.org/licenses/.
+*/
+// agent/internal/metrics/metricrunner/runner.go
 package metricrunner
 
 import (
@@ -13,6 +34,10 @@ import (
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
+// MetricRunner is a struct that handles the collection and sending of metrics.
+// It manages the metric collection interval, the task queue, and the
+// metric sender. It implements the Run method to start the collection process
+// and the Close method to clean up resources.
 type MetricRunner struct {
 	Config         *config.Config
 	MetricSender   *metricsender.MetricSender
@@ -21,6 +46,10 @@ type MetricRunner struct {
 	Meta           *model.Meta
 }
 
+// NewRunner creates a new MetricRunner instance.
+// It initializes the metric sender and sets up the context for the runner.
+// It returns a pointer to the MetricRunner and an error if any occurs during initialization.
+// The MetricRunner is responsible for collecting and sending metrics to the server.
 func NewRunner(ctx context.Context, cfg *config.Config, baseMeta *model.Meta) (*MetricRunner, error) {
 
 	// Init the collector registry
@@ -41,13 +70,20 @@ func NewRunner(ctx context.Context, cfg *config.Config, baseMeta *model.Meta) (*
 	}, nil
 }
 
+// Close closes the metric sender.
+// It cleans up resources and ensures that the sender is properly closed.
+// This is important to prevent resource leaks and ensure that all data is sent before shutting down.
 func (r *MetricRunner) Close() {
 	if r.MetricSender != nil {
 		_ = r.MetricSender.Close()
 	}
 }
 
-// RunAgent starts the agent's collection loop and sends tasks to the pool
+// RunAgent starts the agent's collection loop and sends tasks to the pool of workers.
+// It collects metrics at the specified interval and sends them to the server.
+// The method runs indefinitely until the context is done.
+// It handles the collection of both host and container metrics.
+// The host metrics are sent as a single payload, while container metrics are sent as separate payloads.
 func (r *MetricRunner) Run(ctx context.Context) {
 
 	defer r.MetricSender.Close()

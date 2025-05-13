@@ -1,3 +1,24 @@
+/*
+SPDX-License-Identifier: GPL-3.0-or-later
+
+Copyright (C) 2025 Aaron Mathis aaron.mathis@gmail.com
+
+This file is part of GoSight.
+
+GoSight is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+GoSight is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with GoSight. If not, see https://www.gnu.org/licenses/.
+*/
+
 package logsender
 
 import (
@@ -27,9 +48,12 @@ type LogSender struct {
 	Config *config.Config
 }
 
-// NewSender establishes a gRPC connection
+// NewSender establishes a gRPC connection to the server and creates a new LogSender instance.
+// It takes a context and a configuration object as parameters.
+// The function returns a pointer to the LogSender instance and an error if any occurs during the process.
+// It also sets up a stream for sending log data to the server.
 func NewSender(ctx context.Context, cfg *config.Config) (*LogSender, error) {
-	clientConn, err := grpcconn.GetGRPCConn(ctx, cfg)
+	clientConn, err := grpcconn.GetGRPCConn(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -53,6 +77,10 @@ func NewSender(ctx context.Context, cfg *config.Config) (*LogSender, error) {
 
 }
 
+// Close closes the gRPC connection and waits for all workers to finish.
+// It returns an error if any occurs during the process.
+// The function uses a wait group to ensure that all workers have completed their tasks
+// before closing the connection. It also logs the status of the workers.
 func (s *LogSender) Close() error {
 	utils.Info("Closing LogSender... waiting for workers")
 	s.wg.Wait()
@@ -60,6 +88,9 @@ func (s *LogSender) Close() error {
 	return s.cc.Close()
 }
 
+// SendLogs sends a log payload to the gRPC server.
+// It takes a pointer to a LogPayload object as a parameter.
+// The function converts the log payload to a protobuf format and sends it to the server.
 func (s *LogSender) SendLogs(payload *model.LogPayload) error {
 	pbLogs := make([]*proto.LogEntry, 0, len(payload.Logs))
 	utils.Debug("Log Meta: %v", payload.Meta)
@@ -132,12 +163,17 @@ func (s *LogSender) SendLogs(payload *model.LogPayload) error {
 	utils.Debug("Streamed %d logs", len(pbLogs))
 	return nil
 }
+
+// reconnectStream attempts to reconnect the log stream.
+// It closes the existing stream and opens a new one.
+// The function logs the status of the reconnection attempt and returns an error if it fails.
+// It uses the context passed as a parameter to manage the lifecycle of the stream.
 func (s *LogSender) reconnectStream(ctx context.Context) error {
 	utils.Warn("Attempting to reconnect log stream...")
 
 	// Close existing stream
 	if s.stream != nil {
-		s.stream.CloseSend() // best effort
+		_ = s.stream.CloseSend() // best effort
 	}
 
 	// Open a new stream

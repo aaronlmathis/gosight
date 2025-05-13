@@ -39,7 +39,11 @@ type MetricRegistry struct {
 	Collectors map[string]MetricCollector
 }
 
-// NewRegistry initializes and registers enabled collectors
+// NewRegistry initializes and registers enabled collectors based on the configuration.
+// It creates a new MetricRegistry instance and populates it with the specified collectors.
+// The collectors are created based on the configuration settings and are stored in a map.
+// The function returns a pointer to the MetricRegistry instance.
+// It also logs the number of loaded collectors for debugging purposes.
 func NewRegistry(cfg *config.Config) *MetricRegistry {
 	reg := &MetricRegistry{Collectors: make(map[string]MetricCollector)}
 

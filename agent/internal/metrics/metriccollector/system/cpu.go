@@ -36,21 +36,37 @@ import (
 	"github.com/shirou/gopsutil/v4/load"
 )
 
-type CPUCollector struct{
+// CPUCollector is a struct that collects CPU metrics.
+// It implements the Collector interface and is used to gather CPU usage,
+// times, and information about the CPU cores.
+type CPUCollector struct {
 	interval time.Duration
 }
 
+// NewCPUCollector creates a new CPUCollector instance.
+// It initializes the collector with a specified interval for collecting metrics.
+// If the interval is less than or equal to zero, it defaults to 2 seconds.
 func NewCPUCollector(interval time.Duration) *CPUCollector {
-	if interval <= 0 { 
-		interval = 2 * time.Second 
+	if interval <= 0 {
+		interval = 2 * time.Second
 	}
 	return &CPUCollector{interval: interval}
 }
 
+// Name returns the name of the collector.
+// This is used to identify the collector in logs and metrics.
 func (c *CPUCollector) Name() string {
 	return "cpu"
 }
 
+// Collect gathers CPU metrics and returns them as a slice of model.Metric.
+// It uses the gopsutil library to get CPU usage, times, and information about the CPU cores.
+// The metrics include per-core usage, total CPU usage, CPU times (cumulative),
+// clock speed per core, logical and physical core counts, and load averages (1, 5, 15 min).
+// The metrics are returned as a slice of model.Metric, which includes the namespace,
+// sub-namespace, name, timestamp, value, type, unit, and dimensions for each metric.
+// The dimensions include information such as core number, vendor ID, model name,
+// stepping, cache size, family, and whether the CPU is physical or not.
 func (c *CPUCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	var metrics []model.Metric
 	now := time.Now()
@@ -204,10 +220,16 @@ func (c *CPUCollector) Collect(ctx context.Context) ([]model.Metric, error) {
 	return metrics, nil
 }
 
+// formatCore formats the core number as a string.
+// It prefixes the core number with "core" to create a consistent naming convention.
+// This is used in the dimensions of the metrics to identify the specific core.
 func formatCore(i int) string {
 	return "core" + strconv.Itoa(i)
 }
 
+// formatBool formats a boolean value as a string.
+// It returns "true" if the value is true, and "false" otherwise.
+// This is used in the dimensions of the metrics to indicate whether the CPU is physical or not.
 func formatBool(b bool) string {
 	if b {
 		return "true"

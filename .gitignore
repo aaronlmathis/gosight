@@ -41,3 +41,6 @@ server/logstore
 *.bak
 *.old
 *.new
+**/.golangci.yml
+**/generate_docs.sh
+**/lint_check.txt

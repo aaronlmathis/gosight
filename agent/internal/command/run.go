@@ -37,7 +37,10 @@ import (
 	"github.com/aaronlmathis/gosight/shared/proto"
 )
 
-// hardened runShellCommand
+// runShellCommand executes a shell command with arguments and returns the result.
+// It uses a strict allowlist to prevent execution of unapproved commands.
+// The command and its arguments are validated for unsafe characters.
+// The command is executed in a context, and the output is captured.
 func runShellCommand(ctx context.Context, cmd string, args ...string) *proto.CommandResponse {
 	var allowed map[string]bool
 	osType := runtime.GOOS
@@ -46,6 +49,8 @@ func runShellCommand(ctx context.Context, cmd string, args ...string) *proto.Com
 	allowedLinux := map[string]bool{
 		"docker": true, "podman": true, "uptime": true, "ls": true, "pwd": true,
 		"cat": true, "echo": true, "cp": true, "mv": true, "grep": true,
+		"find": true, "chmod": true, "chown": true, "kill": true, "ps": true,
+		"systemctl": true, "journalctl": true,
 	}
 	allowedWindows := map[string]bool{
 		"docker": true, "podman": true, "Get-Process": true, "Get-Service": true,
@@ -106,6 +111,8 @@ func runShellCommand(ctx context.Context, cmd string, args ...string) *proto.Com
 }
 
 // runAnsiblePlaybook executes an Ansible playbook from a string and returns the result.
+// It writes the playbook content to a temporary file, executes it, and captures the output.
+// The playbook is expected to be in YAML format. The function handles errors related to file writing and command execution.
 func runAnsiblePlaybook(ctx context.Context, playbookContent string) *proto.CommandResponse {
 	tmpFile := filepath.Join(os.TempDir(), "gosight-playbook-"+time.Now().Format("20060102-150405")+".yml")
 

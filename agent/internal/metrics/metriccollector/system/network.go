@@ -37,15 +37,26 @@ import (
 
 type NetworkCollector struct{}
 
+// NewNetworkCollector creates a new NetworkCollector instance.
+// It initializes the collector and returns a pointer to it.
+// This collector gathers network interface I/O statistics using the gopsutil library.
+// It collects metrics such as bytes sent, bytes received, packets sent, packets received,
+// and errors in/out for each network interface on the system.
 func NewNetworkCollector() *NetworkCollector {
 	return &NetworkCollector{}
 }
 
+// Name returns the name of the collector.
+// This is used to identify the collector in logs and metrics.
 func (c *NetworkCollector) Name() string {
 	return "network"
 }
 
-func (c *NetworkCollector) Collect(ctx context.Context) ([]model.Metric, error) {
+// Collect gathers network interface I/O statistics and returns them as a slice of model.Metric.
+// It uses the gopsutil library to get network I/O counters for each interface.
+// The metrics include bytes sent, bytes received, packets sent, packets received,
+// and errors in/out for each network interface.
+func (c *NetworkCollector) Collect(_ context.Context) ([]model.Metric, error) {
 	now := time.Now()
 	var metrics []model.Metric
 

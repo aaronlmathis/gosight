@@ -34,6 +34,9 @@ import (
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
+// LoadAgentConfig loads the agent configuration from a file, environment variables, and command-line flags.
+// It applies the overrides in the following order: command-line flags > environment variables > config file.
+// The function returns a pointer to the loaded configuration.
 func LoadAgentConfig() *config.Config {
 	// Flag declarations
 	configFlag := flag.String("config", "", "Path to agent config file")
@@ -97,6 +100,9 @@ func LoadAgentConfig() *config.Config {
 	return cfg
 }
 
+// resolvePath resolves the path for a given flag value, environment variable, and fallback value.
+// It checks if the flag value is set, then checks the environment variable,
+// and finally falls back to the provided default value.
 func resolvePath(flagVal, envVar, fallback string) string {
 	if flagVal != "" {
 		return absPath(flagVal)
@@ -108,6 +114,8 @@ func resolvePath(flagVal, envVar, fallback string) string {
 	return absPath(fallback)
 }
 
+// absPath resolves the absolute path of a given path.
+// It uses filepath.Abs to get the absolute path and handles any errors that may occur.
 func absPath(path string) string {
 	abs, err := filepath.Abs(path)
 	if err != nil {

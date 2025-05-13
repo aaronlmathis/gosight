@@ -1,3 +1,23 @@
+/*
+SPDX-License-Identifier: GPL-3.0-or-later
+
+Copyright (C) 2025 Aaron Mathis aaron.mathis@gmail.com
+
+This file is part of GoSight.
+
+GoSight is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+GoSight is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with GoSight. If not, see https://www.gnu.org/licenses/.
+*/
 package logrunner
 
 import (
@@ -14,6 +34,10 @@ import (
 	"github.com/aaronlmathis/gosight/shared/utils"
 )
 
+// LogRunner is a struct that handles the collection and sending of log data.
+// It manages the log collection interval, the task queue, and the
+// log sender. It implements the Run method to start the collection process
+// and the Close method to clean up resources.
 type LogRunner struct {
 	Config      *config.Config
 	LogSender   *logsender.LogSender
@@ -22,6 +46,9 @@ type LogRunner struct {
 	runWg       sync.WaitGroup
 }
 
+// NewRunner creates a new LogRunner instance.
+// It initializes the log sender and sets up the context for the runner.
+// It returns a pointer to the LogRunner and an error if any occurs during initialization.
 func NewRunner(ctx context.Context, cfg *config.Config, baseMeta *model.Meta) (*LogRunner, error) {
 
 	logRegistry := logcollector.NewRegistry(cfg)
@@ -41,6 +68,9 @@ func NewRunner(ctx context.Context, cfg *config.Config, baseMeta *model.Meta) (*
 	}, nil
 }
 
+// Close cleans up the resources used by the LogRunner.
+// It closes the log sender and the log registry.
+// It should be called when the LogRunner is no longer needed.
 func (r *LogRunner) Close() {
 	utils.Info("Closing Log Runner...")
 

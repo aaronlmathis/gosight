@@ -34,6 +34,38 @@ import (
 	"github.com/docker/docker/api/types"
 )
 
+// fetchGenericJSON fetches JSON data from a Unix socket
+// and decodes it into the provided target interface.
+// It uses the provided socket path and endpoint to make the request.
+// The function is generic and can return any type of data.
+func fetchGenericJSON(socketPath, endpoint string, target interface{}) error {
+	client := &http.Client{
+		Transport: &http.Transport{
+			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+				return net.Dial("unix", socketPath)
+			},
+		},
+		Timeout: 5 * time.Second,
+	}
+
+	req, err := http.NewRequest("GET", "http://unix"+endpoint, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return json.NewDecoder(resp.Body).Decode(target)
+}
+
+// formatPorts formats a list of port mappings into a string
+// representation. It handles both public and private ports.
+// For example, it converts a list of PortMapping structs into
+// a string like "8080:80/tcp,443/tcp".
 func formatPorts(ports []PortMapping) string {
 	if len(ports) == 0 {
 		return ""
@@ -49,34 +81,10 @@ func formatPorts(ports []PortMapping) string {
 	return strings.Join(out, ",")
 }
 
-// Reusable fetcher for container lists
-func fetchContainersFromSocket[T any](socketPath, endpoint string) ([]T, error) {
-	client := &http.Client{
-		Transport: &http.Transport{
-			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial("unix", socketPath)
-			},
-		},
-		Timeout: 5 * time.Second,
-	}
-	req, err := http.NewRequest("GET", "http://unix"+endpoint, nil)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var out []T
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// Reusable fetcher for container stats
+// fetchContainerStatsFromSocket fetches container statistics from the Podman socket
+// and returns the statistics for a specific container. It uses the
+// provided socket path and endpoint to make the request. The function
+// is generic and can return any type of container statistics.
 func fetchContainerStatsFromSocket[T any](socketPath, statsEndpoint string) (T, error) {
 	var result T
 	client := &http.Client{
@@ -113,6 +121,10 @@ var prevStats = map[string]struct {
 	Timestamp time.Time
 }{}
 
+// calculateCPUPercent calculates the CPU percentage for a container
+// based on the total CPU usage and system CPU usage.
+// It uses the previous CPU usage and system CPU usage to calculate
+// the delta and then computes the percentage.
 func calculateCPUPercent(containerID string, totalUsage, systemUsage uint64, onlineCPUs int) float64 {
 	now := time.Now()
 	prev, ok := prevStats[containerID]
@@ -143,6 +155,10 @@ func calculateCPUPercent(containerID string, totalUsage, systemUsage uint64, onl
 	return percent
 }
 
+// calculateNetRate calculates the network rate for a container
+// based on the received and transmitted bytes.
+// It uses the previous received and transmitted bytes to calculate
+// the delta and then computes the rate in bytes per second.
 func calculateNetRate(containerID string, now time.Time, rx, tx uint64) (float64, float64) {
 	prev, ok := prevStats[containerID]
 	if !ok || prev.Timestamp.IsZero() {
@@ -173,6 +189,9 @@ func calculateNetRate(containerID string, now time.Time, rx, tx uint64) (float64
 	return rxRate, txRate
 }
 
+// sumNetRxRaw sums the received bytes from all network interfaces
+// in the PodmanStats struct. It returns the total received bytes.
+// It is used to calculate the network RX rate.
 func sumNetRxRaw(stats *PodmanStats) uint64 {
 	var total uint64
 	for _, net := range stats.Networks {
@@ -181,6 +200,9 @@ func sumNetRxRaw(stats *PodmanStats) uint64 {
 	return total
 }
 
+// sumNetTxRaw sums the transmitted bytes from all network interfaces
+// in the PodmanStats struct. It returns the total transmitted bytes.
+// It is used to calculate the network TX rate.
 func sumNetTxRaw(stats *PodmanStats) uint64 {
 	var total uint64
 	for _, net := range stats.Networks {
@@ -189,6 +211,9 @@ func sumNetTxRaw(stats *PodmanStats) uint64 {
 	return total
 }
 
+// sumNetRxRawDocker sums the received bytes from all network interfaces
+// in the Docker Stats struct. It returns the total received bytes.
+// It is used to calculate the network RX rate.
 func copyDims(src map[string]string) map[string]string {
 	dst := make(map[string]string, len(src))
 	for k, v := range src {
@@ -196,34 +221,17 @@ func copyDims(src map[string]string) map[string]string {
 	}
 	return dst
 }
+
+// normalizeKey normalizes a string key by converting it to lowercase
+// and replacing spaces with underscores. This is useful for
+// standardizing keys in metrics and dimensions.
 func normalizeKey(k string) string {
 	return strings.ReplaceAll(strings.ToLower(k), " ", "_")
 }
 
-func fetchGenericJSON(socketPath, endpoint string, target interface{}) error {
-	client := &http.Client{
-		Transport: &http.Transport{
-			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial("unix", socketPath)
-			},
-		},
-		Timeout: 5 * time.Second,
-	}
-
-	req, err := http.NewRequest("GET", "http://unix"+endpoint, nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	return json.NewDecoder(resp.Body).Decode(target)
-}
-
+// sumNetRxRawDocker sums the received bytes from all network interfaces
+// in the Docker Stats struct. It returns the total received bytes.
+// It is used to calculate the network RX rate.
 func sumNetRxRawDocker(stats types.StatsJSON) uint64 {
 	var total uint64
 	for _, iface := range stats.Networks {
@@ -231,6 +239,10 @@ func sumNetRxRawDocker(stats types.StatsJSON) uint64 {
 	}
 	return total
 }
+
+// sumNetTxRawDocker sums the transmitted bytes from all network interfaces
+// in the Docker Stats struct. It returns the total transmitted bytes.
+// It is used to calculate the network TX rate.
 func sumNetTxRawDocker(stats types.StatsJSON) uint64 {
 	var total uint64
 	for _, iface := range stats.Networks {

@@ -33,6 +33,7 @@ import (
 )
 
 // BuildStandardTags sets required labels for consistent metric identity and filtering.
+// It sets the "namespace" and "job" labels, which are used to identify the source of the metric.
 func BuildStandardTags(meta *model.Meta, m model.Metric, isContainer bool, startTime time.Time) {
 	if meta.Tags == nil {
 		meta.Tags = make(map[string]string)
