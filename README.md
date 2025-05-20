@@ -3,10 +3,11 @@
 >
 > GoSight is under active development and **not yet production-ready**. However, many core features are implemented and functional:
 >
-> - Agent/server metric + log streaming via gRPC  
+> - Agent/server metric + log streaming via gRPC
+> - SYSLOG ingestion over TCP/UDP 
 > - Web dashboard with tabs, charts, and endpoint views  
 > - TLS/mTLS authentication, JWT session handling  
-> - Modular collectors: CPU, memory, disk, net, journald, podman, docker  
+> - Modular collectors: CPU, memory, disk, net, journald, eventlog, podman, docker  
 > - Log and metric APIs for filtering and export  
 > - Metric Explorer with multi-series charting  
 > - Alerting system with flexible rule logic and route actions  
@@ -21,7 +22,7 @@ GoSight is a high-performance, modular, and vendor-agnostic observability platfo
 GoSight supports a full observability pipeline including:
 - System and container metrics (CPU, memory, disk, network, uptime, etc.)
 - Structured and unstructured log collection (journald, flat files, syslog)
-- Cloud-native metrics via extensible integrations (AWS CloudWatch, GCP Monitoring, Azure Monitor)
+- Planned: Cloud-native metrics via extensible integrations (AWS CloudWatch, GCP Monitoring, Azure Monitor)
 - WebSocket-based live streaming of telemetry
 - Advanced alerting, filtering, and incident correlation
 - Remote-safe command dispatch and automation hooks (Ansible runbooks)
