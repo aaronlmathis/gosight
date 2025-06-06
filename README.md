@@ -75,6 +75,8 @@ Observability tools are often bloated, vendor-locked, or inflexible. GoSight aim
 
 ### Agent
 [`gosight-agent`](https://github.com/aaronlmathis/gosight-agent)
+- Exposes OpenTelemetry Endpoint (GRPC/HTTP) to collect metrics, logs, traces
+- Works with baremetal/virtual hosts as well as K8s
 - Collects system metrics, container stats, and logs  
 - Sends telemetry via gRPC (TLS/mTLS)  
 - Supports runtime-safe command execution (whitelisted)  
@@ -99,7 +101,7 @@ Observability tools are often bloated, vendor-locked, or inflexible. GoSight aim
 
 GoSight is early-stage and actively evolving. Contributions are welcome in all areas:
 
-- Frontend: Tailwind UI, Flowbite, Charting (ApexCharts)  
+- Svelte5, Sveltekit, Shadcn, Charting (ApexCharts)  
 - Backend: Go, gRPC, Alert evaluation, API design  
 - Infra: Agent packaging, deployment, CI  
 - UX: Log explorer, incident view, global search, whitelabel  
