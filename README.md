@@ -3,7 +3,7 @@
 >
 > GoSight is under active development and **not yet production-ready**. However, many core features are implemented and functional:
 >
-> - Agent/server metric + log streaming via gRPC
+> - Agent/server metric + log + trace streaming via OpenTelemetry + gRPC
 > - SYSLOG ingestion over TCP/UDP 
 > - Web dashboard with tabs, charts, and endpoint views  
 > - TLS/mTLS authentication, JWT session handling  
